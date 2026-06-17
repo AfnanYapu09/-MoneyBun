@@ -57,3 +57,5 @@ flutter:
   # The "Bun" mascot and category icons are rendered programmatically
   # (CustomPainter + Material icons) so no binary assets are required yet.
   # Drop final pixel-art PNGs into assets/images/bun/ and declare them here later.
+  assets:
+    - google_fonts/
