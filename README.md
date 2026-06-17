@@ -85,9 +85,10 @@ GitHub Actions (`.github/workflows/ci.yml`): `pub get` → `gen-l10n` → `build
 แอปรันบนเว็บได้ (Flutter web + drift wasm + ฟอนต์ bundle) workflow `.github/workflows/deploy-web.yml`
 จะ build + deploy ขึ้น GitHub Pages อัตโนมัติเมื่อ push เข้า `main`
 
-เปิดใช้งานครั้งเดียว (workflow เปิด Pages ให้อัตโนมัติด้วย `actions/configure-pages`):
+เปิดใช้งานครั้งเดียว:
 1. Merge เข้า `main`
 2. เปลี่ยน repo เป็น **public** (Settings → General → Change visibility) — ⚠️ GitHub Pages ใช้กับ repo private ไม่ได้ถ้าเป็นแพ็กเกจฟรี (ต้อง public หรือ GitHub Pro/Team)
-3. รอ workflow **Deploy Web** เสร็จ (~2 นาที) → เปิด `https://afnanyapu09.github.io/-MoneySnap/`
+3. เปิด Pages: **Settings → Pages → Build and deployment → Source: GitHub Actions**
+4. รอ workflow **Deploy Web** เสร็จ (~2 นาที) → เปิด `https://afnanyapu09.github.io/-MoneyBun/`
 
 > ทางเลือกฟรีถ้าอยากเก็บ repo เป็น private: ใช้ **Firebase Hosting** (`firebase deploy --only hosting`) แทน

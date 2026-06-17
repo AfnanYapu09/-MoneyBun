@@ -32,15 +32,10 @@ jobs:
       - run: flutter gen-l10n
       - run: dart run build_runner build
 
-      # Self-contained build (CanvasKit + fonts bundled), served under the repo path.
+      # Self-contained build (CanvasKit + fonts bundled). base-href tracks the
+      # repo name automatically, so renaming the repo won't break asset paths.
       - name: Build web
-        run: flutter build web --release --no-web-resources-cdn --base-href "/-MoneySnap/"
-
-      # Auto-enable GitHub Pages (Source: GitHub Actions) on first run, so the
-      # user doesn't have to toggle it in repo Settings.
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
+        run: flutter build web --release --no-web-resources-cdn --base-href "/${{ github.event.repository.name }}/"
 
       - uses: actions/upload-pages-artifact@v3
         with:
