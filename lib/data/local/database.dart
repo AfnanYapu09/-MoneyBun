@@ -190,4 +190,20 @@ class AppDatabase extends _$AppDatabase {
   Future<List<SlipRow>> pendingSlips() => (select(slips)
         ..where((s) => s.syncStatus.isNotValue(SyncStatus.synced.index)))
       .get();
+
+  Future<void> markTransactionSynced(String id) => (update(transactions)
+        ..where((t) => t.id.equals(id)))
+      .write(const TransactionsCompanion(syncStatus: Value(SyncStatus.synced)));
+
+  Future<void> markAccountSynced(String id) =>
+      (update(accounts)..where((a) => a.id.equals(id)))
+          .write(const AccountsCompanion(syncStatus: Value(SyncStatus.synced)));
+
+  Future<void> markCategorySynced(String id) => (update(categories)
+        ..where((c) => c.id.equals(id)))
+      .write(const CategoriesCompanion(syncStatus: Value(SyncStatus.synced)));
+
+  Future<void> markSlipSynced(String id) =>
+      (update(slips)..where((s) => s.id.equals(id)))
+          .write(const SlipsCompanion(syncStatus: Value(SyncStatus.synced)));
 }
