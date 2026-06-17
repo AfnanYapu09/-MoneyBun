@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'app.dart';
 import 'bootstrap/firebase_options.dart';
@@ -8,6 +9,10 @@ import 'bootstrap/providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Use the bundled fonts in google_fonts/ instead of fetching at runtime
+  // (works fully offline).
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   // Local-first: the app is fully usable offline. Firebase is initialised only
   // when real config is present (i.e. after `flutterfire configure` replaces the

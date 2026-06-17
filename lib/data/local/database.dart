@@ -9,7 +9,17 @@ part 'database.g.dart';
 
 @DriftDatabase(tables: [Accounts, Categories, Transactions, Slips, Budgets])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(driftDatabase(name: 'moneybun'));
+  AppDatabase()
+      : super(
+          driftDatabase(
+            name: 'moneybun',
+            // Web support: sqlite3.wasm + drift_worker.js are served from web/.
+            web: DriftWebOptions(
+              sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+              driftWorker: Uri.parse('drift_worker.js'),
+            ),
+          ),
+        );
 
   /// In-memory / custom executor constructor for tests.
   AppDatabase.forTesting(super.executor);
