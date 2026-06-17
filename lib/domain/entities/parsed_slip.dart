@@ -6,6 +6,8 @@ class ParsedSlip {
   const ParsedSlip({
     required this.source,
     this.imagePath,
+    this.imageBase64,
+    this.assetId,
     this.bankCode,
     this.transRef,
     this.qrPayload,
@@ -22,6 +24,8 @@ class ParsedSlip {
 
   final SlipSource source;
   final String? imagePath;
+  final String? imageBase64;
+  final String? assetId;
   final String? bankCode;
   final String? transRef;
   final String? qrPayload;
@@ -41,6 +45,8 @@ class ParsedSlip {
   ParsedSlip copyWith({
     SlipSource? source,
     String? imagePath,
+    String? imageBase64,
+    String? assetId,
     String? bankCode,
     String? transRef,
     String? qrPayload,
@@ -57,6 +63,8 @@ class ParsedSlip {
     return ParsedSlip(
       source: source ?? this.source,
       imagePath: imagePath ?? this.imagePath,
+      imageBase64: imageBase64 ?? this.imageBase64,
+      assetId: assetId ?? this.assetId,
       bankCode: bankCode ?? this.bankCode,
       transRef: transRef ?? this.transRef,
       qrPayload: qrPayload ?? this.qrPayload,

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../l10n/generated/app_localizations.dart';
 import '../theme/colors.dart';
 import '../theme/pixel_theme.dart';
 
-/// The persistent app frame: an indexed-stack body with a pixel bottom bar
-/// (Home / Stats / [+ FAB] / Accounts / Settings).
+/// The app frame: indexed-stack body (Home / Stats / Settings) with a pixel
+/// bottom bar and a center FAB that opens the slip scanner.
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.shell});
 
@@ -14,7 +13,6 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: shell,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -25,13 +23,13 @@ class MainShell extends StatelessWidget {
           boxShadow: PixelTokens.hardShadow(),
         ),
         child: FloatingActionButton(
-          onPressed: () => context.push('/add'),
+          onPressed: () => context.push('/scan'),
           backgroundColor: AppColors.bunOrange,
           foregroundColor: AppColors.white,
           elevation: 0,
           shape: const RoundedRectangleBorder(
               borderRadius: PixelTokens.borderRadius),
-          child: const Icon(Icons.add, size: 30),
+          child: const Icon(Icons.document_scanner, size: 28),
         ),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -42,32 +40,25 @@ class MainShell extends StatelessWidget {
         height: 64,
         padding: EdgeInsets.zero,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _NavItem(
               icon: Icons.home_rounded,
-              label: l10n.navHome,
+              label: 'หน้าหลัก',
               selected: shell.currentIndex == 0,
               onTap: () => _go(0),
             ),
             _NavItem(
               icon: Icons.bar_chart_rounded,
-              label: l10n.navStats,
+              label: 'สถิติ',
               selected: shell.currentIndex == 1,
               onTap: () => _go(1),
             ),
-            const SizedBox(width: 48),
-            _NavItem(
-              icon: Icons.account_balance_wallet_rounded,
-              label: l10n.navAccounts,
-              selected: shell.currentIndex == 2,
-              onTap: () => _go(2),
-            ),
+            const SizedBox(width: 64),
             _NavItem(
               icon: Icons.settings_rounded,
-              label: l10n.navSettings,
-              selected: shell.currentIndex == 3,
-              onTap: () => _go(3),
+              label: 'ตั้งค่า',
+              selected: shell.currentIndex == 2,
+              onTap: () => _go(2),
             ),
           ],
         ),
@@ -102,14 +93,11 @@ class _NavItem extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 24),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: color,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-              ),
-            ),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: color,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
           ],
         ),
       ),

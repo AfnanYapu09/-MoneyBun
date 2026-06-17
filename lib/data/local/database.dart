@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -33,8 +33,17 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await _seed();
         },
+        onUpgrade: (m, from, to) async {
+          // v2: store slip images cross-platform (base64) + gallery asset id.
+          if (from < 2) {
+            await m.addColumn(slips, slips.imageBase64);
+            await m.addColumn(slips, slips.assetId);
+          }
+        },
       );
 
+  /// Seed the flat category list on first run. No accounts are seeded — the app
+  /// is slip-first and has no wallet/account concept.
   Future<void> _seed() async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await batch((b) {
@@ -43,13 +52,6 @@ class AppDatabase extends _$AppDatabase {
         [
           for (var i = 0; i < SeedData.categories.length; i++)
             _categoryFromSeed(SeedData.categories[i], i, now),
-        ],
-      );
-      b.insertAll(
-        accounts,
-        [
-          for (var i = 0; i < SeedData.accounts.length; i++)
-            _accountFromSeed(SeedData.accounts[i], i, now),
         ],
       );
     });
@@ -67,21 +69,7 @@ class AppDatabase extends _$AppDatabase {
         sortOrder: Value(order),
         createdAt: now,
         updatedAt: now,
-        // Seed rows start "synced" locally; they get pushed once the user signs in.
-        syncStatus: const Value(SyncStatus.pendingCreate),
-      );
-
-  AccountsCompanion _accountFromSeed(AccountSeed s, int order, int now) =>
-      AccountsCompanion.insert(
-        id: s.id,
-        name: s.nameTh,
-        type: s.type,
-        bankCode: Value(s.bankCode),
-        colorHex: Value(s.colorHex),
-        iconKey: const Value(null),
-        sortOrder: Value(order),
-        createdAt: now,
-        updatedAt: now,
+        // Seed rows start pending; they get pushed once the user signs in.
         syncStatus: const Value(SyncStatus.pendingCreate),
       );
 
@@ -173,6 +161,18 @@ class AppDatabase extends _$AppDatabase {
 
   Future<SlipRow?> getSlip(String id) =>
       (select(slips)..where((s) => s.id.equals(id))).getSingleOrNull();
+
+  Stream<List<SlipRow>> watchSlips() =>
+      (select(slips)..where((s) => s.deleted.equals(false))).watch();
+
+  /// Asset ids already imported (Android album scan dedup).
+  Future<Set<String>> importedAssetIds() async {
+    final query = selectOnly(slips)
+      ..addColumns([slips.assetId])
+      ..where(slips.assetId.isNotNull());
+    final rows = await query.get();
+    return rows.map((r) => r.read(slips.assetId)).whereType<String>().toSet();
+  }
 
   // ---- Budgets -----------------------------------------------------------
 

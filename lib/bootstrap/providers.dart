@@ -5,15 +5,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/utils/app_date.dart';
-import '../core/utils/balances.dart';
 import '../data/local/database.dart';
 import '../data/remote/auth_service.dart';
 import '../data/remote/slip_verify_api.dart';
 import '../data/remote/sync_engine.dart';
-import '../data/repositories/account_repository.dart';
 import '../data/repositories/category_repository.dart';
 import '../data/repositories/slip_repository.dart';
 import '../data/repositories/transaction_repository.dart';
+import '../features/slip/data/slip_importer.dart';
 import '../features/slip/data/slip_ocr_service.dart';
 import '../features/slip/data/slip_pipeline.dart';
 import '../features/slip/data/slip_qr_scanner.dart';
@@ -34,9 +33,6 @@ final firebaseReadyProvider = Provider<bool>((ref) => false);
 
 final transactionRepositoryProvider = Provider<TransactionRepository>(
   (ref) => TransactionRepository(ref.watch(databaseProvider)),
-);
-final accountRepositoryProvider = Provider<AccountRepository>(
-  (ref) => AccountRepository(ref.watch(databaseProvider)),
 );
 final categoryRepositoryProvider = Provider<CategoryRepository>(
   (ref) => CategoryRepository(ref.watch(databaseProvider)),
@@ -71,7 +67,7 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return auth.authStateChanges();
 });
 
-// ---- Slip pipeline ---------------------------------------------------------
+// ---- Slip pipeline + importer ----------------------------------------------
 
 final slipQrScannerProvider = Provider((ref) => SlipQrScanner());
 final slipOcrServiceProvider = Provider((ref) => SlipOcrService());
@@ -82,25 +78,38 @@ final slipPipelineProvider = Provider(
   ),
 );
 
+final slipImporterProvider = Provider<SlipImporter>((ref) {
+  final db = ref.watch(databaseProvider);
+  return SlipImporter(
+    pipeline: ref.watch(slipPipelineProvider),
+    slips: ref.watch(slipRepositoryProvider),
+    transactions: ref.watch(transactionRepositoryProvider),
+    importedAssetIds: db.importedAssetIds,
+  );
+});
+
+/// Chosen Android gallery album id to auto-scan (null = ask first).
+class SelectedAlbum extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void set(String? id) => state = id;
+}
+
+final selectedAlbumProvider =
+    NotifierProvider<SelectedAlbum, String?>(SelectedAlbum.new);
+
 // ---- Reactive data ---------------------------------------------------------
 
 final categoriesProvider = StreamProvider<List<CategoryRow>>(
   (ref) => ref.watch(categoryRepositoryProvider).watchCategories(),
 );
 
-final accountsProvider = StreamProvider<List<AccountRow>>(
-  (ref) => ref.watch(accountRepositoryProvider).watchAccounts(),
-);
-
-final allTransactionsProvider = StreamProvider<List<TransactionRow>>(
-  (ref) => ref.watch(databaseProvider).watchActiveTransactions(),
-);
-
-/// Current account balances, recomputed whenever accounts or transactions change.
-final accountBalancesProvider = Provider<Map<String, int>>((ref) {
-  final accounts = ref.watch(accountsProvider).value ?? const [];
-  final txns = ref.watch(allTransactionsProvider).value ?? const [];
-  return computeBalances(accounts, txns);
+/// Slips keyed by id, so an entry can show its image thumbnail + details.
+final slipsByIdProvider = StreamProvider<Map<String, SlipRow>>((ref) {
+  return ref
+      .watch(slipRepositoryProvider)
+      .watchAll()
+      .map((list) => {for (final s in list) s.id: s});
 });
 
 /// The month currently shown on Home / Stats.
@@ -131,8 +140,7 @@ class LocaleController extends Notifier<Locale> {
 final localeProvider =
     NotifierProvider<LocaleController, Locale>(LocaleController.new);
 
-/// Whether the optional online slip-verify API may be called. Off by default
-/// (opt-in) so the free tier is never burned automatically. Not persisted yet.
+/// Whether the optional online slip-verify API may be called. Off by default.
 class SlipApiEnabled extends Notifier<bool> {
   @override
   bool build() => false;

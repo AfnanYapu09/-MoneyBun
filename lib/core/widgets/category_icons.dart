@@ -15,6 +15,8 @@ class CategoryIcons {
     'transport': Icons.directions_bus,
     'health': Icons.favorite,
     'entertainment': Icons.sports_esports,
+    'lend': Icons.volunteer_activism,
+    'transfer': Icons.swap_horiz,
     'salary': Icons.payments,
     'bonus': Icons.card_giftcard,
     'other': Icons.category,

@@ -12,7 +12,7 @@ class SlipRepository {
   final AppDatabase _db;
   static const _uuid = Uuid();
 
-  /// Persist a parsed slip and return its id (to link onto a transaction).
+  /// Persist a parsed slip (incl. its image) and return its id.
   Future<String> save(ParsedSlip slip) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final id = _uuid.v4();
@@ -21,6 +21,8 @@ class SlipRepository {
         id: id,
         source: slip.source,
         imagePath: Value(slip.imagePath),
+        imageBase64: Value(slip.imageBase64),
+        assetId: Value(slip.assetId),
         bankCode: Value(slip.bankCode),
         transRef: Value(slip.transRef),
         qrPayload: Value(slip.qrPayload),
@@ -42,4 +44,8 @@ class SlipRepository {
     );
     return id;
   }
+
+  Future<SlipRow?> get(String id) => _db.getSlip(id);
+
+  Stream<List<SlipRow>> watchAll() => _db.watchSlips();
 }
