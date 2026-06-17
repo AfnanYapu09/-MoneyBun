@@ -57,12 +57,15 @@ app.*.map.json
 *.jks
 *.keystore
 
-# Firebase secrets (real config must NOT be committed)
-**/android/app/google-services.real.json
+# Firebase: real config the user generates locally (keep out of the repo)
+**/android/app/google-services.json
 **/ios/Runner/GoogleService-Info.plist
-lib/firebase_options.dart.real
 functions/.env
 functions/lib/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+*.local
 
 # iOS
 **/ios/**/*.mode1v3

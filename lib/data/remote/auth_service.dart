@@ -10,14 +10,22 @@ class AuthService {
   final FirebaseAuth _auth;
   bool _gsiInitialized = false;
 
+  /// The Web OAuth client id from the Firebase/Google Cloud console. Pass it at
+  /// build time so the ID token's audience is accepted by Firebase Auth on
+  /// Android:
+  ///   flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=xxxx.apps.googleusercontent.com
+  static const _serverClientId =
+      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+
   Stream<User?> authStateChanges() => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
   bool get isSignedIn => _auth.currentUser != null;
 
   Future<void> _ensureGsi() async {
     if (_gsiInitialized) return;
-    // serverClientId is supplied by flutterfire/Google Cloud console for Android.
-    await GoogleSignIn.instance.initialize();
+    await GoogleSignIn.instance.initialize(
+      serverClientId: _serverClientId.isEmpty ? null : _serverClientId,
+    );
     _gsiInitialized = true;
   }
 
