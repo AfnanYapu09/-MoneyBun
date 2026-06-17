@@ -2,13 +2,20 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
+
+# Cancel any in-progress run on the same ref when a new commit arrives, so a
+# hung build (e.g. a stuck Gradle APK build) is superseded instead of lingering.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   flutter:
     name: Flutter analyze, test & build APK
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -54,6 +61,7 @@ jobs:
   functions:
     name: Cloud Functions typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: functions
