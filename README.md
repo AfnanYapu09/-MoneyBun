@@ -79,3 +79,16 @@ GitHub Actions (`.github/workflows/ci.yml`): `pub get` → `gen-l10n` → `build
 - การ map ผลลัพธ์จาก EasySlip ใน `functions/src/index.ts` เขียนแบบ defensive — อาจต้องปรับ field ตาม plan ของผู้ให้บริการ
 - Sync conflict ใช้ last-write-wins (เหมาะกับผู้ใช้คนเดียวหลายเครื่อง)
 - งบประมาณ/เปรียบเทียบเดือน: โครงข้อมูลรองรับแล้ว (ตาราง budgets) แต่ยังไม่ต่อ UI
+
+## เดโมเว็บ (GitHub Pages)
+
+แอปรันบนเว็บได้ (Flutter web + drift wasm + ฟอนต์ bundle) workflow `.github/workflows/deploy-web.yml`
+จะ build + deploy ขึ้น GitHub Pages อัตโนมัติเมื่อ push เข้า `main`
+
+เปิดใช้งานครั้งเดียว:
+1. Merge การเปลี่ยนแปลงเข้า `main`
+2. ไปที่ **Settings → Pages → Build and deployment → Source: GitHub Actions**
+3. ⚠️ repo เป็น **private** — GitHub Pages ต้องใช้ repo **public** หรือมี **GitHub Pro/Team** (ไม่งั้น deploy ไม่ได้)
+4. URL: `https://afnanyapu09.github.io/-MoneySnap/`
+
+> ทางเลือกฟรีถ้าอยากเก็บ repo เป็น private: ใช้ **Firebase Hosting** (`firebase deploy --only hosting`) แทน
