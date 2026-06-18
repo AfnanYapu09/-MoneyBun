@@ -19,6 +19,10 @@ class Accounts extends Table {
   TextColumn get currency => text().withDefault(const Constant('THB'))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
+
+  /// Whether MoneyBun auto-reads slips for this account (Accounts sheet toggle).
+  BoolColumn get watchedForSlips =>
+      boolean().withDefault(const Constant(true))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
   IntColumn get syncStatus => intEnum<SyncStatus>()
@@ -105,6 +109,47 @@ class Slips extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// User-defined tags. Local-only for now (carries sync columns so it can be
+/// promoted to sync later without another migration).
+@DataClassName('TagRow')
+class Tags extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get colorHex => text().nullable()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
+  IntColumn get syncStatus => intEnum<SyncStatus>()
+      .withDefault(Constant(SyncStatus.pendingCreate.index))();
+  TextColumn get remoteId => text().nullable()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Many-to-many link between transactions and tags. Local-only.
+@DataClassName('TransactionTagRow')
+class TransactionTags extends Table {
+  TextColumn get transactionId => text()();
+  TextColumn get tagId => text()();
+
+  @override
+  Set<Column> get primaryKey => {transactionId, tagId};
+}
+
+/// Simple key/value app settings (theme, currency, savings goal, PIN, …).
+/// Local-only — never synced.
+@DataClassName('SettingRow')
+class Settings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {key};
 }
 
 @DataClassName('BudgetRow')

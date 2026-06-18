@@ -1,20 +1,23 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../bootstrap/providers.dart';
+import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/pixel_theme.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
+import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/app_motion.dart';
 import '../../../core/widgets/bun_avatar.dart';
-import '../../../core/widgets/category_icons.dart';
-import '../../../core/widgets/pixel_border.dart';
-import '../../../core/widgets/pixel_button.dart';
-import '../../../core/widgets/slip_image.dart';
+import '../../../core/widgets/bun_scanning_block.dart';
+import '../../../core/widgets/pill.dart';
+import '../../../core/widgets/stat_chip.dart';
 import '../../../data/local/database.dart';
-import '../../slip/data/slip_importer.dart';
+import '../../../domain/enums/enums.dart';
+import '../../transactions/presentation/txn_display.dart';
+import '../../transactions/presentation/widgets/txn_row.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -34,17 +37,117 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c,
+        c.id: c
     };
-    final slips =
-        ref.watch(slipsByIdProvider).value ?? const <String, SlipRow>{};
+    final accounts = {
+      for (final a in ref.watch(accountsProvider).value ?? const <AccountRow>[])
+        a.id: a
+    };
+    final budgets = ref.watch(budgetsProvider).value ?? const <BudgetRow>[];
+    final settings = ref.watch(appSettingsProvider).value;
     final scan = ref.watch(scanControllerProvider);
 
-    // React to scan results: toast the count, show diagnostics on 0, or prompt
-    // for photo permission.
+    _listenScan();
+
+    final expense = txns
+        .where((t) => t.type == TxnType.expense)
+        .fold<int>(0, (s, t) => s + t.amountCents);
+    final income = txns
+        .where((t) => t.type == TxnType.income)
+        .fold<int>(0, (s, t) => s + t.amountCents);
+    final totalBudget = budgets
+        .where((b) => b.period == BudgetPeriod.monthly)
+        .fold<int>(0, (s, b) => s + b.amountCents);
+
+    // The freshly-scanned, uncategorized slip (if any).
+    final scanned = txns
+        .where((t) =>
+            t.type == TxnType.expense &&
+            t.categoryId == null &&
+            t.slipId != null)
+        .toList()
+      ..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
+    final scannedRow = scanned.isEmpty ? null : scanned.first;
+
+    final recent = txns.where((t) => t.id != scannedRow?.id).take(6).toList();
+    final watchedCount = accounts.values.where((a) => a.watchedForSlips).length;
+
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          color: AppColors.terra,
+          onRefresh: _scan,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
+            children: [
+              if (scan.scanning) ...[
+                const BunScanningBlock(),
+                const SizedBox(height: 18),
+              ],
+              StaggeredColumn(
+                spacing: 18,
+                children: [
+                  _Header(watchedCount: watchedCount),
+                  MonthChip(
+                    label: AppDate.formatMonth(month, locale: locale),
+                    onPrev: () =>
+                        ref.read(selectedMonthProvider.notifier).previous(),
+                    onNext: () =>
+                        ref.read(selectedMonthProvider.notifier).next(),
+                  ),
+                  _SpendingCard(
+                    spentCents: expense,
+                    budgetCents: totalBudget,
+                    scanning: scan.scanning,
+                    lastReadAt: settings?.lastSlipReadAt,
+                    onRefresh: _scan,
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StatChip(
+                          icon: AppIcons.arrowDownLeft,
+                          label: 'รายรับ',
+                          amount: Money.compact(income),
+                          accent: AppColors.green,
+                          amountColor: AppColors.green,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: StatChip(
+                          icon: AppIcons.arrowUpRight,
+                          label: 'รายจ่าย',
+                          amount: Money.compact(expense),
+                          accent: AppColors.terra,
+                        ),
+                      ),
+                    ],
+                  ),
+                  _RecentHeader(onSeeAll: () => context.push('/transactions')),
+                  _RecentList(
+                    scannedRow: scannedRow,
+                    recent: recent,
+                    categories: categories,
+                    accounts: accounts,
+                    locale: locale,
+                    onCategorize: _categorize,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _listenScan() {
     ref.listen<ScanState>(scanControllerProvider, (prev, next) {
       if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
-        _showPermissionDialog();
+        _permissionDialog();
       } else if ((prev?.scanning ?? false) &&
           !next.scanning &&
           next.error == null &&
@@ -52,53 +155,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final r = next.result!;
         if (r.imported > 0) {
           _snack('น้องบันอ่านสลิปใหม่ ${r.imported} รายการ');
-        } else {
-          _showScanReport(r, next.limited);
         }
       } else if (next.error != null && prev?.error != next.error) {
         _snack('สแกนไม่สำเร็จ ลองใหม่อีกครั้ง');
       }
     });
+  }
 
-    final total = txns.fold<int>(0, (s, t) => s + t.amountCents);
-    final byDay = groupBy<TransactionRow, DateTime>(
-      txns,
-      (t) => AppDate.startOfDay(AppDate.fromMillis(t.occurredAt)),
-    );
-    final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
-
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            _Header(month: month, locale: locale, total: total),
-            if (scan.scanning) const _ScanningBanner(),
-            Expanded(
-              child: RefreshIndicator(
-                color: AppColors.bunOrange,
-                onRefresh: _scan,
-                child: txns.isEmpty
-                    ? _EmptyState(onScan: _scan)
-                    : ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                        children: [
-                          for (final day in days)
-                            _DaySection(
-                              day: day,
-                              rows: byDay[day]!,
-                              categories: categories,
-                              slips: slips,
-                              locale: locale,
-                            ),
-                        ],
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _categorize(TransactionRow txn) async {
+    final pick = await showCategoryPicker(context);
+    if (pick != null) {
+      await ref
+          .read(transactionRepositoryProvider)
+          .setCategory(txn.id, pick.categoryId);
+      if (pick.tagIds.isNotEmpty) {
+        await ref
+            .read(databaseProvider)
+            .setTransactionTags(txn.id, pick.tagIds);
+      }
+    }
   }
 
   void _snack(String m) {
@@ -108,57 +183,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ..showSnackBar(SnackBar(content: Text(m)));
   }
 
-  /// Shown when a scan imported nothing — surfaces the counts so we can see
-  /// whether photos were even read, and offers to fix limited photo access.
-  Future<void> _showScanReport(ScanResult r, bool limited) async {
-    final open = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('ไม่พบสลิปใหม่'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _reportRow('อัลบั้มสลิปที่เจอ', '${r.matchedAlbums}'),
-            _reportRow('รูปในแกลเลอรี', '${r.albumCount}'),
-            _reportRow('อ่านรอบนี้', '${r.inspected}'),
-            _reportRow('เป็นสลิป', '${r.imported}'),
-            _reportRow('อ่านรูปไม่ได้', '${r.errors}'),
-            if (limited) ...[
-              const SizedBox(height: 12),
-              const Text(
-                '⚠️ ให้สิทธิ์รูปแบบจำกัด — กด "เปิดการตั้งค่า" แล้วเลือก '
-                '"อนุญาตทั้งหมด" เพื่อให้เห็นสลิปทุกรูป',
-                style: TextStyle(color: AppColors.expense, fontSize: 12),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('ปิด')),
-          TextButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('เปิดการตั้งค่า')),
-        ],
-      ),
-    );
-    if (open == true) await ref.read(slipImporterProvider).openSettings();
-  }
-
-  Widget _reportRow(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(color: AppColors.gray600)),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
-          ],
-        ),
-      );
-
-  Future<void> _showPermissionDialog() async {
+  Future<void> _permissionDialog() async {
     final open = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -183,279 +208,99 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _Header extends ConsumerWidget {
-  const _Header(
-      {required this.month, required this.locale, required this.total});
-
-  final DateTime month;
-  final String locale;
-  final int total;
+  const _Header({required this.watchedCount});
+  final int watchedCount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const BunAvatar(size: 40, mood: BunMood.happy),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  AppDate.formatMonth(month, locale: locale),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w900, fontSize: 18),
-                ),
-              ),
-              IconButton(
-                onPressed: () =>
-                    ref.read(selectedMonthProvider.notifier).previous(),
-                icon: const Icon(Icons.chevron_left),
-              ),
-              IconButton(
-                onPressed: () =>
-                    ref.read(selectedMonthProvider.notifier).next(),
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          PixelBorder(
-            color: AppColors.orangeLight,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('รวมเดือนนี้',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                Text(Money.format(total),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 20,
-                        color: AppColors.expense)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Animated banner shown while a scan runs (pulsing Bun + progress bar).
-class _ScanningBanner extends StatefulWidget {
-  const _ScanningBanner();
-
-  @override
-  State<_ScanningBanner> createState() => _ScanningBannerState();
-}
-
-class _ScanningBannerState extends State<_ScanningBanner>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 700),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: PixelBorder(
-        color: AppColors.orangeLight,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            ScaleTransition(
-              scale: Tween(begin: 0.85, end: 1.12).animate(
-                CurvedAnimation(parent: _c, curve: Curves.easeInOut),
-              ),
-              child: const BunAvatar(size: 34, mood: BunMood.happy),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('น้องบันกำลังอ่านสลิป...',
-                      style: TextStyle(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: const LinearProgressIndicator(
-                      minHeight: 6,
-                      backgroundColor: AppColors.gray100,
-                      color: AppColors.bunOrange,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DaySection extends StatelessWidget {
-  const _DaySection({
-    required this.day,
-    required this.rows,
-    required this.categories,
-    required this.slips,
-    required this.locale,
-  });
-
-  final DateTime day;
-  final List<TransactionRow> rows;
-  final Map<String, CategoryRow> categories;
-  final Map<String, SlipRow> slips;
-  final String locale;
-
-  @override
-  Widget build(BuildContext context) {
-    final dayTotal = rows.fold<int>(0, (s, t) => s + t.amountCents);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'สวัสดีตอนเช้า'
+        : (hour < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น');
+    final name = ref.watch(appSettingsProvider).value?.displayName ?? 'คุณบัน';
+    return Row(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
-          child: Row(
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(AppDate.formatDayHeader(day, locale: locale),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, color: AppColors.gray700)),
-              ),
-              Text(Money.format(dayTotal, symbol: false),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, color: AppColors.expense)),
+              Text(greeting,
+                  style: AppTypography.body(size: 13, color: AppColors.ink3)),
+              Text(name,
+                  style:
+                      AppTypography.heading(size: 20, weight: FontWeight.w600)),
             ],
           ),
         ),
-        for (final t in rows)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SlipTile(
-              txn: t,
-              slip: t.slipId == null ? null : slips[t.slipId],
-              category: t.categoryId == null ? null : categories[t.categoryId],
-              locale: locale,
-            ),
-          ),
+        _WalletButton(
+            count: watchedCount, onTap: () => showAccountsSheet(context)),
       ],
     );
   }
 }
 
-class _SlipTile extends ConsumerWidget {
-  const _SlipTile({
-    required this.txn,
-    required this.slip,
-    required this.category,
-    required this.locale,
-  });
-
-  final TransactionRow txn;
-  final SlipRow? slip;
-  final CategoryRow? category;
-  final String locale;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return PixelBorder(
-      padding: const EdgeInsets.all(10),
-      onTap: () => context.push('/entry?id=${txn.id}'),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 52,
-            height: 52,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: SlipImage(slip: slip),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  Money.format(txn.amountCents),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w900, fontSize: 16),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  AppDate.formatTime(AppDate.fromMillis(txn.occurredAt),
-                      locale: locale),
-                  style:
-                      const TextStyle(fontSize: 11, color: AppColors.gray400),
-                ),
-                const SizedBox(height: 6),
-                _CategoryChip(
-                  category: category,
-                  onTap: () => _pickCategory(context, ref),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: AppColors.gray300),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pickCategory(BuildContext context, WidgetRef ref) async {
-    final categories = ref.read(categoriesProvider).value ?? const [];
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      builder: (_) => _CategorySheet(categories: categories),
-    );
-    if (picked != null) {
-      await ref.read(transactionRepositoryProvider).setCategory(txn.id, picked);
-    }
-  }
-}
-
-class _CategoryChip extends StatelessWidget {
-  const _CategoryChip({required this.category, required this.onTap});
-
-  final CategoryRow? category;
+class _WalletButton extends StatelessWidget {
+  const _WalletButton({required this.count, required this.onTap});
+  final int count;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final c = category;
-    final color =
-        c == null ? AppColors.bunOrange : AppColors.forHex(c.colorHex);
-    return GestureDetector(
+    return InkWell(
+      borderRadius: BorderRadius.circular(15),
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color:
-              c == null ? AppColors.orangeLight : color.withValues(alpha: 0.15),
-          borderRadius: PixelTokens.borderRadius,
-          border: Border.all(color: color, width: 1.5),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: SizedBox(
+        width: 60,
+        height: 56,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            Icon(c == null ? Icons.add : CategoryIcons.forKey(c.iconKey),
-                size: 14, color: color),
-            const SizedBox(width: 4),
-            Text(c?.name ?? 'เลือกหมวดหมู่',
-                style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+            Container(
+              width: 52,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.terraWash,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              alignment: Alignment.center,
+              child: const BunAvatar(size: 32),
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: AppColors.terra,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.cream, width: 2),
+                ),
+                child: const Icon(AppIcons.wallet,
+                    size: 12, color: AppColors.reverse),
+              ),
+            ),
+            if (count > 0)
+              Positioned(
+                right: 0,
+                top: -2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  constraints:
+                      const BoxConstraints(minWidth: 17, minHeight: 17),
+                  decoration: BoxDecoration(
+                    color: AppColors.ink,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: AppColors.cream, width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text('$count',
+                      style: AppTypography.heading(
+                          size: 10,
+                          weight: FontWeight.w500,
+                          color: AppColors.reverse)),
+                ),
+              ),
           ],
         ),
       ),
@@ -463,93 +308,252 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _CategorySheet extends StatelessWidget {
-  const _CategorySheet({required this.categories});
-  final List<CategoryRow> categories;
+class _SpendingCard extends StatelessWidget {
+  const _SpendingCard({
+    required this.spentCents,
+    required this.budgetCents,
+    required this.scanning,
+    required this.lastReadAt,
+    required this.onRefresh,
+  });
+
+  final int spentCents;
+  final int budgetCents;
+  final bool scanning;
+  final int? lastReadAt;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('เลือกหมวดหมู่',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final c in categories)
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context, c.id),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: PixelTokens.borderRadius,
-                        border: PixelTokens.inkBorder(color: AppColors.gray300),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(CategoryIcons.forKey(c.iconKey),
-                              size: 18, color: AppColors.forHex(c.colorHex)),
-                          const SizedBox(width: 6),
-                          Text(c.name,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w700)),
-                        ],
+    final hasBudget = budgetCents > 0;
+    final remaining = budgetCents - spentCents;
+    final progress =
+        hasBudget ? (spentCents / budgetCents).clamp(0.0, 1.0) : 0.0;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.terra,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -8,
+            top: 6,
+            child: Opacity(
+              opacity: 0.9,
+              child: const BunAvatar(size: 64, variant: BunVariant.reverse),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ใช้จ่ายเดือนนี้',
+                  style: AppTypography.body(
+                      size: 14,
+                      color: AppColors.reverse.withValues(alpha: 0.82))),
+              const SizedBox(height: 2),
+              Text(Money.compact(spentCents),
+                  style: AppTypography.heading(
+                      size: 38,
+                      weight: FontWeight.w600,
+                      color: AppColors.reverse)),
+              const SizedBox(height: 2),
+              Text(
+                hasBudget
+                    ? 'เหลือ ${Money.compact(remaining)} จากงบ ${Money.compact(budgetCents)}'
+                    : 'ยังไม่ได้ตั้งงบประมาณเดือนนี้',
+                style: AppTypography.body(
+                    size: 13, color: AppColors.reverse.withValues(alpha: 0.82)),
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 7,
+                  backgroundColor: AppColors.reverse.withValues(alpha: 0.28),
+                  valueColor: const AlwaysStoppedAnimation(AppColors.reverse),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: Color(0x33FBF4EE), thickness: 1),
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: scanning ? null : () => onRefresh(),
+                child: Row(
+                  children: [
+                    Icon(scanning ? AppIcons.loader : AppIcons.receiptText,
+                        size: 14, color: AppColors.reverse),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        scanning
+                            ? 'น้องบันกำลังอ่านสลิป…'
+                            : 'อ่านสลิปล่าสุด ${_relative(lastReadAt)}',
+                        style: AppTypography.body(
+                            size: 12,
+                            color: AppColors.reverse.withValues(alpha: 0.82)),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ],
-        ),
+                    if (!scanning)
+                      Icon(AppIcons.rotateCw,
+                          size: 14,
+                          color: AppColors.reverse.withValues(alpha: 0.7)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  String _relative(int? ms) {
+    if (ms == null) return 'ยังไม่เคยอ่าน';
+    final diff =
+        DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ms));
+    if (diff.inMinutes < 1) return 'เมื่อสักครู่';
+    if (diff.inMinutes < 60) return 'เมื่อ ${diff.inMinutes} นาทีที่แล้ว';
+    if (diff.inHours < 24) return 'เมื่อ ${diff.inHours} ชม.ที่แล้ว';
+    return 'เมื่อ ${diff.inDays} วันก่อน';
+  }
+}
+
+class _RecentHeader extends StatelessWidget {
+  const _RecentHeader({required this.onSeeAll});
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text('รายการล่าสุด',
+            style: AppTypography.heading(size: 16, weight: FontWeight.w500)),
+        InkWell(
+          onTap: onSeeAll,
+          child: Text('ดูทั้งหมด',
+              style: AppTypography.heading(
+                  size: 13, weight: FontWeight.w400, color: AppColors.terra)),
+        ),
+      ],
     );
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onScan});
+class _RecentList extends StatelessWidget {
+  const _RecentList({
+    required this.scannedRow,
+    required this.recent,
+    required this.categories,
+    required this.accounts,
+    required this.locale,
+    required this.onCategorize,
+  });
 
-  final Future<void> Function() onScan;
+  final TransactionRow? scannedRow;
+  final List<TransactionRow> recent;
+  final Map<String, CategoryRow> categories;
+  final Map<String, AccountRow> accounts;
+  final String locale;
+  final Future<void> Function(TransactionRow) onCategorize;
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
+    if (scannedRow == null && recent.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 28),
+        child: Column(
+          children: [
+            const BunAvatar(size: 72),
+            const SizedBox(height: 12),
+            Text('ยังไม่มีรายการเดือนนี้',
+                style:
+                    AppTypography.heading(size: 15, weight: FontWeight.w500)),
+            const SizedBox(height: 4),
+            Text('ดึงลงเพื่อให้น้องบันอ่านสลิป หรือกด +',
+                style: AppTypography.body(size: 13, color: AppColors.ink3)),
+          ],
+        ),
+      );
+    }
+    final children = <Widget>[];
+    if (scannedRow != null) {
+      children.add(_ScannedRow(
+          txn: scannedRow!, onTap: () => onCategorize(scannedRow!)));
+    }
+    for (var i = 0; i < recent.length; i++) {
+      final t = recent[i];
+      final d = txnDisplay(t,
+          categories: categories, accounts: accounts, locale: locale);
+      children.add(TxnRow(
+        icon: d.icon,
+        title: d.title,
+        sub: d.sub,
+        amountCents: t.amountCents,
+        type: t.type,
+        onTap: () => context.push('/transactions/${t.id}'),
+      ));
+    }
+    return Column(
       children: [
-        const SizedBox(height: 72),
-        const BunAvatar(size: 100, mood: BunMood.sleepy),
-        const SizedBox(height: 16),
-        const Text('ยังไม่มีสลิป',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-        const SizedBox(height: 6),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 32),
-          child: Text(
-            'เลื่อนลงเพื่อให้น้องบันอ่านสลิปจากรูปในเครื่องอัตโนมัติ',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.gray500),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Center(
-          child: PixelButton(
-            label: 'อ่านสลิปเลย',
-            icon: Icons.refresh,
-            onPressed: () => onScan(),
-          ),
-        ),
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const Divider(height: 1),
+          children[i],
+        ],
       ],
+    );
+  }
+}
+
+class _ScannedRow extends StatelessWidget {
+  const _ScannedRow({required this.txn, required this.onTap});
+  final TransactionRow txn;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: onTap,
+            customBorder:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: AppColors.terra, width: 2, style: BorderStyle.solid),
+              ),
+              child: const Icon(AppIcons.plus,
+                  size: 20, color: AppColors.terra700),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('รายการใหม่จากสลิป',
+                    style: AppTypography.heading(
+                        size: 15, weight: FontWeight.w500)),
+                Text('แตะไอคอนเพื่อจัดหมวดหมู่',
+                    style:
+                        AppTypography.body(size: 12.5, color: AppColors.terra)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text('−${Money.compact(txn.amountCents.abs())}',
+              style: AppTypography.heading(size: 15, weight: FontWeight.w500)),
+        ],
+      ),
     );
   }
 }

@@ -12,11 +12,21 @@ class Money {
   );
 
   static final NumberFormat _plain = NumberFormat('#,##0.00', 'en_US');
+  static final NumberFormat _whole = NumberFormat('#,##0', 'en_US');
 
   /// `123456` -> `฿1,234.56`
   static String format(int cents, {bool symbol = true}) {
     final value = cents / 100.0;
     return symbol ? _baht.format(value) : _plain.format(value);
+  }
+
+  /// Like [format] but drops `.00` for whole-baht amounts (design style):
+  /// `2000100` -> `฿20,001`, `84550` -> `฿845.50`.
+  static String compact(int cents, {bool symbol = true}) {
+    final whole = cents % 100 == 0;
+    final body =
+        whole ? _whole.format(cents ~/ 100) : _plain.format(cents / 100.0);
+    return symbol ? '฿$body' : body;
   }
 
   /// Format with an explicit leading sign, e.g. `+฿1,234.56` / `-฿1,234.56`.

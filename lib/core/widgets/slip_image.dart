@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/local/database.dart';
 import '../theme/colors.dart';
+import 'app_icons.dart';
 
 /// Renders a slip's stored image from its local file path (Android).
 class SlipImage extends StatelessWidget {
@@ -23,8 +24,8 @@ class SlipImage extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-        color: AppColors.gray100,
+        color: AppColors.terraWash,
         alignment: Alignment.center,
-        child: const Icon(Icons.receipt_long, color: AppColors.gray400),
+        child: const Icon(AppIcons.receiptText, color: AppColors.terra700),
       );
 }

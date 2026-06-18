@@ -35,10 +35,13 @@ enum SlipSource {
   apiVerified,
 }
 
-/// Budgeting period (used by the later budgets feature).
+/// Budgeting period (used by the budgets feature).
+///
+/// NOTE: persisted by index — only append, never reorder.
 enum BudgetPeriod {
   monthly,
   weekly,
+  yearly,
 }
 
 /// Category direction. Transfers never carry a category.

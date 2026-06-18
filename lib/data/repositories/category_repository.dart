@@ -41,4 +41,27 @@ class CategoryRepository {
     );
     return catId;
   }
+
+  /// Rename a category, preserving all its other fields.
+  Future<void> rename(String id, String name) async {
+    CategoryRow? existing;
+    for (final c in await _db.getCategories()) {
+      if (c.id == id) {
+        existing = c;
+        break;
+      }
+    }
+    if (existing == null) return;
+    await _db.upsertCategory(
+      existing
+          .copyWith(
+            name: name,
+            updatedAt: DateTime.now().millisecondsSinceEpoch,
+            syncStatus: existing.syncStatus == SyncStatus.pendingCreate
+                ? SyncStatus.pendingCreate
+                : SyncStatus.pendingUpdate,
+          )
+          .toCompanion(true),
+    );
+  }
 }

@@ -3,45 +3,76 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'colors.dart';
 
-/// Typography for the pixel aesthetic.
+/// Typography for the soft-terracotta design system.
 ///
-/// IMPORTANT: pixel display fonts (Press Start 2P) have NO Thai glyphs, so they
-/// are used ONLY for Latin/numeric accents (titles, big numbers). All real
-/// content — especially Thai — uses Noto Sans Thai, which renders Thai + Latin.
+/// Three families (all bundled in `google_fonts/`, no runtime fetch):
+/// - [display] → **Fraunces** (serif) — the `moneyBun` wordmark only.
+/// - [heading] → **Mitr** — headings, ฿ numbers, buttons, labels, nav.
+/// - [body]    → **IBM Plex Sans Thai** — body copy, subtitles, placeholders.
+///
+/// Both Mitr and IBM Plex Sans Thai render Thai + Latin, so any string is safe.
 class AppTypography {
   const AppTypography._();
 
-  /// Body / content font. Safe for Thai.
+  /// Body / content font (IBM Plex Sans Thai). Safe for Thai.
   static TextStyle body({
     double size = 14,
+    FontWeight weight = FontWeight.w400,
+    Color color = AppColors.ink,
+    double? height,
+    double? letterSpacing,
+  }) =>
+      GoogleFonts.ibmPlexSansThai(
+        fontSize: size,
+        fontWeight: weight,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+
+  /// Heading / number / button / label font (Mitr). Safe for Thai.
+  static TextStyle heading({
+    double size = 16,
     FontWeight weight = FontWeight.w500,
     Color color = AppColors.ink,
     double? height,
+    double? letterSpacing,
   }) =>
-      GoogleFonts.notoSansThai(
+      GoogleFonts.mitr(
+        fontSize: size,
+        fontWeight: weight,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+
+  /// Wordmark font (Fraunces). Latin only — used for the `moneyBun` logo.
+  static TextStyle display({
+    double size = 30,
+    FontWeight weight = FontWeight.w600,
+    Color color = AppColors.ink,
+    double? height,
+  }) =>
+      GoogleFonts.fraunces(
         fontSize: size,
         fontWeight: weight,
         color: color,
         height: height,
       );
 
-  /// Pixel display font. ONLY use for Latin letters / digits, never Thai text.
-  static TextStyle pixel({
-    double size = 12,
-    Color color = AppColors.ink,
-    double letterSpacing = 0,
-  }) =>
-      GoogleFonts.pressStart2p(
-        fontSize: size,
-        color: color,
-        letterSpacing: letterSpacing,
-      );
-
+  /// Default [TextTheme] — body text uses IBM Plex Sans Thai; titles use Mitr.
   static TextTheme textTheme() {
-    final base = GoogleFonts.notoSansThaiTextTheme();
-    return base.apply(
-      bodyColor: AppColors.ink,
-      displayColor: AppColors.ink,
-    );
+    final body = GoogleFonts.ibmPlexSansThaiTextTheme();
+    final heading = GoogleFonts.mitrTextTheme();
+    return body
+        .copyWith(
+          titleLarge: heading.titleLarge,
+          titleMedium: heading.titleMedium,
+          titleSmall: heading.titleSmall,
+          headlineSmall: heading.headlineSmall,
+          headlineMedium: heading.headlineMedium,
+          labelLarge: heading.labelLarge,
+        )
+        .apply(bodyColor: AppColors.ink, displayColor: AppColors.ink);
   }
 }

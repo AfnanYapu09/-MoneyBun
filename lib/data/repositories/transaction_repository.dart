@@ -5,9 +5,9 @@ import '../../core/utils/app_date.dart';
 import '../../domain/enums/enums.dart';
 import '../local/database.dart';
 
-/// Slip entries. The app has no accounts/wallets — each entry is one slip
-/// (money out) with an amount, a date and a category the user picks. `accountId`
-/// is kept as an empty placeholder so the existing schema stays unchanged.
+/// Transactions. Each row is an income / expense / transfer. Slip imports use
+/// the defaults ([TxnType.expense], empty account) so the slip pipeline stays
+/// unchanged; the Add sheet passes the full shape.
 class TransactionRepository {
   TransactionRepository(this._db);
 
@@ -24,14 +24,22 @@ class TransactionRepository {
 
   Future<TransactionRow?> get(String id) => _db.getTransaction(id);
 
-  /// Create or update a slip entry.
+  Future<List<String>> tagIds(String id) => _db.tagIdsForTransaction(id);
+
+  /// Create or update a transaction. When [tagIds] is non-null the tag set is
+  /// replaced; pass null to leave existing links untouched.
   Future<String> save({
     String? id,
+    TxnType type = TxnType.expense,
     required int amountCents,
+    String currency = 'THB',
+    String? accountId,
+    String? toAccountId,
     String? categoryId,
     String? note,
     required DateTime occurredAt,
     String? slipId,
+    List<String>? tagIds,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final existing = id == null ? null : await _db.getTransaction(id);
@@ -40,19 +48,24 @@ class TransactionRepository {
     await _db.upsertTransaction(
       TransactionsCompanion.insert(
         id: txnId,
-        type: TxnType.expense,
+        type: type,
         amountCents: amountCents,
-        accountId: '',
+        currency: Value(currency),
+        accountId: accountId ?? existing?.accountId ?? '',
+        toAccountId: Value(toAccountId ?? existing?.toAccountId),
         categoryId: Value(categoryId),
         note: Value(note),
         occurredAt: AppDate.toMillis(occurredAt),
-        slipId: Value(slipId),
+        slipId: Value(slipId ?? existing?.slipId),
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         remoteId: Value(existing?.remoteId),
         syncStatus: Value(_nextStatus(existing?.syncStatus)),
       ),
     );
+    if (tagIds != null) {
+      await _db.setTransactionTags(txnId, tagIds);
+    }
     return txnId;
   }
 
