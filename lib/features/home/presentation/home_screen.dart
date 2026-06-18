@@ -15,11 +15,18 @@ import '../../../core/widgets/pixel_button.dart';
 import '../../../core/widgets/slip_image.dart';
 import '../../../data/local/database.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Future<void> _scan() => ref.read(scanControllerProvider.notifier).scan();
+
+  @override
+  Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider).languageCode;
     final month = ref.watch(selectedMonthProvider);
     final txns = ref.watch(monthTransactionsProvider).value ?? const [];
@@ -30,6 +37,22 @@ class HomeScreen extends ConsumerWidget {
     };
     final slips =
         ref.watch(slipsByIdProvider).value ?? const <String, SlipRow>{};
+    final scan = ref.watch(scanControllerProvider);
+
+    // React to scan results: toast the count, or prompt for photo permission.
+    ref.listen<ScanState>(scanControllerProvider, (prev, next) {
+      if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
+        _showPermissionDialog();
+      } else if ((prev?.scanning ?? false) &&
+          !next.scanning &&
+          next.error == null &&
+          !next.permissionDenied) {
+        final n = next.lastImported ?? 0;
+        _snack(n > 0 ? 'น้องบันอ่านสลิปใหม่ $n รายการ' : 'ไม่พบสลิปใหม่');
+      } else if (next.error != null && prev?.error != next.error) {
+        _snack('สแกนไม่สำเร็จ ลองใหม่อีกครั้ง');
+      }
+    });
 
     final total = txns.fold<int>(0, (s, t) => s + t.amountCents);
     final byDay = groupBy<TransactionRow, DateTime>(
@@ -43,27 +66,63 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           children: [
             _Header(month: month, locale: locale, total: total),
+            if (scan.scanning) const _ScanningBanner(),
             Expanded(
-              child: txns.isEmpty
-                  ? const _EmptyState()
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                      children: [
-                        for (final day in days)
-                          _DaySection(
-                            day: day,
-                            rows: byDay[day]!,
-                            categories: categories,
-                            slips: slips,
-                            locale: locale,
-                          ),
-                      ],
-                    ),
+              child: RefreshIndicator(
+                color: AppColors.bunOrange,
+                onRefresh: _scan,
+                child: txns.isEmpty
+                    ? _EmptyState(onScan: _scan)
+                    : ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                        children: [
+                          for (final day in days)
+                            _DaySection(
+                              day: day,
+                              rows: byDay[day]!,
+                              categories: categories,
+                              slips: slips,
+                              locale: locale,
+                            ),
+                        ],
+                      ),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _snack(String m) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(m)));
+  }
+
+  Future<void> _showPermissionDialog() async {
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('ขอสิทธิ์เข้าถึงรูปภาพ'),
+        content: const Text(
+          'MoneyBun ต้องเข้าถึงรูปในเครื่องเพื่ออ่านสลิปจากแกลเลอรี\n\n'
+          'ถ้าเคยกด "ไม่อนุญาต" ไปแล้ว ให้เปิดการตั้งค่า → สิทธิ์ → '
+          'รูปภาพและวิดีโอ → อนุญาต',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('เปิดการตั้งค่า')),
+        ],
+      ),
+    );
+    if (open == true) await ref.read(slipImporterProvider).openSettings();
   }
 }
 
@@ -122,6 +181,68 @@ class _Header extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Animated banner shown while a scan runs (pulsing Bun + progress bar).
+class _ScanningBanner extends StatefulWidget {
+  const _ScanningBanner();
+
+  @override
+  State<_ScanningBanner> createState() => _ScanningBannerState();
+}
+
+class _ScanningBannerState extends State<_ScanningBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: PixelBorder(
+        color: AppColors.orangeLight,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            ScaleTransition(
+              scale: Tween(begin: 0.85, end: 1.12).animate(
+                CurvedAnimation(parent: _c, curve: Curves.easeInOut),
+              ),
+              child: const BunAvatar(size: 34, mood: BunMood.happy),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('น้องบันกำลังอ่านสลิป...',
+                      style: TextStyle(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: const LinearProgressIndicator(
+                      minHeight: 6,
+                      backgroundColor: AppColors.gray100,
+                      color: AppColors.bunOrange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -340,33 +461,39 @@ class _CategorySheet extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.onScan});
+
+  final Future<void> Function() onScan;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const BunAvatar(size: 100, mood: BunMood.sleepy),
-            const SizedBox(height: 16),
-            const Text('ยังไม่มีสลิป',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            const SizedBox(height: 6),
-            const Text('กดปุ่มสแกนเพื่อให้น้องบันอ่านสลิปจากรูปในเครื่อง',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.gray500)),
-            const SizedBox(height: 20),
-            PixelButton(
-              label: 'สแกนสลิป',
-              icon: Icons.document_scanner,
-              onPressed: () => context.push('/scan'),
-            ),
-          ],
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 72),
+        const BunAvatar(size: 100, mood: BunMood.sleepy),
+        const SizedBox(height: 16),
+        const Text('ยังไม่มีสลิป',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+        const SizedBox(height: 6),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            'เลื่อนลงเพื่อให้น้องบันอ่านสลิปจากรูปในเครื่องอัตโนมัติ',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.gray500),
+          ),
         ),
-      ),
+        const SizedBox(height: 20),
+        Center(
+          child: PixelButton(
+            label: 'อ่านสลิปเลย',
+            icon: Icons.refresh,
+            onPressed: () => onScan(),
+          ),
+        ),
+      ],
     );
   }
 }
