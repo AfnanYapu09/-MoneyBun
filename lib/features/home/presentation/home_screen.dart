@@ -119,6 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _reportRow('อัลบั้มสลิปที่เจอ', '${r.matchedAlbums}'),
             _reportRow('รูปในแกลเลอรี', '${r.albumCount}'),
             _reportRow('อ่านรอบนี้', '${r.inspected}'),
             _reportRow('เป็นสลิป', '${r.imported}'),
