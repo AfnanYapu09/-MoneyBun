@@ -92,13 +92,15 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
 class ScanState {
   const ScanState({
     this.scanning = false,
-    this.lastImported,
+    this.result,
+    this.limited = false,
     this.permissionDenied = false,
     this.error,
   });
 
   final bool scanning;
-  final int? lastImported;
+  final ScanResult? result;
+  final bool limited;
   final bool permissionDenied;
   final Object? error;
 }
@@ -112,16 +114,16 @@ class ScanController extends Notifier<ScanState> {
     if (state.scanning) return;
     state = const ScanState(scanning: true);
     final importer = ref.read(slipImporterProvider);
-    final granted = await importer.ensurePermission();
-    if (!granted) {
+    final perm = await importer.requestPermission();
+    if (!perm.granted) {
       state = const ScanState(permissionDenied: true);
       return;
     }
     try {
-      final n = await importer.scanNew();
-      state = ScanState(lastImported: n);
+      final result = await importer.scanNew();
+      state = ScanState(result: result, limited: perm.limited);
     } catch (e) {
-      state = ScanState(error: e);
+      state = ScanState(error: e, limited: perm.limited);
     }
   }
 }

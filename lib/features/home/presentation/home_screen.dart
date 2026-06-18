@@ -14,6 +14,7 @@ import '../../../core/widgets/pixel_border.dart';
 import '../../../core/widgets/pixel_button.dart';
 import '../../../core/widgets/slip_image.dart';
 import '../../../data/local/database.dart';
+import '../../slip/data/slip_importer.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -39,16 +40,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ref.watch(slipsByIdProvider).value ?? const <String, SlipRow>{};
     final scan = ref.watch(scanControllerProvider);
 
-    // React to scan results: toast the count, or prompt for photo permission.
+    // React to scan results: toast the count, show diagnostics on 0, or prompt
+    // for photo permission.
     ref.listen<ScanState>(scanControllerProvider, (prev, next) {
       if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
         _showPermissionDialog();
       } else if ((prev?.scanning ?? false) &&
           !next.scanning &&
           next.error == null &&
-          !next.permissionDenied) {
-        final n = next.lastImported ?? 0;
-        _snack(n > 0 ? 'น้องบันอ่านสลิปใหม่ $n รายการ' : 'ไม่พบสลิปใหม่');
+          next.result != null) {
+        final r = next.result!;
+        if (r.imported > 0) {
+          _snack('น้องบันอ่านสลิปใหม่ ${r.imported} รายการ');
+        } else {
+          _showScanReport(r, next.limited);
+        }
       } else if (next.error != null && prev?.error != next.error) {
         _snack('สแกนไม่สำเร็จ ลองใหม่อีกครั้ง');
       }
@@ -101,6 +107,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(m)));
   }
+
+  /// Shown when a scan imported nothing — surfaces the counts so we can see
+  /// whether photos were even read, and offers to fix limited photo access.
+  Future<void> _showScanReport(ScanResult r, bool limited) async {
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('ไม่พบสลิปใหม่'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _reportRow('รูปในแกลเลอรี', '${r.albumCount}'),
+            _reportRow('อ่านรอบนี้', '${r.inspected}'),
+            _reportRow('เป็นสลิป', '${r.imported}'),
+            _reportRow('อ่านรูปไม่ได้', '${r.errors}'),
+            if (limited) ...[
+              const SizedBox(height: 12),
+              const Text(
+                '⚠️ ให้สิทธิ์รูปแบบจำกัด — กด "เปิดการตั้งค่า" แล้วเลือก '
+                '"อนุญาตทั้งหมด" เพื่อให้เห็นสลิปทุกรูป',
+                style: TextStyle(color: AppColors.expense, fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('ปิด')),
+          TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('เปิดการตั้งค่า')),
+        ],
+      ),
+    );
+    if (open == true) await ref.read(slipImporterProvider).openSettings();
+  }
+
+  Widget _reportRow(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(color: AppColors.gray600)),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+          ],
+        ),
+      );
 
   Future<void> _showPermissionDialog() async {
     final open = await showDialog<bool>(
