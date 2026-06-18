@@ -31,8 +31,8 @@ class _SlipScanScreenState extends ConsumerState<SlipScanScreen> {
     });
     final ok = await _importer.ensurePermission();
     if (!ok) {
-      _snack('ไม่ได้รับสิทธิ์เข้าถึงรูปในเครื่อง');
       setState(() => _busy = false);
+      await _showPermissionDialog();
       return;
     }
     final albums = await _importer.listAlbums();
@@ -67,6 +67,29 @@ class _SlipScanScreenState extends ConsumerState<SlipScanScreen> {
 
   void _snack(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+
+  Future<void> _showPermissionDialog() async {
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('ขอสิทธิ์เข้าถึงรูปภาพ'),
+        content: const Text(
+          'MoneyBun ต้องเข้าถึงรูปในเครื่องเพื่ออ่านสลิปจากอัลบั้ม\n\n'
+          'ถ้าเคยกด "ไม่อนุญาต" ไปแล้ว ให้เปิดการตั้งค่า → '
+          'สิทธิ์ → รูปภาพและวิดีโอ → อนุญาต',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('เปิดการตั้งค่า')),
+        ],
+      ),
+    );
+    if (open == true) await _importer.openSettings();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -4,6 +4,8 @@
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <!-- Read slip images from the gallery (photo_manager album scan). -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <!-- Android 14: "Select photos" partial access. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
 
