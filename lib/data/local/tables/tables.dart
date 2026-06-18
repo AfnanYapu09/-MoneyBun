@@ -80,7 +80,6 @@ class Transactions extends Table {
 class Slips extends Table {
   TextColumn get id => text()();
   TextColumn get imagePath => text().nullable()();
-  TextColumn get imageBase64 => text().nullable()();
 
   /// Source gallery asset id (Android album auto-scan) — used to skip re-imports.
   TextColumn get assetId => text().nullable()();

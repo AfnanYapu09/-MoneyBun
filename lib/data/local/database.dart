@@ -9,17 +9,7 @@ part 'database.g.dart';
 
 @DriftDatabase(tables: [Accounts, Categories, Transactions, Slips, Budgets])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase()
-      : super(
-          driftDatabase(
-            name: 'moneybun',
-            // Web support: sqlite3.wasm + drift_worker.js are served from web/.
-            web: DriftWebOptions(
-              sqlite3Wasm: Uri.parse('sqlite3.wasm'),
-              driftWorker: Uri.parse('drift_worker.js'),
-            ),
-          ),
-        );
+  AppDatabase() : super(driftDatabase(name: 'moneybun'));
 
   /// In-memory / custom executor constructor for tests.
   AppDatabase.forTesting(super.executor);
@@ -34,9 +24,8 @@ class AppDatabase extends _$AppDatabase {
           await _seed();
         },
         onUpgrade: (m, from, to) async {
-          // v2: store slip images cross-platform (base64) + gallery asset id.
+          // v2: track the source gallery asset id to skip re-importing slips.
           if (from < 2) {
-            await m.addColumn(slips, slips.imageBase64);
             await m.addColumn(slips, slips.assetId);
           }
         },
