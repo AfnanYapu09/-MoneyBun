@@ -8,15 +8,12 @@ import '../../../core/utils/money.dart';
 import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/pixel_border.dart';
 import '../../../data/local/database.dart';
-import '../../../domain/enums/enums.dart';
-import '../../../l10n/generated/app_localizations.dart';
 
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final month = ref.watch(selectedMonthProvider);
     final txns = ref.watch(monthTransactionsProvider).value ?? const [];
@@ -26,16 +23,10 @@ class StatsScreen extends ConsumerWidget {
         c.id: c,
     };
 
-    final income = txns
-        .where((t) => t.type == TxnType.income)
-        .fold<int>(0, (s, t) => s + t.amountCents);
-    final expense = txns
-        .where((t) => t.type == TxnType.expense)
-        .fold<int>(0, (s, t) => s + t.amountCents);
-
+    final total = txns.fold<int>(0, (s, t) => s + t.amountCents);
     final byCategory = <String, int>{};
-    for (final t in txns.where((t) => t.type == TxnType.expense)) {
-      final key = t.categoryId ?? 'sys_other_expense';
+    for (final t in txns) {
+      final key = t.categoryId ?? 'sys_other';
       byCategory.update(key, (v) => v + t.amountCents,
           ifAbsent: () => t.amountCents);
     }
@@ -44,7 +35,7 @@ class StatsScreen extends ConsumerWidget {
     final maxCat = ranked.isEmpty ? 1 : ranked.first.value;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.stats)),
+      appBar: AppBar(title: const Text('สถิติ')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
@@ -56,12 +47,10 @@ class StatsScreen extends ConsumerWidget {
                 icon: const Icon(Icons.chevron_left),
               ),
               Expanded(
-                child: Text(
-                  AppDate.formatMonth(month, locale: locale),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w900, fontSize: 16),
-                ),
+                child: Text(AppDate.formatMonth(month, locale: locale),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w900, fontSize: 16)),
               ),
               IconButton(
                 onPressed: () =>
@@ -71,38 +60,34 @@ class StatsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                  child: _StatBox(
-                      label: l10n.income,
-                      cents: income,
-                      color: AppColors.income)),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: _StatBox(
-                      label: l10n.expense,
-                      cents: expense,
-                      color: AppColors.expense)),
-            ],
+          PixelBorder(
+            color: AppColors.orangeLight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('รวมรายจ่ายเดือนนี้',
+                    style: TextStyle(color: AppColors.gray700, fontSize: 13)),
+                const SizedBox(height: 6),
+                FittedBox(
+                  child: Text(Money.format(total),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 26,
+                          color: AppColors.expense)),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          _StatBox(
-              label: l10n.balance,
-              cents: income - expense,
-              color: AppColors.ink),
           const SizedBox(height: 20),
-          Text(l10n.byCategory,
-              style:
-                  const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          const Text('แยกตามหมวดหมู่',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
           const SizedBox(height: 8),
           if (ranked.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
+            const Padding(
+              padding: EdgeInsets.all(24),
               child: Center(
-                child: Text(l10n.noData,
-                    style: const TextStyle(color: AppColors.gray500)),
-              ),
+                  child: Text('ยังไม่มีข้อมูล',
+                      style: TextStyle(color: AppColors.gray500))),
             )
           else
             for (final e in ranked)
@@ -110,38 +95,8 @@ class StatsScreen extends ConsumerWidget {
                 category: categories[e.key],
                 cents: e.value,
                 fraction: e.value / maxCat,
-                share: expense == 0 ? 0 : e.value / expense,
+                share: total == 0 ? 0 : e.value / total,
               ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  const _StatBox(
-      {required this.label, required this.cents, required this.color});
-
-  final String label;
-  final int cents;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return PixelBorder(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: const TextStyle(color: AppColors.gray600, fontSize: 13)),
-          const SizedBox(height: 6),
-          FittedBox(
-            child: Text(
-              Money.format(cents),
-              style: TextStyle(
-                  fontWeight: FontWeight.w900, fontSize: 20, color: color),
-            ),
-          ),
         ],
       ),
     );
@@ -175,7 +130,7 @@ class _CategoryBar extends StatelessWidget {
                   size: 18, color: color),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(category?.name ?? '-',
+                child: Text(category?.name ?? 'อื่นๆ',
                     style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
               Text('${(share * 100).round()}%  ',

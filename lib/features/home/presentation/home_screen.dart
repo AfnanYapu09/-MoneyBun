@@ -11,56 +11,54 @@ import '../../../core/utils/money.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/pixel_border.dart';
+import '../../../core/widgets/pixel_button.dart';
+import '../../../core/widgets/slip_image.dart';
 import '../../../data/local/database.dart';
-import '../../../domain/enums/enums.dart';
-import '../../../l10n/generated/app_localizations.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final month = ref.watch(selectedMonthProvider);
-    final txnsAsync = ref.watch(monthTransactionsProvider);
+    final txns = ref.watch(monthTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
         c.id: c,
     };
-    final accounts = {
-      for (final a in ref.watch(accountsProvider).value ?? const <AccountRow>[])
-        a.id: a,
-    };
+    final slips =
+        ref.watch(slipsByIdProvider).value ?? const <String, SlipRow>{};
+
+    final total = txns.fold<int>(0, (s, t) => s + t.amountCents);
+    final byDay = groupBy<TransactionRow, DateTime>(
+      txns,
+      (t) => AppDate.startOfDay(AppDate.fromMillis(t.occurredAt)),
+    );
+    final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            _MonthHeader(
-              month: month,
-              locale: locale,
-              onPrev: () => ref.read(selectedMonthProvider.notifier).previous(),
-              onNext: () => ref.read(selectedMonthProvider.notifier).next(),
-            ),
+            _Header(month: month, locale: locale, total: total),
             Expanded(
-              child: txnsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('$e')),
-                data: (txns) {
-                  if (txns.isEmpty) {
-                    return _EmptyState(l10n: l10n);
-                  }
-                  return _DailyList(
-                    txns: txns,
-                    categories: categories,
-                    accounts: accounts,
-                    locale: locale,
-                    l10n: l10n,
-                  );
-                },
-              ),
+              child: txns.isEmpty
+                  ? const _EmptyState()
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                      children: [
+                        for (final day in days)
+                          _DaySection(
+                            day: day,
+                            rows: byDay[day]!,
+                            categories: categories,
+                            slips: slips,
+                            locale: locale,
+                          ),
+                      ],
+                    ),
             ),
           ],
         ),
@@ -69,133 +67,58 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({
-    required this.month,
-    required this.locale,
-    required this.onPrev,
-    required this.onNext,
-  });
+class _Header extends ConsumerWidget {
+  const _Header(
+      {required this.month, required this.locale, required this.total});
 
   final DateTime month;
   final String locale;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
+  final int total;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        children: [
-          const BunAvatar(size: 40, mood: BunMood.happy),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              AppDate.formatMonth(month, locale: locale),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-          ),
-          IconButton(onPressed: onPrev, icon: const Icon(Icons.chevron_left)),
-          IconButton(onPressed: onNext, icon: const Icon(Icons.chevron_right)),
-        ],
-      ),
-    );
-  }
-}
-
-class _DailyList extends StatelessWidget {
-  const _DailyList({
-    required this.txns,
-    required this.categories,
-    required this.accounts,
-    required this.locale,
-    required this.l10n,
-  });
-
-  final List<TransactionRow> txns;
-  final Map<String, CategoryRow> categories;
-  final Map<String, AccountRow> accounts;
-  final String locale;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    final income = txns
-        .where((t) => t.type == TxnType.income)
-        .fold<int>(0, (s, t) => s + t.amountCents);
-    final expense = txns
-        .where((t) => t.type == TxnType.expense)
-        .fold<int>(0, (s, t) => s + t.amountCents);
-
-    final byDay = groupBy<TransactionRow, DateTime>(
-      txns,
-      (t) => AppDate.startOfDay(AppDate.fromMillis(t.occurredAt)),
-    );
-    final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-      children: [
-        _SummaryCard(income: income, expense: expense, l10n: l10n),
-        const SizedBox(height: 12),
-        for (final day in days)
-          _DaySection(
-            day: day,
-            rows: byDay[day]!,
-            categories: categories,
-            accounts: accounts,
-            locale: locale,
-          ),
-      ],
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.income,
-    required this.expense,
-    required this.l10n,
-  });
-
-  final int income;
-  final int expense;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    return PixelBorder(
-      color: AppColors.orangeLight,
-      child: Row(
-        children: [
-          _stat(l10n.income, income, AppColors.income),
-          _divider(),
-          _stat(l10n.expense, expense, AppColors.expense),
-          _divider(),
-          _stat(l10n.balance, income - expense, AppColors.ink),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() => Container(
-      width: 1.5, height: 36, color: AppColors.ink.withValues(alpha: 0.2));
-
-  Widget _stat(String label, int cents, Color color) {
-    return Expanded(
       child: Column(
         children: [
-          Text(label,
-              style: const TextStyle(fontSize: 12, color: AppColors.gray600)),
+          Row(
+            children: [
+              const BunAvatar(size: 40, mood: BunMood.happy),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  AppDate.formatMonth(month, locale: locale),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+              ),
+              IconButton(
+                onPressed: () =>
+                    ref.read(selectedMonthProvider.notifier).previous(),
+                icon: const Icon(Icons.chevron_left),
+              ),
+              IconButton(
+                onPressed: () =>
+                    ref.read(selectedMonthProvider.notifier).next(),
+                icon: const Icon(Icons.chevron_right),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
-          FittedBox(
-            child: Text(
-              Money.format(cents, symbol: false),
-              style: TextStyle(
-                  fontWeight: FontWeight.w900, color: color, fontSize: 16),
+          PixelBorder(
+            color: AppColors.orangeLight,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('รวมเดือนนี้',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                Text(Money.format(total),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                        color: AppColors.expense)),
+              ],
             ),
           ),
         ],
@@ -209,155 +132,205 @@ class _DaySection extends StatelessWidget {
     required this.day,
     required this.rows,
     required this.categories,
-    required this.accounts,
+    required this.slips,
     required this.locale,
   });
 
   final DateTime day;
   final List<TransactionRow> rows;
   final Map<String, CategoryRow> categories;
-  final Map<String, AccountRow> accounts;
+  final Map<String, SlipRow> slips;
   final String locale;
 
   @override
   Widget build(BuildContext context) {
-    final dayTotal = rows.fold<int>(0, (s, t) {
-      switch (t.type) {
-        case TxnType.income:
-          return s + t.amountCents;
-        case TxnType.expense:
-          return s - t.amountCents;
-        case TxnType.transfer:
-          return s;
-      }
-    });
-
+    final dayTotal = rows.fold<int>(0, (s, t) => s + t.amountCents);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
+          padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  AppDate.formatDayHeader(day, locale: locale),
+                child: Text(AppDate.formatDayHeader(day, locale: locale),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, color: AppColors.gray700)),
+              ),
+              Text(Money.format(dayTotal, symbol: false),
                   style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.gray700,
-                  ),
-                ),
-              ),
-              Text(
-                Money.formatSigned(dayTotal, symbol: false),
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: dayTotal >= 0 ? AppColors.income : AppColors.expense,
-                ),
-              ),
+                      fontWeight: FontWeight.w800, color: AppColors.expense)),
             ],
           ),
         ),
-        PixelBorder(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              for (var i = 0; i < rows.length; i++) ...[
-                if (i > 0)
-                  const Divider(
-                      height: 1.5, thickness: 1.5, color: AppColors.gray100),
-                _TxnTile(
-                  txn: rows[i],
-                  category: categories[rows[i].categoryId],
-                  account: accounts[rows[i].accountId],
-                  toAccount: accounts[rows[i].toAccountId],
-                  locale: locale,
-                ),
-              ],
-            ],
+        for (final t in rows)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _SlipTile(
+              txn: t,
+              slip: t.slipId == null ? null : slips[t.slipId],
+              category: t.categoryId == null ? null : categories[t.categoryId],
+              locale: locale,
+            ),
           ),
-        ),
       ],
     );
   }
 }
 
-class _TxnTile extends StatelessWidget {
-  const _TxnTile({
+class _SlipTile extends ConsumerWidget {
+  const _SlipTile({
     required this.txn,
+    required this.slip,
     required this.category,
-    required this.account,
-    required this.toAccount,
     required this.locale,
   });
 
   final TransactionRow txn;
+  final SlipRow? slip;
   final CategoryRow? category;
-  final AccountRow? account;
-  final AccountRow? toAccount;
   final String locale;
 
   @override
-  Widget build(BuildContext context) {
-    final color = switch (txn.type) {
-      TxnType.income => AppColors.income,
-      TxnType.expense => AppColors.expense,
-      TxnType.transfer => AppColors.transfer,
-    };
-    final icon = switch (txn.type) {
-      TxnType.transfer => Icons.swap_horiz,
-      _ => CategoryIcons.forKey(category?.iconKey),
-    };
-    final title = switch (txn.type) {
-      TxnType.transfer => '${account?.name ?? '?'} → ${toAccount?.name ?? '?'}',
-      _ => category?.name ?? txn.note ?? '-',
-    };
-    final signed =
-        txn.type == TxnType.expense ? -txn.amountCents : txn.amountCents;
+  Widget build(BuildContext context, WidgetRef ref) {
+    return PixelBorder(
+      padding: const EdgeInsets.all(10),
+      onTap: () => context.push('/entry?id=${txn.id}'),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 52,
+            height: 52,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SlipImage(slip: slip),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Money.format(txn.amountCents),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  AppDate.formatTime(AppDate.fromMillis(txn.occurredAt),
+                      locale: locale),
+                  style:
+                      const TextStyle(fontSize: 11, color: AppColors.gray400),
+                ),
+                const SizedBox(height: 6),
+                _CategoryChip(
+                  category: category,
+                  onTap: () => _pickCategory(context, ref),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColors.gray300),
+        ],
+      ),
+    );
+  }
 
-    return InkWell(
-      onTap: () => context.push('/add?id=${txn.id}'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  Future<void> _pickCategory(BuildContext context, WidgetRef ref) async {
+    final categories = ref.read(categoriesProvider).value ?? const [];
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => _CategorySheet(categories: categories),
+    );
+    if (picked != null) {
+      await ref.read(transactionRepositoryProvider).setCategory(txn.id, picked);
+    }
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({required this.category, required this.onTap});
+
+  final CategoryRow? category;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = category;
+    final color =
+        c == null ? AppColors.bunOrange : AppColors.forHex(c.colorHex);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color:
+              c == null ? AppColors.orangeLight : color.withValues(alpha: 0.15),
+          borderRadius: PixelTokens.borderRadius,
+          border: Border.all(color: color, width: 1.5),
+        ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: PixelTokens.borderRadius,
-                border: Border.all(color: color, width: 2),
-              ),
-              child: Icon(icon, size: 20, color: color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  if ((txn.note ?? '').isNotEmpty &&
-                      txn.type != TxnType.transfer)
-                    Text(
-                      txn.note!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.gray500),
+            Icon(c == null ? Icons.add : CategoryIcons.forKey(c.iconKey),
+                size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(c?.name ?? 'เลือกหมวดหมู่',
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategorySheet extends StatelessWidget {
+  const _CategorySheet({required this.categories});
+  final List<CategoryRow> categories;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('เลือกหมวดหมู่',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final c in categories)
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context, c.id),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        borderRadius: PixelTokens.borderRadius,
+                        border: PixelTokens.inkBorder(color: AppColors.gray300),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(CategoryIcons.forKey(c.iconKey),
+                              size: 18, color: AppColors.forHex(c.colorHex)),
+                          const SizedBox(width: 6),
+                          Text(c.name,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700)),
+                        ],
+                      ),
                     ),
-                  Text(
-                    '${account?.name ?? ''} · ${AppDate.formatTime(AppDate.fromMillis(txn.occurredAt), locale: locale)}',
-                    style:
-                        const TextStyle(fontSize: 11, color: AppColors.gray400),
                   ),
-                ],
-              ),
-            ),
-            Text(
-              Money.formatSigned(signed, symbol: false),
-              style: TextStyle(fontWeight: FontWeight.w900, color: color),
+              ],
             ),
           ],
         ),
@@ -367,27 +340,32 @@ class _TxnTile extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.l10n});
-  final AppLocalizations l10n;
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const BunAvatar(size: 96, mood: BunMood.sleepy),
-          const SizedBox(height: 16),
-          Text(
-            l10n.emptyDayTitle,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            l10n.emptyDaySubtitle,
-            style: const TextStyle(color: AppColors.gray500),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const BunAvatar(size: 100, mood: BunMood.sleepy),
+            const SizedBox(height: 16),
+            const Text('ยังไม่มีสลิป',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            const SizedBox(height: 6),
+            const Text('กดปุ่มสแกนเพื่อให้น้องบันอ่านสลิปจากรูปในเครื่อง',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.gray500)),
+            const SizedBox(height: 20),
+            PixelButton(
+              label: 'สแกนสลิป',
+              icon: Icons.document_scanner,
+              onPressed: () => context.push('/scan'),
+            ),
+          ],
+        ),
       ),
     );
   }

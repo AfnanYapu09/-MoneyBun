@@ -5,8 +5,9 @@ import '../../core/utils/app_date.dart';
 import '../../domain/enums/enums.dart';
 import '../local/database.dart';
 
-/// Writes/reads transactions through the local Drift database, stamping sync
-/// bookkeeping so the SyncEngine can later push changes to Firestore.
+/// Slip entries. The app has no accounts/wallets — each entry is one slip
+/// (money out) with an amount, a date and a category the user picks. `accountId`
+/// is kept as an empty placeholder so the existing schema stays unchanged.
 class TransactionRepository {
   TransactionRepository(this._db);
 
@@ -23,14 +24,10 @@ class TransactionRepository {
 
   Future<TransactionRow?> get(String id) => _db.getTransaction(id);
 
-  /// Create or update a transaction. When [id] refers to an existing row, the
-  /// edit is marked `pendingUpdate` (unless it was still `pendingCreate`).
+  /// Create or update a slip entry.
   Future<String> save({
     String? id,
-    required TxnType type,
     required int amountCents,
-    required String accountId,
-    String? toAccountId,
     String? categoryId,
     String? note,
     required DateTime occurredAt,
@@ -39,26 +36,39 @@ class TransactionRepository {
     final now = DateTime.now().millisecondsSinceEpoch;
     final existing = id == null ? null : await _db.getTransaction(id);
     final txnId = id ?? _uuid.v4();
-    final status = _nextStatus(existing?.syncStatus);
 
     await _db.upsertTransaction(
       TransactionsCompanion.insert(
         id: txnId,
-        type: type,
+        type: TxnType.expense,
         amountCents: amountCents,
-        accountId: accountId,
-        toAccountId: Value(toAccountId),
-        categoryId: Value(type == TxnType.transfer ? null : categoryId),
+        accountId: '',
+        categoryId: Value(categoryId),
         note: Value(note),
         occurredAt: AppDate.toMillis(occurredAt),
         slipId: Value(slipId),
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         remoteId: Value(existing?.remoteId),
-        syncStatus: Value(status),
+        syncStatus: Value(_nextStatus(existing?.syncStatus)),
       ),
     );
     return txnId;
+  }
+
+  /// Assign/clear the category of an entry (the home-screen tap action).
+  Future<void> setCategory(String id, String? categoryId) async {
+    final existing = await _db.getTransaction(id);
+    if (existing == null) return;
+    await _db.upsertTransaction(
+      existing
+          .copyWith(
+            categoryId: Value(categoryId),
+            updatedAt: DateTime.now().millisecondsSinceEpoch,
+            syncStatus: _nextStatus(existing.syncStatus),
+          )
+          .toCompanion(true),
+    );
   }
 
   Future<void> delete(String id) =>

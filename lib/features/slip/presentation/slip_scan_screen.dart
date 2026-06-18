@@ -1,22 +1,14 @@
-import 'dart:convert';
-import 'dart:io';
-
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../bootstrap/providers.dart';
-import '../../../core/constants/bank_codes.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/utils/app_date.dart';
-import '../../../core/utils/money.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/pixel_border.dart';
 import '../../../core/widgets/pixel_button.dart';
-import '../../../domain/entities/parsed_slip.dart';
-import '../../../domain/enums/enums.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../data/slip_importer.dart';
 
 class SlipScanScreen extends ConsumerStatefulWidget {
   const SlipScanScreen({super.key});
@@ -26,48 +18,55 @@ class SlipScanScreen extends ConsumerStatefulWidget {
 }
 
 class _SlipScanScreenState extends ConsumerState<SlipScanScreen> {
-  final _picker = ImagePicker();
-  ParsedSlip? _result;
-  bool _processing = false;
-  bool _verifying = false;
+  bool _busy = false;
+  String _status = '';
+  int? _imported;
+  List<SlipAlbum>? _albums;
 
-  Future<void> _pick(ImageSource source) async {
-    final file = await _picker.pickImage(source: source, maxWidth: 2200);
-    if (file == null) return;
-    setState(() => _processing = true);
-    try {
-      final slip = await ref.read(slipPipelineProvider).process(file.path);
-      setState(() => _result = slip);
-    } catch (_) {
-      setState(() => _result = const ParsedSlip(source: SlipSource.ocr));
-    } finally {
-      if (mounted) setState(() => _processing = false);
-    }
+  SlipImporter get _importer => ref.read(slipImporterProvider);
+
+  Future<void> _pickOwn() async {
+    await _run('กำลังนำเข้าสลิป...', () => _importer.importPicked());
   }
 
-  Future<void> _verifyOnline(AppLocalizations l10n) async {
-    final api = ref.read(slipVerifyApiProvider);
-    if (api == null) {
-      _snack('ต้องตั้งค่า Firebase + เปิดใช้ API ก่อน');
+  Future<void> _chooseAlbum() async {
+    setState(() {
+      _busy = true;
+      _status = 'กำลังขอสิทธิ์เข้าถึงรูป...';
+    });
+    final ok = await _importer.ensurePermission();
+    if (!ok) {
+      _snack('ไม่ได้รับสิทธิ์เข้าถึงรูปในเครื่อง');
+      setState(() => _busy = false);
       return;
     }
-    setState(() => _verifying = true);
+    final albums = await _importer.listAlbums();
+    setState(() {
+      _busy = false;
+      _albums = albums;
+    });
+  }
+
+  Future<void> _runAlbum(SlipAlbum album) async {
+    ref.read(selectedAlbumProvider.notifier).set(album.id);
+    setState(() => _albums = null);
+    await _run('กำลังอ่านสลิปจาก "${album.name}"...',
+        () => _importer.importFromAlbum(album.id));
+  }
+
+  Future<void> _run(String status, Future<int> Function() task) async {
+    setState(() {
+      _busy = true;
+      _status = status;
+      _imported = null;
+    });
     try {
-      String? imageBase64;
-      final path = _result?.imagePath;
-      if (_result?.qrPayload == null && path != null) {
-        imageBase64 = base64Encode(await File(path).readAsBytes());
-      }
-      final verified = await api.verify(
-        payload: _result?.qrPayload,
-        imageBase64: imageBase64,
-      );
-      setState(
-          () => _result = verified.copyWith(imagePath: _result?.imagePath));
+      final n = await task();
+      setState(() => _imported = n);
     } catch (e) {
       _snack('$e');
     } finally {
-      if (mounted) setState(() => _verifying = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -76,199 +75,136 @@ class _SlipScanScreenState extends ConsumerState<SlipScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final locale = ref.watch(localeProvider).languageCode;
-    final apiEnabled = ref.watch(slipApiEnabledProvider);
-
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.scanSlip)),
+      appBar: AppBar(title: const Text('สแกนสลิป')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: PixelButton(
-                    label: l10n.takePhoto,
-                    icon: Icons.photo_camera,
-                    expand: true,
-                    onPressed: () => _pick(ImageSource.camera),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: PixelButton(
-                    label: l10n.pickFromGallery,
-                    icon: Icons.photo_library,
-                    color: AppColors.gray600,
-                    expand: true,
-                    onPressed: () => _pick(ImageSource.gallery),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: _processing
-                  ? _busy(l10n.scanning)
-                  : _result == null
-                      ? _intro(l10n)
-                      : _resultView(l10n, locale, apiEnabled),
-            ),
-          ],
-        ),
+        child: _busy
+            ? _busyView()
+            : _imported != null
+                ? _resultView()
+                : _albums != null
+                    ? _albumPicker()
+                    : _intro(),
       ),
     );
   }
 
-  Widget _busy(String text) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const BunAvatar(size: 72, mood: BunMood.idle),
-            const SizedBox(height: 16),
-            const CircularProgressIndicator(),
-            const SizedBox(height: 12),
-            Text(text),
-          ],
-        ),
-      );
-
-  Widget _intro(AppLocalizations l10n) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const BunAvatar(size: 96, mood: BunMood.happy),
-            const SizedBox(height: 16),
-            Text(l10n.scanSlip,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 4),
-            const Text('ถ่ายรูปหรือเลือกสลิป แล้วน้องบันจะอ่านให้',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.gray500)),
-          ],
-        ),
-      );
-
-  Widget _resultView(AppLocalizations l10n, String locale, bool apiEnabled) {
-    final r = _result!;
-    final bank = BankCodes.byCode(r.bankCode);
-    final low = !r.isHighConfidence && !r.verified;
-
-    return ListView(
+  Widget _intro() {
+    return Column(
       children: [
-        PixelBorder(
-          color: r.verified ? AppColors.orangeLight : AppColors.white,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Icon(r.verified ? Icons.verified : Icons.receipt_long,
-                      color: AppColors.bunOrange),
-                  const SizedBox(width: 8),
-                  Text(
-                    r.verified ? l10n.slipDetected : l10n.slipDetected,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ),
-              const Divider(height: 20),
-              _row(l10n.amount,
-                  r.amountCents == null ? '-' : Money.format(r.amountCents!)),
-              _row(
-                l10n.dateTime,
-                r.occurredAt == null
-                    ? '-'
-                    : '${AppDate.formatDay(r.occurredAt!, locale: locale)} ${AppDate.formatTime(r.occurredAt!, locale: locale)}',
-              ),
-              _row('ธนาคาร', bank?.nameTh ?? r.bankCode ?? '-'),
-              if (r.senderName != null) _row('ผู้ส่ง', r.senderName!),
-              if (r.receiverName != null) _row('ผู้รับ', r.receiverName!),
-              _row('Ref', r.transRef ?? '-'),
-              const SizedBox(height: 8),
-              _ConfidenceBar(confidence: r.verified ? 1 : r.confidence),
-            ],
-          ),
-        ),
-        if (low)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Text(l10n.lowConfidence,
-                style: const TextStyle(color: AppColors.expense, fontSize: 13)),
-          ),
-        const SizedBox(height: 16),
-        if (apiEnabled && !r.verified)
-          OutlinedButton.icon(
-            onPressed: _verifying ? null : () => _verifyOnline(l10n),
-            icon: _verifying
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.cloud_done),
-            label: Text(l10n.verifyOnline),
-          ),
+        const SizedBox(height: 8),
+        const BunAvatar(size: 88, mood: BunMood.happy),
         const SizedBox(height: 12),
+        const Text('ให้น้องบันอ่านสลิปให้',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+        const SizedBox(height: 4),
+        const Text(
+          'อ่านสลิปธนาคารไทย/ทรูมันนี่จากรูปในเครื่อง แล้วเก็บไว้ให้เลือกหมวดหมู่',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.gray500),
+        ),
+        const SizedBox(height: 28),
+        if (!kIsWeb)
+          PixelButton(
+            label: 'สแกนจากอัลบั้มในเครื่อง',
+            icon: Icons.photo_album,
+            expand: true,
+            onPressed: _chooseAlbum,
+          ),
+        if (!kIsWeb) const SizedBox(height: 12),
         PixelButton(
-          label: l10n.useAnyway,
+          label: 'เลือกรูปสลิปเอง',
+          icon: Icons.photo_library,
+          color: kIsWeb ? AppColors.bunOrange : AppColors.gray600,
           expand: true,
-          onPressed: () => context.pop(_result),
+          onPressed: _pickOwn,
+        ),
+        if (kIsWeb) ...[
+          const SizedBox(height: 16),
+          const Text(
+            'หมายเหตุ: บนเว็บอ่านจำนวนเงินอัตโนมัติไม่ได้ (ML Kit รองรับเฉพาะแอป Android) — '
+            'เลือกรูปแล้วกรอกจำนวนเงิน/เลือกหมวดในหน้าหลักได้',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: AppColors.gray400),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _albumPicker() {
+    final albums = _albums!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('เลือกอัลบั้มที่เก็บสลิป',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        const SizedBox(height: 12),
+        Expanded(
+          child: ListView.separated(
+            itemCount: albums.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (_, i) {
+              final a = albums[i];
+              return PixelBorder(
+                onTap: () => _runAlbum(a),
+                child: Row(
+                  children: [
+                    const Icon(Icons.photo_album, color: AppColors.bunOrange),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(a.name,
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                    Text('${a.count} รูป',
+                        style: const TextStyle(color: AppColors.gray500)),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
   }
 
-  Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _busyView() => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 84,
-              child: Text(label,
-                  style:
-                      const TextStyle(color: AppColors.gray500, fontSize: 13)),
-            ),
-            Expanded(
-              child: Text(value,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-            ),
+            const BunAvatar(size: 72),
+            const SizedBox(height: 16),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 12),
+            Text(_status, textAlign: TextAlign.center),
           ],
         ),
       );
-}
 
-class _ConfidenceBar extends StatelessWidget {
-  const _ConfidenceBar({required this.confidence});
-  final double confidence;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = confidence >= 0.6
-        ? AppColors.income
-        : (confidence >= 0.4 ? AppColors.bunOrange : AppColors.expense);
-    return Row(
-      children: [
-        const Text('ความมั่นใจ ',
-            style: TextStyle(fontSize: 12, color: AppColors.gray500)),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: confidence.clamp(0.02, 1),
-              minHeight: 8,
-              backgroundColor: AppColors.gray100,
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
+  Widget _resultView() {
+    final n = _imported!;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          BunAvatar(size: 88, mood: n > 0 ? BunMood.happy : BunMood.sleepy),
+          const SizedBox(height: 16),
+          Text(n > 0 ? 'นำเข้า $n สลิป' : 'ไม่พบสลิปใหม่',
+              style:
+                  const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+          const SizedBox(height: 6),
+          const Text('ไปหน้าหลักเพื่อเลือกหมวดหมู่ของแต่ละสลิป',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.gray500)),
+          const SizedBox(height: 24),
+          PixelButton(
+            label: 'ไปหน้าหลัก',
+            icon: Icons.home_rounded,
+            onPressed: () => context.go('/home'),
           ),
-        ),
-        const SizedBox(width: 8),
-        Text('${(confidence * 100).round()}%',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-      ],
+        ],
+      ),
     );
   }
 }

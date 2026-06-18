@@ -1,8 +1,5 @@
 import 'package:go_router/go_router.dart';
 
-import '../../domain/entities/parsed_slip.dart';
-import '../../domain/enums/enums.dart';
-import '../../features/accounts/presentation/accounts_screen.dart';
 import '../../features/add_transaction/presentation/add_transaction_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
@@ -30,34 +27,16 @@ GoRouter buildRouter() {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                  path: '/accounts', builder: (c, s) => const AccountsScreen())
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                   path: '/settings', builder: (c, s) => const SettingsScreen())
             ],
           ),
         ],
       ),
+      GoRoute(path: '/scan', builder: (c, s) => const SlipScanScreen()),
       GoRoute(
-        path: '/add',
-        builder: (c, s) {
-          final type = switch (s.uri.queryParameters['type']) {
-            'transfer' => TxnType.transfer,
-            'income' => TxnType.income,
-            'expense' => TxnType.expense,
-            _ => null,
-          };
-          return AddTransactionScreen(
-            id: s.uri.queryParameters['id'],
-            prefill: s.extra is ParsedSlip ? s.extra! as ParsedSlip : null,
-            initialType: type,
-          );
-        },
+        path: '/entry',
+        builder: (c, s) => EntryEditorScreen(id: s.uri.queryParameters['id']),
       ),
-      GoRoute(path: '/slip', builder: (c, s) => const SlipScanScreen()),
     ],
   );
 }

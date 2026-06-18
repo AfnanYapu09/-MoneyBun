@@ -29,6 +29,7 @@ dependencies:
   image_picker: ^1.1.0
   mobile_scanner: ^7.0.0
   google_mlkit_text_recognition: ^0.15.0
+  photo_manager: ^3.0.0 # Android: read slips straight from a gallery album
 
   # Firebase (sync + auth + functions). Real config supplied by `flutterfire configure`.
   firebase_core: ^3.6.0
