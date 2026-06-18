@@ -64,40 +64,38 @@ class SlipImporter {
   static const _albumCap = 300;
 
   /// Album-name fragments (lowercase) that Thai banking / e-wallet apps use for
-  /// the folder they save slips into.
+  /// the folder they save slips into. Matched albums are imported in full.
+  /// Avoid over-broad single words (e.g. bare "make" → matches "makeup") — use
+  /// distinctive tokens instead.
   static const _slipAlbumKeywords = <String>[
-    'k plus',
-    'kplus',
-    'kasikorn',
-    'กสิกร',
-    'krungthai',
-    'กรุงไทย',
-    'scb',
-    'ไทยพาณิชย์',
-    'bualuang',
-    'bangkok bank',
-    'กรุงเทพ',
-    'ttb',
-    'tmb',
-    'kma',
-    'krungsri',
-    'กรุงศรี',
-    'truemoney',
-    'true money',
-    'ทรูมัน',
-    'gsb',
-    'mymo',
-    'ออมสิน',
-    'baac',
-    'ธกส',
-    'uob',
-    'tmrw',
-    'line bk',
-    'linebk',
-    'prompt',
-    'slip',
-    'สลิป',
-    'ธนาคาร',
+    // Kasikorn
+    'k plus', 'kplus', 'kasikorn', 'กสิกร', 'kbank', 'make by kbank',
+    // Krungthai
+    'krungthai', 'กรุงไทย',
+    // SCB
+    'scb', 'ไทยพาณิชย์',
+    // Bangkok Bank
+    'bualuang', 'bangkok bank', 'กรุงเทพ',
+    // ttb / TMB
+    'ttb', 'tmb',
+    // Krungsri
+    'kma', 'krungsri', 'กรุงศรี', 'uchoose',
+    // TrueMoney
+    'truemoney', 'true money', 'ทรูมันนี่', 'ทรูมัน',
+    // GSB / ออมสิน
+    'gsb', 'mymo', 'ออมสิน',
+    // BAAC
+    'baac', 'ธกส',
+    // UOB
+    'uob', 'tmrw',
+    // เป๋าตัง / Paotang
+    'paotang', 'pao tang', 'เป๋าตัง',
+    // other banks / e-wallets
+    'cimb', 'kkp', 'kiatnakin', 'tisco', 'lh bank', 'lhbank', 'icbc', 'citi',
+    'line bk', 'linebk', 'line pay', 'linepay', 'rabbit line',
+    'dolfin', 'shopeepay', 'shopee pay', 'airpay', 'dime',
+    // generic slip hints
+    'prompt', 'slip', 'สลิป', 'ธนาคาร', 'โอนเงิน',
   ];
 
   bool _isSlipAlbum(String name) {
