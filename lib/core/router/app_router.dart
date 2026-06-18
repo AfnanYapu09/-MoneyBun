@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import '../../features/add_transaction/presentation/add_transaction_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
-import '../../features/slip/presentation/slip_scan_screen.dart';
 import '../../features/stats/presentation/stats_screen.dart';
 import 'main_shell.dart';
 
@@ -32,7 +31,6 @@ GoRouter buildRouter() {
           ),
         ],
       ),
-      GoRoute(path: '/scan', builder: (c, s) => const SlipScanScreen()),
       GoRoute(
         path: '/entry',
         builder: (c, s) => EntryEditorScreen(id: s.uri.queryParameters['id']),

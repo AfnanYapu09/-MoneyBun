@@ -88,15 +88,46 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
   );
 });
 
-/// Chosen Android gallery album id to auto-scan (null = ask first).
-class SelectedAlbum extends Notifier<String?> {
-  @override
-  String? build() => null;
-  void set(String? id) => state = id;
+/// Drives the automatic, one-gesture slip scan (pull-to-refresh on Home / FAB).
+class ScanState {
+  const ScanState({
+    this.scanning = false,
+    this.lastImported,
+    this.permissionDenied = false,
+    this.error,
+  });
+
+  final bool scanning;
+  final int? lastImported;
+  final bool permissionDenied;
+  final Object? error;
 }
 
-final selectedAlbumProvider =
-    NotifierProvider<SelectedAlbum, String?>(SelectedAlbum.new);
+class ScanController extends Notifier<ScanState> {
+  @override
+  ScanState build() => const ScanState();
+
+  /// Read every new slip image from the gallery automatically (no album pick).
+  Future<void> scan() async {
+    if (state.scanning) return;
+    state = const ScanState(scanning: true);
+    final importer = ref.read(slipImporterProvider);
+    final granted = await importer.ensurePermission();
+    if (!granted) {
+      state = const ScanState(permissionDenied: true);
+      return;
+    }
+    try {
+      final n = await importer.scanNew();
+      state = ScanState(lastImported: n);
+    } catch (e) {
+      state = ScanState(error: e);
+    }
+  }
+}
+
+final scanControllerProvider =
+    NotifierProvider<ScanController, ScanState>(ScanController.new);
 
 // ---- Reactive data ---------------------------------------------------------
 

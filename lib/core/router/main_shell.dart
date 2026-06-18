@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../bootstrap/providers.dart';
 import '../theme/colors.dart';
 import '../theme/pixel_theme.dart';
 
 /// The app frame: indexed-stack body (Home / Stats / Settings) with a pixel
-/// bottom bar and a center FAB that opens the slip scanner.
-class MainShell extends StatelessWidget {
+/// bottom bar and a center FAB that triggers the automatic slip scan.
+class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.shell});
 
   final StatefulNavigationShell shell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scanning = ref.watch(scanControllerProvider).scanning;
     return Scaffold(
       body: shell,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -23,13 +26,22 @@ class MainShell extends StatelessWidget {
           boxShadow: PixelTokens.hardShadow(),
         ),
         child: FloatingActionButton(
-          onPressed: () => context.push('/scan'),
+          onPressed: scanning
+              ? null
+              : () => ref.read(scanControllerProvider.notifier).scan(),
           backgroundColor: AppColors.bunOrange,
           foregroundColor: AppColors.white,
           elevation: 0,
           shape: const RoundedRectangleBorder(
               borderRadius: PixelTokens.borderRadius),
-          child: const Icon(Icons.document_scanner, size: 28),
+          child: scanning
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.5, color: AppColors.white),
+                )
+              : const Icon(Icons.document_scanner, size: 28),
         ),
       ),
       bottomNavigationBar: BottomAppBar(
