@@ -9,8 +9,11 @@ import '../data/local/database.dart';
 import '../data/remote/auth_service.dart';
 import '../data/remote/slip_verify_api.dart';
 import '../data/remote/sync_engine.dart';
+import '../data/repositories/account_repository.dart';
 import '../data/repositories/category_repository.dart';
+import '../data/repositories/settings_repository.dart';
 import '../data/repositories/slip_repository.dart';
+import '../data/repositories/tag_repository.dart';
 import '../data/repositories/transaction_repository.dart';
 import '../features/slip/data/slip_importer.dart';
 import '../features/slip/data/slip_ocr_service.dart';
@@ -39,6 +42,15 @@ final categoryRepositoryProvider = Provider<CategoryRepository>(
 );
 final slipRepositoryProvider = Provider<SlipRepository>(
   (ref) => SlipRepository(ref.watch(databaseProvider)),
+);
+final accountRepositoryProvider = Provider<AccountRepository>(
+  (ref) => AccountRepository(ref.watch(databaseProvider)),
+);
+final tagRepositoryProvider = Provider<TagRepository>(
+  (ref) => TagRepository(ref.watch(databaseProvider)),
+);
+final settingsRepositoryProvider = Provider<SettingsRepository>(
+  (ref) => SettingsRepository(ref.watch(databaseProvider)),
 );
 
 // ---- Firebase (null until real config is in place) -------------------------
@@ -121,6 +133,9 @@ class ScanController extends Notifier<ScanState> {
     }
     try {
       final result = await importer.scanNew();
+      await ref
+          .read(settingsRepositoryProvider)
+          .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
       state = ScanState(result: result, limited: perm.limited);
     } catch (e) {
       state = ScanState(error: e, limited: perm.limited);
@@ -163,22 +178,62 @@ final monthTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {
   return ref.watch(transactionRepositoryProvider).watchMonth(month);
 });
 
-/// App locale (Thai by default), switchable from Settings.
-class LocaleController extends Notifier<Locale> {
-  @override
-  Locale build() => const Locale('th');
-  void set(Locale locale) => state = locale;
-}
+/// A single transaction by id (Transaction detail screen).
+final transactionByIdProvider =
+    StreamProvider.family<TransactionRow?, String>((ref, id) {
+  return ref.watch(databaseProvider).watchTransaction(id);
+});
 
-final localeProvider =
-    NotifierProvider<LocaleController, Locale>(LocaleController.new);
+/// All transaction↔tag links (for resolving a transaction's tags reactively).
+final allTransactionTagsProvider =
+    StreamProvider<List<TransactionTagRow>>((ref) {
+  return ref.watch(databaseProvider).watchAllTransactionTags();
+});
 
-/// Whether the optional online slip-verify API may be called. Off by default.
-class SlipApiEnabled extends Notifier<bool> {
-  @override
-  bool build() => false;
-  void set(bool value) => state = value;
-}
+/// All active transactions (Search).
+final allTransactionsProvider = StreamProvider<List<TransactionRow>>(
+  (ref) => ref.watch(transactionRepositoryProvider).watchAll(),
+);
 
-final slipApiEnabledProvider =
-    NotifierProvider<SlipApiEnabled, bool>(SlipApiEnabled.new);
+/// All accounts/wallets (Accounts sheet, account pickers).
+final accountsProvider = StreamProvider<List<AccountRow>>(
+  (ref) => ref.watch(accountRepositoryProvider).watchAccounts(),
+);
+
+/// User-defined tags.
+final tagsProvider = StreamProvider<List<TagRow>>(
+  (ref) => ref.watch(tagRepositoryProvider).watchTags(),
+);
+
+/// Tag id → usage count (Manage Tags).
+final tagUsageProvider = StreamProvider<Map<String, int>>(
+  (ref) => ref.watch(tagRepositoryProvider).watchUsageCounts(),
+);
+
+/// All budgets (Budget screen / Stats).
+final budgetsProvider = StreamProvider<List<BudgetRow>>(
+  (ref) => ref.watch(databaseProvider).watchBudgets(),
+);
+
+// ---- Settings (persisted in Drift, single source of truth) -----------------
+
+/// Reactive snapshot of all app settings.
+final appSettingsProvider = StreamProvider<AppSettings>(
+  (ref) => ref.watch(settingsRepositoryProvider).watch(),
+);
+
+/// App locale (derived from settings; Thai by default).
+final localeProvider = Provider<Locale>((ref) {
+  final code = ref.watch(appSettingsProvider).value?.locale ?? 'th';
+  return Locale(code);
+});
+
+/// Whether the optional online slip-verify API may be called.
+final slipApiEnabledProvider = Provider<bool>(
+  (ref) => ref.watch(appSettingsProvider).value?.slipApiEnabled ?? false,
+);
+
+/// Whether onboarding has been completed (drives the router redirect).
+final onboardingSeenProvider = Provider<bool>(
+  (ref) => ref.watch(appSettingsProvider).value?.onboardingSeen ?? false,
+);

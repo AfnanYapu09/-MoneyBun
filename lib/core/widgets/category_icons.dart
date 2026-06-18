@@ -1,34 +1,49 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../domain/enums/enums.dart';
+import 'app_icons.dart';
 
-/// Maps stored string keys to [IconData] so categories/accounts stay
-/// serialisable and DB-driven while still rendering crisp icons.
+/// Maps stored string keys to Lucide [IconData] so categories/accounts stay
+/// serialisable and DB-driven. Keys are unchanged from the original seed data.
 class CategoryIcons {
   const CategoryIcons._();
 
   static const Map<String, IconData> _byKey = {
-    'food': Icons.restaurant,
-    'shopping': Icons.shopping_bag,
-    'education': Icons.school,
-    'home': Icons.home,
-    'transport': Icons.directions_bus,
-    'health': Icons.favorite,
-    'entertainment': Icons.sports_esports,
-    'lend': Icons.volunteer_activism,
-    'transfer': Icons.swap_horiz,
-    'salary': Icons.payments,
-    'bonus': Icons.card_giftcard,
-    'other': Icons.category,
+    'food': AppIcons.utensils,
+    'shopping': AppIcons.shoppingBag,
+    'education': AppIcons.graduationCap,
+    'home': AppIcons.house,
+    'transport': AppIcons.bus,
+    'health': AppIcons.heartPulse,
+    'entertainment': AppIcons.clapperboard,
+    'lend': AppIcons.gift,
+    'transfer': AppIcons.arrowLeftRight,
+    'salary': AppIcons.banknote,
+    'bonus': AppIcons.gift,
+    'family': AppIcons.pawPrint,
+    'travel': AppIcons.palmtree,
+    'work': AppIcons.briefcase,
+    'package': AppIcons.package,
+    'health_fitness': AppIcons.dumbbell,
+    'other': AppIcons.ellipsis,
+    // Account / bank icon keys (Accounts sheet, account pickers).
+    'cash': AppIcons.banknote,
+    'wallet': AppIcons.wallet,
+    'sprout': AppIcons.sprout,
+    'landmark': AppIcons.landmark,
+    'gem': AppIcons.gem,
+    'droplet': AppIcons.droplet,
+    'building2': AppIcons.building2,
+    'store': AppIcons.store,
   };
 
-  static IconData forKey(String? key) => _byKey[key] ?? Icons.category;
+  static IconData forKey(String? key) => _byKey[key] ?? AppIcons.ellipsis;
 
   static IconData forAccount(AccountType type) => switch (type) {
-        AccountType.cash => Icons.payments,
-        AccountType.bank => Icons.account_balance,
-        AccountType.ewallet => Icons.account_balance_wallet,
-        AccountType.savings => Icons.savings,
-        AccountType.credit => Icons.credit_card,
+        AccountType.cash => AppIcons.banknote,
+        AccountType.bank => AppIcons.landmark,
+        AccountType.ewallet => AppIcons.wallet,
+        AccountType.savings => AppIcons.sprout,
+        AccountType.credit => AppIcons.creditCard,
       };
 }

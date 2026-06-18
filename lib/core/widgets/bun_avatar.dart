@@ -2,103 +2,85 @@ import 'package:flutter/material.dart';
 
 import '../theme/colors.dart';
 
-/// Mood states for the Bun mascot.
-enum BunMood { idle, happy, sleepy }
+/// Colour variant for the Bun mascot.
+enum BunVariant {
+  /// Terracotta body on light surfaces (default).
+  normal,
 
-/// "Bun" — the orange pixel mascot, drawn with a [CustomPainter] on a fixed
-/// pixel grid so it stays crisp at any size (FilterQuality is irrelevant — it's
-/// vector-drawn squares). Swap to real PNG art later via [BunAvatar.asset].
+  /// Cream body for use on a terracotta background.
+  reverse,
+}
+
+/// "น้องบัน" (Bun) — the pixel mascot, drawn with a [CustomPainter] from the
+/// design's 14×16 grid so it stays crisp at any size. `X`=body, `K`=eye,
+/// `N`=nose/cheek shadow. See `design_files/bun.jsx` (`BUN_MAP`).
 class BunAvatar extends StatelessWidget {
-  const BunAvatar({super.key, this.size = 64, this.mood = BunMood.idle});
+  const BunAvatar(
+      {super.key, this.size = 64, this.variant = BunVariant.normal});
 
+  /// Target width in logical pixels. Height is `size * 16/14`.
   final double size;
-  final BunMood mood;
+  final BunVariant variant;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: size,
-      height: size,
-      child: CustomPaint(painter: _BunPainter(mood)),
+      height: size * 16 / 14,
+      child: CustomPaint(painter: _BunPainter(variant)),
     );
   }
 }
 
 class _BunPainter extends CustomPainter {
-  _BunPainter(this.mood);
+  _BunPainter(this.variant);
 
-  final BunMood mood;
+  final BunVariant variant;
 
-  // 16x16 pixel grid. Each cell is one of:
-  // '.' transparent, 'O' orange, 'D' dark orange, 'W' white (belly/face),
-  // 'K' ink (outline/eyes), 'P' pink (cheeks/inner ear).
+  // 14 columns. Rabbit ears on top, square eyes, four stub legs.
   static const List<String> _grid = [
-    '..K........K....',
-    '.KOK......KOK...',
-    '.KODK....KDOK...',
-    '.KOPK....KPOK...',
-    '.KOOK....KOOK...',
-    '..KOK....KOK....',
-    '..KOOKKKKKOOK...',
-    '.KOOOOOOOOOOOK..',
-    '.KOWWOOOOWWOK...',
-    '.KOWKWOOWKWOK...',
-    '.KOOOOOOOOOOOK..',
-    '.KOOPOOOOPOOOK..',
-    '.KOWWWWWWWWWOK..',
-    '.KOWWWWWWWWWOK..',
-    '..KOOOOOOOOOK...',
-    '...KKKKKKKKK....',
+    '...XX....XX...',
+    '...XX....XX...',
+    '...XX.XX.XX...',
+    '..XXXXXXXXXX..',
+    '.XXXXXXXXXXXX.',
+    'XXXXXXXXXXXXXX',
+    'XXXKKXXXXKKXXX',
+    'XXXKKXXXXKKXXX',
+    'XXXXXXXXXXXXXX',
+    'XXXXXXNNXXXXXX',
+    'XXXXXXXXXXXXXX',
+    '.XXXXXXXXXXXX.',
+    '.XXXXXXXXXXXX.',
+    '.XX.XX..XX.XX.',
+    '.XX.XX..XX.XX.',
   ];
 
-  Color? _color(String c) {
-    switch (c) {
-      case 'O':
-        return AppColors.bunOrange;
-      case 'D':
-        return AppColors.orangeDark;
-      case 'W':
-        return AppColors.white;
-      case 'K':
-        return AppColors.ink;
-      case 'P':
-        return const Color(0xFFF2A6A0);
-      default:
-        return null;
-    }
-  }
+  Color get _body =>
+      variant == BunVariant.reverse ? AppColors.reverse : AppColors.terra;
+  Color get _eye =>
+      variant == BunVariant.reverse ? AppColors.terraDeep : AppColors.ink;
+  Color get _nose => AppColors.terraDeep;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final cell = size.width / 16;
+    final cell = size.width / 14;
     final paint = Paint()..isAntiAlias = false;
-
     for (var y = 0; y < _grid.length; y++) {
       final row = _grid[y];
       for (var x = 0; x < row.length; x++) {
-        var ch = row[x];
-
-        // Mood tweaks on the eye rows (rows 8-9, eye columns).
-        if (mood == BunMood.sleepy && y == 9 && (ch == 'K')) ch = 'O';
-        if (mood == BunMood.sleepy && y == 8 && (x == 4 || x == 9)) ch = 'K';
-
-        final color = _color(ch);
-        if (color == null) continue;
-        paint.color = color;
+        final ch = row[x];
+        if (ch == '.') continue;
+        paint.color = ch == 'K' ? _eye : (ch == 'N' ? _nose : _body);
+        // +0.5 overlap avoids hairline seams between cells.
         canvas.drawRect(
           Rect.fromLTWH(x * cell, y * cell, cell + 0.5, cell + 0.5),
           paint,
         );
       }
     }
-
-    // Happy: tiny sparkle to the side.
-    if (mood == BunMood.happy) {
-      paint.color = AppColors.orangeDark;
-      canvas.drawRect(Rect.fromLTWH(14 * cell, 2 * cell, cell, cell), paint);
-    }
   }
 
   @override
-  bool shouldRepaint(covariant _BunPainter old) => old.mood != mood;
+  bool shouldRepaint(covariant _BunPainter old) => old.variant != variant;
 }

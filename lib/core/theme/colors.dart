@@ -1,33 +1,49 @@
 import 'package:flutter/material.dart';
 
-/// MoneyBun palette — orange / white / gray, pixel-art friendly (flat, high
-/// contrast). Inspired by the Claude Code orange.
+/// MoneyBun palette — the "soft terracotta" design system.
+///
+/// Tokens mirror the design handoff (`--terra`, `--cream`, `--ink`, …). The app
+/// background is [cream]; cards/inputs/sheets are [paper] with a 1px [line]
+/// border and no shadow. The pixel "Bun" mascot uses [terra]/[terraDeep].
 class AppColors {
   const AppColors._();
 
-  // Brand orange
-  static const Color bunOrange = Color(0xFFE8732C);
-  static const Color orangeDark = Color(0xFFB5531A);
-  static const Color orangeLight = Color(0xFFFFD9B8);
+  // Brand terracotta
+  static const Color terra = Color(0xFFC4694A); // primary
+  static const Color terraDeep = Color(0xFFA9543A); // pressed / shadow pixels
+  static const Color terra700 = Color(0xFF8F4632); // icons on tinted chips
+  static const Color terraWash = Color(0xFFF4E2D8); // tinted icon backgrounds
+  static const Color terraTint = Color(0xFFEAD3C7); // skeleton / shimmer
 
-  // Neutrals
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color paper = Color(0xFFFAF7F2); // app background
-  static const Color ink = Color(0xFF1E1B17); // primary text / pixel borders
+  // Surfaces
+  static const Color cream = Color(0xFFF1EEE4); // app / screen background
+  static const Color paper = Color(0xFFFBFAF6); // cards, inputs, sheets
+  static const Color paper2 = Color(0xFFEFEADC); // segmented track, progress
 
-  static const Color gray100 = Color(0xFFF1ECE6);
-  static const Color gray200 = Color(0xFFE3DBD1);
-  static const Color gray300 = Color(0xFFCBC1B5);
-  static const Color gray400 = Color(0xFFA89E91);
-  static const Color gray500 = Color(0xFF867C70);
-  static const Color gray600 = Color(0xFF655D53);
-  static const Color gray700 = Color(0xFF463F38);
+  // Ink (text)
+  static const Color ink = Color(0xFF211C18); // primary text, eyes
+  static const Color ink2 = Color(0xFF6E635A); // secondary text
+  static const Color ink3 = Color(0xFFA0948A); // tertiary / placeholder / muted
 
-  // Semantic (transaction directions)
-  static const Color income = Color(0xFF2E9E5B);
-  static const Color expense = Color(0xFFD64545);
-  static const Color transfer = Color(0xFF3D7DCA);
+  static const Color line = Color(0xFFE7E0D2); // borders, dividers
 
+  // Positive / income
+  static const Color green = Color(0xFF4E7A5E);
+  static const Color greenTint = Color(0xFFE3EDE2);
+
+  // Text / icons on terracotta
+  static const Color reverse = Color(0xFFFBF4EE);
+
+  // Danger (over-budget bar, delete)
+  static const Color danger = Color(0xFFB23F2A);
+  static const Color dangerWash = Color(0xFFF3DAD2);
+
+  // Semantic transaction directions.
+  static const Color income = green; // +฿ amounts
+  static const Color expense = ink; // −฿ amounts (design uses ink, not red)
+  static const Color transfer = ink3; // neutral, no sign
+
+  /// Parse a stored `colorHex` ("FFE8732C" or "#E8732C") into a [Color].
   static Color forHex(String hex) {
     final value = hex.replaceAll('#', '');
     final withAlpha = value.length == 6 ? 'FF$value' : value;

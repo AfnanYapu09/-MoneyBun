@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../bootstrap/providers.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../theme/app_theme.dart';
 import '../theme/colors.dart';
-import '../theme/pixel_theme.dart';
+import '../theme/typography.dart';
+import '../widgets/app_icons.dart';
+import 'sheets.dart';
 
-/// The app frame: indexed-stack body (Home / Stats / Settings) with a pixel
-/// bottom bar and a center FAB that triggers the automatic slip scan.
+/// App frame: an indexed-stack body (Home / Stats / Settings), a flat 72px
+/// bottom nav, and a free-floating terracotta FAB that opens the Add sheet.
 class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.shell});
 
@@ -15,60 +18,55 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scanning = ref.watch(scanControllerProvider).scanning;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: shell,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: Container(
+        width: 58,
+        height: 58,
         decoration: BoxDecoration(
-          borderRadius: PixelTokens.borderRadius,
-          border: PixelTokens.inkBorder(),
-          boxShadow: PixelTokens.hardShadow(),
+          color: AppColors.terra,
+          borderRadius: BorderRadius.circular(Tokens.rFab),
+          boxShadow: Tokens.fabShadow,
         ),
-        child: FloatingActionButton(
-          onPressed: scanning
-              ? null
-              : () => ref.read(scanControllerProvider.notifier).scan(),
-          backgroundColor: AppColors.bunOrange,
-          foregroundColor: AppColors.white,
-          elevation: 0,
-          shape: const RoundedRectangleBorder(
-              borderRadius: PixelTokens.borderRadius),
-          child: scanning
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: AppColors.white),
-                )
-              : const Icon(Icons.document_scanner, size: 28),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Tokens.rFab),
+            onTap: () {
+              // FAB always adds on the Home tab.
+              if (shell.currentIndex != 0) shell.goBranch(0);
+              showAddTransactionSheet(context);
+            },
+            child:
+                const Icon(AppIcons.plus, color: AppColors.reverse, size: 28),
+          ),
         ),
       ),
-      bottomNavigationBar: BottomAppBar(
-        color: AppColors.white,
-        elevation: 0,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        height: 64,
-        padding: EdgeInsets.zero,
+      bottomNavigationBar: Container(
+        height: 72 + MediaQuery.of(context).padding.bottom,
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: const Border(top: BorderSide(color: AppColors.line)),
+        ),
         child: Row(
           children: [
             _NavItem(
-              icon: Icons.home_rounded,
-              label: 'หน้าหลัก',
+              icon: AppIcons.house,
+              label: l10n.navHome,
               selected: shell.currentIndex == 0,
               onTap: () => _go(0),
             ),
             _NavItem(
-              icon: Icons.bar_chart_rounded,
-              label: 'สถิติ',
+              icon: AppIcons.chartPie,
+              label: l10n.navStats,
               selected: shell.currentIndex == 1,
               onTap: () => _go(1),
             ),
-            const SizedBox(width: 64),
             _NavItem(
-              icon: Icons.settings_rounded,
-              label: 'ตั้งค่า',
+              icon: AppIcons.settings,
+              label: l10n.navSettings,
               selected: shell.currentIndex == 2,
               onTap: () => _go(2),
             ),
@@ -97,19 +95,20 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.bunOrange : AppColors.gray400;
+    final color = selected ? AppColors.terra : AppColors.ink3;
     return Expanded(
-      child: InkWell(
+      child: InkResponse(
         onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24),
+            Icon(icon, color: color, size: 23),
+            const SizedBox(height: 3),
             Text(label,
-                style: TextStyle(
-                    fontSize: 10,
-                    color: color,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
+                style: AppTypography.heading(
+                    size: 11,
+                    weight: selected ? FontWeight.w500 : FontWeight.w400,
+                    color: color)),
           ],
         ),
       ),

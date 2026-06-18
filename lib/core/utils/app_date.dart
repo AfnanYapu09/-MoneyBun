@@ -40,9 +40,42 @@ class AppDate {
     return '${df.format(d)} $year';
   }
 
+  /// Full month name, no year: `มีนาคม` / `March`.
+  static String formatMonthName(DateTime d, {required String locale}) {
+    final isThai = locale.startsWith('th');
+    return DateFormat('MMMM', isThai ? 'th_TH' : 'en_US').format(d);
+  }
+
+  /// Abbreviated month: `มี.ค.` / `Mar`.
+  static String formatMonthShort(DateTime d, {required String locale}) {
+    final isThai = locale.startsWith('th');
+    return DateFormat('MMM', isThai ? 'th_TH' : 'en_US').format(d);
+  }
+
   static String formatTime(DateTime d, {required String locale}) {
     final isThai = locale.startsWith('th');
     return DateFormat('HH:mm', isThai ? 'th_TH' : 'en_US').format(d);
+  }
+
+  /// Short day + month, no year: `18 มิ.ย.` / `18 Jun`.
+  static String formatDayShort(DateTime d, {required String locale}) {
+    final isThai = locale.startsWith('th');
+    return DateFormat('d MMM', isThai ? 'th_TH' : 'en_US').format(d);
+  }
+
+  /// Full weekday name: `อังคาร` / `Tuesday`.
+  static String formatWeekday(DateTime d, {required String locale}) {
+    final isThai = locale.startsWith('th');
+    return DateFormat('EEEE', isThai ? 'th_TH' : 'en_US').format(d);
+  }
+
+  /// "วันนี้" / "เมื่อวาน" / short date, for day-group headers.
+  static String relativeDayLabel(DateTime d, {required String locale}) {
+    final isThai = locale.startsWith('th');
+    final diff = startOfDay(DateTime.now()).difference(startOfDay(d)).inDays;
+    if (diff == 0) return isThai ? 'วันนี้' : 'Today';
+    if (diff == 1) return isThai ? 'เมื่อวาน' : 'Yesterday';
+    return formatDayShort(d, locale: locale);
   }
 
   static int toMillis(DateTime d) => d.millisecondsSinceEpoch;

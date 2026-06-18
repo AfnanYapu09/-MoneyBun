@@ -48,6 +48,21 @@ class AccountRepository {
     return accId;
   }
 
+  /// Toggle whether MoneyBun auto-reads slips for this account.
+  Future<void> setWatched(String id, bool watched) async {
+    final existing = await _db.getAccount(id);
+    if (existing == null) return;
+    await _db.upsertAccount(
+      existing
+          .copyWith(
+            watchedForSlips: watched,
+            updatedAt: DateTime.now().millisecondsSinceEpoch,
+            syncStatus: _nextStatus(existing.syncStatus),
+          )
+          .toCompanion(true),
+    );
+  }
+
   Future<void> delete(String id) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final existing = await _db.getAccount(id);
