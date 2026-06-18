@@ -21,7 +21,6 @@ class SlipRepository {
         id: id,
         source: slip.source,
         imagePath: Value(slip.imagePath),
-        imageBase64: Value(slip.imageBase64),
         assetId: Value(slip.assetId),
         bankCode: Value(slip.bankCode),
         transRef: Value(slip.transRef),

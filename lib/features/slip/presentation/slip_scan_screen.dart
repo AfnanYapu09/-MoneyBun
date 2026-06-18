@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,10 +23,6 @@ class _SlipScanScreenState extends ConsumerState<SlipScanScreen> {
   List<SlipAlbum>? _albums;
 
   SlipImporter get _importer => ref.read(slipImporterProvider);
-
-  Future<void> _pickOwn() async {
-    await _run('กำลังนำเข้าสลิป...', () => _importer.importPicked());
-  }
 
   Future<void> _chooseAlbum() async {
     setState(() {
@@ -105,30 +100,12 @@ class _SlipScanScreenState extends ConsumerState<SlipScanScreen> {
           style: TextStyle(color: AppColors.gray500),
         ),
         const SizedBox(height: 28),
-        if (!kIsWeb)
-          PixelButton(
-            label: 'สแกนจากอัลบั้มในเครื่อง',
-            icon: Icons.photo_album,
-            expand: true,
-            onPressed: _chooseAlbum,
-          ),
-        if (!kIsWeb) const SizedBox(height: 12),
         PixelButton(
-          label: 'เลือกรูปสลิปเอง',
-          icon: Icons.photo_library,
-          color: kIsWeb ? AppColors.bunOrange : AppColors.gray600,
+          label: 'สแกนจากอัลบั้มในเครื่อง',
+          icon: Icons.photo_album,
           expand: true,
-          onPressed: _pickOwn,
+          onPressed: _chooseAlbum,
         ),
-        if (kIsWeb) ...[
-          const SizedBox(height: 16),
-          const Text(
-            'หมายเหตุ: บนเว็บอ่านจำนวนเงินอัตโนมัติไม่ได้ (ML Kit รองรับเฉพาะแอป Android) — '
-            'เลือกรูปแล้วกรอกจำนวนเงิน/เลือกหมวดในหน้าหลักได้',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppColors.gray400),
-          ),
-        ],
       ],
     );
   }

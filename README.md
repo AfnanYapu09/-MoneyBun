@@ -1,18 +1,18 @@
 # MoneyBun 🐰
 
-แอปจดรายรับ-รายจ่ายส่วนตัวสำหรับคนไทย ที่อ่าน **สลิปธนาคารไทย/ทรูมันนี่** อัตโนมัติจากรูปในมือถือ
-ผู้ใช้แค่กดเลือกหมวดหมู่ ดีไซน์เป็น **พิกเซลอาร์ต โทนส้ม/ขาว/เทา** มีมาสคอต **"น้องบัน" (Bun)**
+แอปจดรายจ่ายส่วนตัวสำหรับคนไทย ที่อ่าน **สลิปธนาคารไทย/ทรูมันนี่** อัตโนมัติจากอัลบั้มรูปในมือถือ
+ผู้ใช้แค่กดเลือกหมวดหมู่ ดีไซน์เป็น **พิกเซลอาร์ต โทนส้ม/ขาว/เทา** มีมาสคอต **"น้องบัน" (Bun)** ·
+**สำหรับ Android** (สแกนอัลบั้ม + OCR ในเครื่องทำงานเฉพาะบนมือถือ)
 
-A pixel-art Thai personal finance app. Reads Thai bank / TrueMoney slips automatically
-(hybrid QR + on-device OCR, with an optional online verify API), local-first with cloud sync.
+A pixel-art Thai expense tracker for **Android**. Auto-reads Thai bank / TrueMoney slips from a
+phone gallery album (QR + on-device OCR), local-first with optional cloud sync.
 
 ## ฟีเจอร์ (Features)
 
-- 🏠 **หน้าหลัก** — รายการรายวัน เลื่อนดูทั้งเดือน + สรุปรายรับ/รายจ่าย/ยอดคงเหลือ
-- ➕ **เพิ่มรายการ** — รายรับ / รายจ่าย / ย้ายเงินระหว่างบัญชี + เลือกหมวดหมู่
-- 🧾 **อ่านสลิป (Hybrid)** — สแกน QR (EMVCo TLV) + OCR ในเครื่อง (ML Kit) ดึงจำนวนเงิน/วันที่/อ้างอิง
-  แบบออฟไลน์ และมีตัวเลือกตรวจสอบออนไลน์ (EasySlip/SlipOK) ผ่าน Cloud Function
-- 💳 **บัญชี** — กระเป๋าเงินสด/ธนาคาร/ทรูมันนี่ พร้อมยอดคงเหลือคำนวณอัตโนมัติ
+- 🧾 **สแกนอัลบั้มอัตโนมัติ** — เลือกอัลบั้มที่เก็บสลิป น้องบันอ่านทุกรูปที่ยังไม่เคยอ่าน (กันซ้ำ),
+  สแกน QR (EMVCo TLV) + OCR ในเครื่อง (ML Kit) ดึงจำนวนเงิน/วันที่/อ้างอิง และเก็บรูปสลิปไว้ในแอป
+- 🏠 **หน้าหลัก** — รายการสลิปจัดกลุ่มตามวัน เลื่อนดูทั้งเดือน + ยอดรวมเดือน · แตะ chip เพื่อ **เลือกหมวดหมู่ต่อสลิป**
+- 🗂️ **หมวดหมู่ลิสต์เดียว** — อาหาร/ช้อปปิ้ง/การศึกษา/บ้าน/เดินทาง/สุขภาพ/บันเทิง + **ให้ยืม** + **ย้ายเงิน** + อื่นๆ
 - 📊 **สถิติ** — สรุปเดือน + สัดส่วนตามหมวดหมู่
 - ☁️ **Local-first + Sync** — ใช้งานออฟไลน์ได้เต็มที่ (Drift) และซิงค์ขึ้น Firebase เมื่อล็อกอิน Google
 - 🌏 ไทย/อังกฤษ, รองรับ พ.ศ.
@@ -27,7 +27,7 @@ lib/
   core/        theme (pixel design system), widgets, router, utils, constants
   data/        local/ (Drift db + tables), remote/ (auth, sync, mappers), repositories/
   domain/      entities, enums
-  features/    home, add_transaction, accounts, stats, settings, slip
+  features/    home, add_transaction, stats, settings, slip
   bootstrap/   providers (Riverpod), firebase_options (placeholder)
 functions/     Cloud Functions: verifySlip proxy (TypeScript)
 ```
@@ -39,7 +39,7 @@ flutter pub get
 flutter gen-l10n                 # generate localizations
 dart run build_runner build      # generate Drift code (database.g.dart)
 flutter run                      # Android device/emulator
-flutter test                     # 27 unit tests (TLV/CRC, OCR extract, balances, ...)
+flutter test                     # unit tests (TLV/CRC, OCR extract, repositories, ...)
 ```
 
 > หมายเหตุ: ไฟล์ที่ถูกสร้างอัตโนมัติ (`*.g.dart`, `lib/l10n/generated/`) ไม่ได้ commit ไว้ —
@@ -80,15 +80,14 @@ GitHub Actions (`.github/workflows/ci.yml`): `pub get` → `gen-l10n` → `build
 - Sync conflict ใช้ last-write-wins (เหมาะกับผู้ใช้คนเดียวหลายเครื่อง)
 - งบประมาณ/เปรียบเทียบเดือน: โครงข้อมูลรองรับแล้ว (ตาราง budgets) แต่ยังไม่ต่อ UI
 
-## เดโมเว็บ (GitHub Pages)
+## ทดสอบบนมือถือ (APK)
 
-แอปรันบนเว็บได้ (Flutter web + drift wasm + ฟอนต์ bundle) workflow `.github/workflows/deploy-web.yml`
-จะ build + deploy ขึ้น GitHub Pages อัตโนมัติเมื่อ push เข้า `main`
+แอปนี้ต้องรันบน **Android** จริง (สแกนอัลบั้ม + OCR ทำงานเฉพาะบนเครื่อง) วิธีง่ายสุดคือดาวน์โหลด APK:
 
-เปิดใช้งานครั้งเดียว:
-1. Merge เข้า `main`
-2. เปลี่ยน repo เป็น **public** (Settings → General → Change visibility) — ⚠️ GitHub Pages ใช้กับ repo private ไม่ได้ถ้าเป็นแพ็กเกจฟรี (ต้อง public หรือ GitHub Pro/Team)
-3. เปิด Pages: **Settings → Pages → Build and deployment → Source: GitHub Actions**
-4. รอ workflow **Deploy Web** เสร็จ (~2 นาที) → เปิด `https://afnanyapu09.github.io/-MoneyBun/`
+1. เปิด workflow **Release APK** (`.github/workflows/release-apk.yml`) — push เข้า `main` แล้วจะ build
+   `flutter build apk --release` และแนบไฟล์ขึ้น **GitHub Release tag `latest`** อัตโนมัติ
+2. บนมือถือเปิดหน้า [**Releases**](../../releases) → ดาวน์โหลด `app-release.apk`
+3. เปิดไฟล์ → อนุญาต "ติดตั้งจากแหล่งที่ไม่รู้จัก" → ติดตั้ง
+4. เปิดแอป → กดสแกน → เลือกอัลบั้มที่เก็บสลิป → อ่านอัตโนมัติ → เลือกหมวดหมู่ในหน้าหลัก
 
-> ทางเลือกฟรีถ้าอยากเก็บ repo เป็น private: ใช้ **Firebase Hosting** (`firebase deploy --only hosting`) แทน
+> APK นี้เซ็นด้วย debug key สำหรับทดสอบเท่านั้น · ถ้ามี Flutter + สาย USB ใช้ `flutter run` (เปิด USB debugging) แทนได้
