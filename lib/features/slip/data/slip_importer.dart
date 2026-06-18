@@ -98,8 +98,25 @@ class SlipImporter {
     'prompt', 'slip', 'สลิป', 'ธนาคาร', 'โอนเงิน',
   ];
 
-  bool _isSlipAlbum(String name) {
-    final n = name.toLowerCase();
+  bool _isSlipAlbum(String name) => isSlipAlbumName(name);
+
+  /// Whether [name] is a bank/e-wallet slip album. Public + static so it can be
+  /// unit-tested.
+  ///
+  /// MAKE by KBank is special-cased: its gallery folder's real MediaStore
+  /// bucket name is often just "MAKE" (the gallery only *labels* it
+  /// "MAKE by KBank"), and a bare "make" keyword is unsafe (it would match
+  /// "Makeup"). So MAKE is matched by exact/prefix rules instead.
+  static bool isSlipAlbumName(String name) {
+    final n = name.toLowerCase().trim();
+    if (n == 'make' ||
+        n.startsWith('make ') ||
+        n.startsWith('make_') ||
+        n.startsWith('make-') ||
+        n.startsWith('makeby') ||
+        n.contains('make by')) {
+      return true;
+    }
     return _slipAlbumKeywords.any(n.contains);
   }
 
