@@ -35,9 +35,21 @@ class SlipImporter {
   final Future<Set<String>> Function() _importedAssetIds;
 
   Future<bool> ensurePermission() async {
-    final state = await PhotoManager.requestPermissionExtend();
+    final state = await PhotoManager.requestPermissionExtend(
+      requestOption: const PermissionRequestOption(
+        androidPermission: AndroidPermission(
+          type: RequestType.image,
+          mediaLocation: false,
+        ),
+      ),
+    );
+    // `hasAccess` covers Android 14's "limited"/partial selection too.
     return state.isAuth || state.hasAccess;
   }
+
+  /// Open the system app-settings page so the user can grant photo access
+  /// after a previous denial (where the prompt no longer re-appears).
+  Future<void> openSettings() => PhotoManager.openSetting();
 
   Future<List<SlipAlbum>> listAlbums() async {
     final paths = await PhotoManager.getAssetPathList(type: RequestType.image);
