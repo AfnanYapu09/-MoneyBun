@@ -53,8 +53,18 @@ class SlipImporter {
   Future<void> openSettings() => PhotoManager.openSetting();
 
   /// Scan photos added since the last run for slips. Returns the count imported.
+  ///
+  /// On the very first run (no prior scan) it only looks at photos saved this
+  /// month, so a fresh install reads the current month's slips rather than the
+  /// whole gallery. After that it resumes from the last-scan high-water mark.
   Future<int> scanNew() async {
     final lastScan = await _readLastScan();
+    final now = DateTime.now();
+    // First run: floor at the 1st of this month. Otherwise resume where we left.
+    final floor = lastScan.millisecondsSinceEpoch == 0
+        ? DateTime(now.year, now.month)
+        : lastScan;
+
     final paths = await PhotoManager.getAssetPathList(
       onlyAll: true,
       type: RequestType.image,
@@ -66,12 +76,12 @@ class SlipImporter {
     final assets = await all.getAssetListRange(start: 0, end: end);
     final already = await _importedAssetIds();
 
-    var newest = lastScan;
+    var newest = floor;
     var count = 0;
     for (final asset in assets) {
       final created = asset.createDateTime;
-      // Assets come newest-first; once we reach already-scanned dates, stop.
-      if (!created.isAfter(lastScan)) break;
+      // Assets come newest-first; stop once we reach already-scanned dates.
+      if (!created.isAfter(floor)) break;
       if (created.isAfter(newest)) newest = created;
       if (already.contains(asset.id)) continue;
       final file = await asset.file;
@@ -87,10 +97,11 @@ class SlipImporter {
   }
 
   /// A photo is treated as a slip if it carries a Thai slip-verify QR, or OCR
-  /// found both an amount and a recognisable bank — enough to keep ordinary
-  /// photos out while still catching real slips.
+  /// found a money amount (`\d+.\d{2}`). Thai slips almost always show a
+  /// 2-decimal amount the Latin OCR can read, while ordinary photos rarely do —
+  /// the bank name is often Thai-only, so we can't rely on detecting it.
   bool _looksLikeSlip(ParsedSlip p) =>
-      p.qrPayload != null || (p.amountCents != null && p.bankCode != null);
+      p.qrPayload != null || p.amountCents != null;
 
   /// occurredAt comes from the slip itself (OCR); if unreadable, fall back to
   /// when the photo was saved — never the scan time — so entries land on the
