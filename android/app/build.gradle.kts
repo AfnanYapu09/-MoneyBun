@@ -30,6 +30,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // Don't run R8/resource shrinking. ML Kit references optional
+            // language recognizers (Chinese/Devanagari/Japanese/Korean) that we
+            // don't bundle — we only use the Latin OCR model — so R8 fails on
+            // those missing classes. Skipping shrinking keeps the release build
+            // working and leaves the OCR models intact.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
