@@ -5,6 +5,7 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "lib/l10n/generated/**"
+    - "plugins/**" # vendored third-party plugin code (not ours to lint)
   errors:
     invalid_annotation_target: ignore
 
