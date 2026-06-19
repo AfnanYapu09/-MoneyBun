@@ -40,8 +40,14 @@ class SecurityScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Center(
-            child: Text('ปกป้องข้อมูลการเงินของคุณ',
-                style: AppTypography.body(size: 13, color: AppColors.ink3)),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: Text(
+                'ล็อกแอปด้วย PIN หรือไบโอเมตริก เพื่อปกป้องข้อมูลการเงินของคุณ',
+                textAlign: TextAlign.center,
+                style: AppTypography.body(size: 13.5, color: AppColors.ink2),
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           const SettingSectionLabel('การล็อก'),
@@ -49,18 +55,14 @@ class SecurityScreen extends ConsumerWidget {
             SettingRow(
               icon: AppIcons.lockKeyhole,
               label: 'ล็อกด้วย PIN',
-              trailing: Switch(
-                value: settings?.pinEnabled ?? false,
-                onChanged: (v) => _togglePin(context, ref, v),
-              ),
+              toggleValue: settings?.pinEnabled ?? false,
+              onToggle: (v) => _togglePin(context, ref, v),
             ),
             SettingRow(
               icon: AppIcons.scanFace,
-              label: 'ปลดล็อกด้วย Face ID / ลายนิ้วมือ',
-              trailing: Switch(
-                value: settings?.biometricEnabled ?? false,
-                onChanged: (v) => repo.setBiometricEnabled(v),
-              ),
+              label: 'Face ID / ลายนิ้วมือ',
+              toggleValue: settings?.biometricEnabled ?? false,
+              onToggle: (v) => repo.setBiometricEnabled(v),
             ),
             SettingRow(
               icon: AppIcons.keyRound,
@@ -73,11 +75,9 @@ class SecurityScreen extends ConsumerWidget {
           SettingGroup(children: [
             SettingRow(
               icon: AppIcons.eyeOff,
-              label: 'ซ่อนยอดเงิน',
-              trailing: Switch(
-                value: settings?.hideBalance ?? false,
-                onChanged: (v) => repo.setHideBalance(v),
-              ),
+              label: 'ซ่อนยอดเงินในหน้าหลัก',
+              toggleValue: settings?.hideBalance ?? false,
+              onToggle: (v) => repo.setHideBalance(v),
             ),
             SettingRow(
               icon: AppIcons.download,

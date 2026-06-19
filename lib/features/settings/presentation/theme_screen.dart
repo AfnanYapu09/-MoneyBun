@@ -18,9 +18,9 @@ class ThemeScreen extends ConsumerWidget {
   static const _accents = [
     'FFC4694A',
     'FF4E7A5E',
-    'FF3D7DCA',
-    'FF8A6DBF',
-    'FFD9476B',
+    'FF2A6FDB',
+    'FF8A5BD6',
+    'FFC9A227',
   ];
 
   @override
@@ -36,48 +36,19 @@ class ThemeScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
           Text('โหมดการแสดงผล',
-              style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+              style: AppTypography.heading(
+                  size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
           const SizedBox(height: 10),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (final m in _modes) ...[
                 Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
+                  child: _ModeSwatch(
+                    mode: m.$1,
+                    label: m.$2,
+                    selected: mode == m.$1,
                     onTap: () => repo.setThemeMode(m.$1),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      decoration: BoxDecoration(
-                        color: AppColors.paper,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color:
-                              mode == m.$1 ? AppColors.terra : AppColors.line,
-                          width: mode == m.$1 ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            m.$1 == 'light'
-                                ? Icons.light_mode_outlined
-                                : m.$1 == 'dark'
-                                    ? Icons.dark_mode_outlined
-                                    : Icons.brightness_auto_outlined,
-                            color:
-                                mode == m.$1 ? AppColors.terra : AppColors.ink3,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(m.$2,
-                              style: AppTypography.heading(
-                                  size: 13,
-                                  weight: FontWeight.w500,
-                                  color: mode == m.$1
-                                      ? AppColors.terra
-                                      : AppColors.ink2)),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -86,7 +57,8 @@ class ThemeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           Text('สีหลัก',
-              style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+              style: AppTypography.heading(
+                  size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -95,19 +67,16 @@ class ThemeScreen extends ConsumerWidget {
                   onTap: () => repo.setAccentColor(a),
                   customBorder: const CircleBorder(),
                   child: Container(
-                    width: 44,
-                    height: 44,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: AppColors.forHex(a),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                          color:
-                              accent == a ? AppColors.ink : Colors.transparent,
-                          width: 2),
                     ),
+                    alignment: Alignment.center,
                     child: accent == a
                         ? const Icon(AppIcons.check,
-                            size: 18, color: Colors.white)
+                            size: 20, color: Colors.white)
                         : null,
                   ),
                 ),
@@ -117,6 +86,77 @@ class ThemeScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A visual theme-mode preview card (light / dark / gradient) with a label.
+class _ModeSwatch extends StatelessWidget {
+  const _ModeSwatch({
+    required this.mode,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String mode;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = mode == 'dark';
+    final isSystem = mode == 'system';
+    final bg = mode == 'light' ? AppColors.cream : AppColors.ink;
+    final fg = mode == 'light'
+        ? AppColors.ink
+        : (isSystem ? AppColors.terra : AppColors.cream);
+    return Column(
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: AspectRatio(
+            aspectRatio: 3 / 4,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              alignment: Alignment.bottomLeft,
+              decoration: BoxDecoration(
+                color: isSystem ? null : bg,
+                gradient: isSystem
+                    ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.cream, AppColors.ink],
+                        stops: [0.5, 0.5],
+                      )
+                    : null,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: selected ? AppColors.terra : AppColors.line,
+                  width: 2,
+                ),
+              ),
+              child: FractionallySizedBox(
+                widthFactor: 0.7,
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: (isDark ? AppColors.cream : fg)
+                        .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(label,
+            style: AppTypography.body(
+                size: 13,
+                color: selected ? AppColors.terra700 : AppColors.ink2)),
+      ],
     );
   }
 }
