@@ -18,7 +18,6 @@ class AppSettings {
     this.pinHash,
     this.biometricEnabled = false,
     this.savingsGoalCents = 0,
-    this.slipApiEnabled = false,
     this.lastSlipReadAt,
     this.displayName = 'คุณบัน',
     this.username = 'moneybun',
@@ -36,7 +35,6 @@ class AppSettings {
   final String? pinHash;
   final bool biometricEnabled;
   final int savingsGoalCents;
-  final bool slipApiEnabled;
   final int? lastSlipReadAt;
   final String displayName;
   final String username;
@@ -57,7 +55,6 @@ class AppSettings {
       pinHash: m[SettingsKeys.pinHash],
       biometricEnabled: b(SettingsKeys.biometricEnabled),
       savingsGoalCents: i(SettingsKeys.savingsGoalCents),
-      slipApiEnabled: b(SettingsKeys.slipApiEnabled),
       lastSlipReadAt: m[SettingsKeys.lastSlipReadAt] == null
           ? null
           : i(SettingsKeys.lastSlipReadAt),
@@ -81,7 +78,6 @@ class SettingsKeys {
   static const pinHash = 'pinHash';
   static const biometricEnabled = 'biometricEnabled';
   static const savingsGoalCents = 'savingsGoalCents';
-  static const slipApiEnabled = 'slipApiEnabled';
   static const lastSlipReadAt = 'lastSlipReadAt';
   static const displayName = 'displayName';
   static const username = 'username';
@@ -128,8 +124,6 @@ class SettingsRepository {
       setBool(SettingsKeys.biometricEnabled, v);
   Future<void> setSavingsGoal(int cents) =>
       setInt(SettingsKeys.savingsGoalCents, cents);
-  Future<void> setSlipApiEnabled(bool v) =>
-      setBool(SettingsKeys.slipApiEnabled, v);
   Future<void> setLastSlipReadAt(int ms) =>
       setInt(SettingsKeys.lastSlipReadAt, ms);
   Future<void> setDisplayName(String v) => set(SettingsKeys.displayName, v);

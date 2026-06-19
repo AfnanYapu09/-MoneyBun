@@ -19,9 +19,9 @@ class SlipExtraction {
 }
 
 /// Heuristic extraction of amount / date-time / reference / bank from the Latin
-/// OCR text of a Thai bank slip. The on-device OCR is Latin-only, so this reads
-/// Arabic digits and Latin bank tokens — it deliberately does NOT try to read
-/// Thai names (those come from the optional verify API).
+/// OCR text of a Thai bank slip. This pass reads Arabic digits and Latin bank
+/// tokens only — Thai names and Thai bank labels are recovered separately by
+/// [SlipPartyExtractor] from the on-device Thai (Tesseract) OCR pass.
 class SlipExtractor {
   const SlipExtractor._();
 

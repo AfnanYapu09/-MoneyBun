@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/app_date.dart';
 import '../data/local/database.dart';
 import '../data/remote/auth_service.dart';
-import '../data/remote/slip_verify_api.dart';
 import '../data/remote/sync_engine.dart';
 import '../data/repositories/account_repository.dart';
 import '../data/repositories/category_repository.dart';
@@ -66,11 +64,6 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
   if (auth == null) return null;
   return SyncEngine(
       ref.watch(databaseProvider), FirebaseFirestore.instance, auth);
-});
-
-final slipVerifyApiProvider = Provider<SlipVerifyApi?>((ref) {
-  if (!ref.watch(firebaseReadyProvider)) return null;
-  return SlipVerifyApi(FirebaseFunctions.instance);
 });
 
 final authStateProvider = StreamProvider<User?>((ref) {
@@ -238,11 +231,6 @@ final localeProvider = Provider<Locale>((ref) {
   final code = ref.watch(appSettingsProvider).value?.locale ?? 'th';
   return Locale(code);
 });
-
-/// Whether the optional online slip-verify API may be called.
-final slipApiEnabledProvider = Provider<bool>(
-  (ref) => ref.watch(appSettingsProvider).value?.slipApiEnabled ?? false,
-);
 
 /// Whether onboarding has been completed (drives the router redirect).
 final onboardingSeenProvider = Provider<bool>(
