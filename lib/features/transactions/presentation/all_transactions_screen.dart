@@ -69,7 +69,7 @@ class AllTransactionsScreen extends ConsumerWidget {
               categories: categories,
               accounts: accounts,
               locale: locale,
-              onTapTxn: (id) => context.push('/transactions/$id'),
+              onTapTxn: (id) => showAddTransactionSheet(context, editId: id),
               onCategorize: (t) => _categorize(context, ref, t.id),
             ),
         ],

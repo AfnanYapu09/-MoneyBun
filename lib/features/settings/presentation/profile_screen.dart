@@ -20,12 +20,14 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _name = TextEditingController();
   final _username = TextEditingController();
+  final _phone = TextEditingController();
   bool _init = false;
 
   @override
   void dispose() {
     _name.dispose();
     _username.dispose();
+    _phone.dispose();
     super.dispose();
   }
 
@@ -35,6 +37,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (!_init && settings != null) {
       _name.text = settings.displayName;
       _username.text = settings.username;
+      _phone.text = settings.phone;
       _init = true;
     }
 
@@ -83,7 +86,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               label: 'อีเมล',
               value: ref.watch(authStateProvider).value?.email ?? '—'),
           const SizedBox(height: 12),
-          const _Field(label: 'เบอร์โทร', value: '08x-xxx-xxxx'),
+          _Field(
+              label: 'เบอร์โทร',
+              controller: _phone,
+              keyboardType: TextInputType.phone),
           const SizedBox(height: 28),
           PrimaryButton(label: 'บันทึก', onPressed: _save),
         ],
@@ -97,7 +103,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _name.text.trim().isEmpty ? 'คุณบัน' : _name.text.trim());
     await repo.setUsername(
         _username.text.trim().isEmpty ? 'moneybun' : _username.text.trim());
-    if (mounted) context.pop();
+    await repo.setPhone(_phone.text.trim());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(const SnackBar(content: Text('บันทึกโปรไฟล์แล้ว')));
+    context.pop();
   }
 }
 
@@ -109,11 +120,13 @@ class _Field extends StatelessWidget {
     this.controller,
     this.value,
     this.prefix,
+    this.keyboardType,
   });
   final String label;
   final TextEditingController? controller;
   final String? value;
   final String? prefix;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +146,7 @@ class _Field extends StatelessWidget {
           if (controller != null)
             TextField(
               controller: controller,
+              keyboardType: keyboardType,
               style: AppTypography.body(size: 15.5),
               decoration: InputDecoration(
                 isCollapsed: true,

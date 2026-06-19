@@ -72,22 +72,27 @@ class BudgetScreen extends ConsumerWidget {
                         size: 14,
                         color: AppColors.reverse.withValues(alpha: 0.82))),
                 const SizedBox(height: 2),
-                RichText(
-                  text: TextSpan(
-                    text: Money.compact(totalSpent),
-                    style: AppTypography.heading(
-                        size: 34,
-                        weight: FontWeight.w600,
-                        color: AppColors.reverse),
-                    children: [
-                      TextSpan(
-                        text: ' / ${Money.compact(totalBudget)}',
-                        style: AppTypography.heading(
-                            size: 18,
-                            weight: FontWeight.w500,
-                            color: AppColors.reverse.withValues(alpha: 0.8)),
-                      ),
-                    ],
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: RichText(
+                    maxLines: 1,
+                    text: TextSpan(
+                      text: Money.compact(totalSpent),
+                      style: AppTypography.heading(
+                          size: 34,
+                          weight: FontWeight.w600,
+                          color: AppColors.reverse),
+                      children: [
+                        TextSpan(
+                          text: ' / ${Money.compact(totalBudget)}',
+                          style: AppTypography.heading(
+                              size: 18,
+                              weight: FontWeight.w500,
+                              color: AppColors.reverse.withValues(alpha: 0.8)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),

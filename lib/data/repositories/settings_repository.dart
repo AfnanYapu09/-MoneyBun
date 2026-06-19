@@ -22,6 +22,7 @@ class AppSettings {
     this.lastSlipReadAt,
     this.displayName = 'คุณบัน',
     this.username = 'moneybun',
+    this.phone = '',
   });
 
   final bool onboardingSeen;
@@ -39,6 +40,7 @@ class AppSettings {
   final int? lastSlipReadAt;
   final String displayName;
   final String username;
+  final String phone;
 
   factory AppSettings.fromMap(Map<String, String> m) {
     bool b(String k, [bool d = false]) => m[k] == null ? d : m[k] == 'true';
@@ -61,6 +63,7 @@ class AppSettings {
           : i(SettingsKeys.lastSlipReadAt),
       displayName: m[SettingsKeys.displayName] ?? 'คุณบัน',
       username: m[SettingsKeys.username] ?? 'moneybun',
+      phone: m[SettingsKeys.phone] ?? '',
     );
   }
 }
@@ -82,6 +85,7 @@ class SettingsKeys {
   static const lastSlipReadAt = 'lastSlipReadAt';
   static const displayName = 'displayName';
   static const username = 'username';
+  static const phone = 'phone';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -130,6 +134,7 @@ class SettingsRepository {
       setInt(SettingsKeys.lastSlipReadAt, ms);
   Future<void> setDisplayName(String v) => set(SettingsKeys.displayName, v);
   Future<void> setUsername(String v) => set(SettingsKeys.username, v);
+  Future<void> setPhone(String v) => set(SettingsKeys.phone, v);
 
   // ---- PIN ----
   String _hash(String pin) =>

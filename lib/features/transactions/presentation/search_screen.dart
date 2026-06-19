@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../bootstrap/providers.dart';
+import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
@@ -159,8 +160,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               sub: d.sub,
                               amountCents: t.amountCents,
                               type: t.type,
-                              onTap: () =>
-                                  context.push('/transactions/${t.id}'),
+                              onTap: () => showAddTransactionSheet(context,
+                                  editId: t.id),
                             );
                           }),
                         ],
