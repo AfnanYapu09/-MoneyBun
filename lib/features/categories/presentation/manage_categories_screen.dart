@@ -58,7 +58,8 @@ class _ManageCategoriesScreenState
                     size: 16, color: AppColors.ink3),
                 const SizedBox(width: 6),
                 Text('ลากเพื่อจัดเรียงลำดับ',
-                    style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+                    style:
+                        AppTypography.body(size: 12.5, color: AppColors.ink3)),
               ],
             ),
           ),

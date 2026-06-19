@@ -195,8 +195,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
             const SizedBox(height: 14),
             // Alert-at-80% toggle.
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
               decoration: BoxDecoration(
                 color: AppColors.paper,
                 borderRadius: BorderRadius.circular(16),

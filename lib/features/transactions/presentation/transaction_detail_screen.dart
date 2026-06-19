@@ -232,7 +232,8 @@ class TransactionDetailScreen extends ConsumerWidget {
               right: -4,
               child: IconButton(
                 onPressed: () => Navigator.pop(c),
-                icon: const Icon(AppIcons.x, color: AppColors.reverse, size: 26),
+                icon:
+                    const Icon(AppIcons.x, color: AppColors.reverse, size: 26),
               ),
             ),
           ],
@@ -346,8 +347,7 @@ class _AccountFlow extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                IconChip(
-                    icon: fromIcon, size: 36, radius: 11, iconSize: 18),
+                IconChip(icon: fromIcon, size: 36, radius: 11, iconSize: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -370,8 +370,7 @@ class _AccountFlow extends StatelessWidget {
           if (hasTo) ...[
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),
-              child:
-                  Icon(AppIcons.arrowRight, size: 18, color: AppColors.ink3),
+              child: Icon(AppIcons.arrowRight, size: 18, color: AppColors.ink3),
             ),
             Expanded(
               child: Row(
@@ -431,14 +430,10 @@ class _SlipChip extends StatelessWidget {
         child: Row(
           children: [
             const IconChip(
-                icon: AppIcons.receiptText,
-                size: 40,
-                radius: 11,
-                iconSize: 19),
+                icon: AppIcons.receiptText, size: 40, radius: 11, iconSize: 19),
             const SizedBox(width: 14),
             Expanded(
-              child: Text('สลิปต้นฉบับ',
-                  style: AppTypography.body(size: 14.5)),
+              child: Text('สลิปต้นฉบับ', style: AppTypography.body(size: 14.5)),
             ),
             Text('ดูรูป',
                 style: AppTypography.heading(

@@ -38,9 +38,10 @@ class StatsScreen extends ConsumerWidget {
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
         c.id: c
     };
-    final budgetCount = (ref.watch(budgetsProvider).value ?? const <BudgetRow>[])
-        .where((b) => b.categoryId != null)
-        .length;
+    final budgetCount =
+        (ref.watch(budgetsProvider).value ?? const <BudgetRow>[])
+            .where((b) => b.categoryId != null)
+            .length;
 
     final expenses = txns.where((t) => t.type == TxnType.expense);
     final total = expenses.fold<int>(0, (s, t) => s + t.amountCents);

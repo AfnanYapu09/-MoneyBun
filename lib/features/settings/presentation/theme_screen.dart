@@ -142,8 +142,8 @@ class _ModeSwatch extends StatelessWidget {
                 child: Container(
                   height: 8,
                   decoration: BoxDecoration(
-                    color: (isDark ? AppColors.cream : fg)
-                        .withValues(alpha: 0.5),
+                    color:
+                        (isDark ? AppColors.cream : fg).withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),

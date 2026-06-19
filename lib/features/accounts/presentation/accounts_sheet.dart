@@ -67,8 +67,7 @@ class _AccountsSheetState extends ConsumerState<AccountsSheet> {
                 icon: AppIcons.wallet,
                 label: 'ทุกบัญชี',
                 selected: _filter == _AccountFilter.accounts,
-                onTap: () =>
-                    setState(() => _filter = _AccountFilter.accounts),
+                onTap: () => setState(() => _filter = _AccountFilter.accounts),
               ),
               const SizedBox(width: 10),
               _FilterChip(
@@ -167,8 +166,7 @@ class _FilterChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon,
-                size: 16,
-                color: selected ? AppColors.reverse : AppColors.ink2),
+                size: 16, color: selected ? AppColors.reverse : AppColors.ink2),
             const SizedBox(width: 7),
             Text(label,
                 style: AppTypography.heading(

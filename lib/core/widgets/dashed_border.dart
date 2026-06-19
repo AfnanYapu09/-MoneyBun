@@ -62,8 +62,8 @@ class _DashedBorderPainter extends CustomPainter {
       ..strokeWidth = strokeWidth;
     final inset = strokeWidth / 2;
     final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(inset, inset, size.width - strokeWidth,
-          size.height - strokeWidth),
+      Rect.fromLTWH(
+          inset, inset, size.width - strokeWidth, size.height - strokeWidth),
       Radius.circular(radius),
     );
     final path = Path()..addRRect(rrect);

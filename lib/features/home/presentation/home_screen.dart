@@ -601,8 +601,8 @@ class _ScannedRow extends StatelessWidget {
                 width: 42,
                 height: 42,
                 child: Center(
-                  child: Icon(AppIcons.plus,
-                      size: 20, color: AppColors.terra700),
+                  child:
+                      Icon(AppIcons.plus, size: 20, color: AppColors.terra700),
                 ),
               ),
             ),

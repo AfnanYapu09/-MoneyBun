@@ -163,7 +163,9 @@ class _TagChip extends StatelessWidget {
         children: [
           Text('#$label',
               style: AppTypography.heading(
-                  size: 14, weight: FontWeight.w500, color: AppColors.terra700)),
+                  size: 14,
+                  weight: FontWeight.w500,
+                  color: AppColors.terra700)),
           if (count > 0) ...[
             const SizedBox(width: 6),
             Text('$count',

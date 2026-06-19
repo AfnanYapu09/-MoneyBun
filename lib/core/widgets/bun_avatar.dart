@@ -124,8 +124,8 @@ class _BunCalcPainter extends CustomPainter {
             ? AppColors.ink
             : (ch == 'N' ? AppColors.terraDeep : AppColors.terra);
         canvas.drawRect(
-          Rect.fromLTWH((ox * s) + x * cell, (oy * s) + y * cell,
-              cell + 0.5, cell + 0.5),
+          Rect.fromLTWH(
+              (ox * s) + x * cell, (oy * s) + y * cell, cell + 0.5, cell + 0.5),
           px,
         );
       }
@@ -166,8 +166,7 @@ class _BunCalcPainter extends CustomPainter {
       for (var j = 0; j < 3; j++) {
         aa.color = (i == 2 && j == 2) ? AppColors.terra : AppColors.cream;
         canvas.drawRRect(
-          RRect.fromRectAndRadius(
-              Rect.fromLTWH(xs[j], ys[i], 14 * s, 13 * s),
+          RRect.fromRectAndRadius(Rect.fromLTWH(xs[j], ys[i], 14 * s, 13 * s),
               Radius.circular(3 * s)),
           aa,
         );
