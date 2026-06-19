@@ -36,10 +36,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.cream,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
+          padding: const EdgeInsets.fromLTRB(28, 36, 28, 30),
           children: [
             const SizedBox(height: 14),
-            const Center(child: BunAvatar(size: 64)),
+            const Center(child: BunAvatar(size: 84)),
             const SizedBox(height: 14),
             const Center(child: Wordmark(size: 30)),
             const SizedBox(height: 8),

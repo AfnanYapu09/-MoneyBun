@@ -81,7 +81,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
+          // Bouncing physics on every platform so the Cupertino-style refresh
+          // control (Bun scanning block) can be revealed by overscroll.
+          physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics()),
           slivers: [
             // Pull-to-refresh: NO Material spinner — reveals a pull hint, then
             // the "น้องบันกำลังอ่านสลิป" scanning block while reading slips.

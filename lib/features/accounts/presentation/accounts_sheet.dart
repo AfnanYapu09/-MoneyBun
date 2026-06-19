@@ -9,21 +9,50 @@ import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
 import '../../../data/local/database.dart';
+import '../../../domain/enums/enums.dart';
 
 /// Bottom sheet listing accounts MoneyBun watches for slips, with per-account
 /// checkboxes + select-all. Toggling persists `watchedForSlips`.
-class AccountsSheet extends ConsumerWidget {
+class AccountsSheet extends ConsumerStatefulWidget {
   const AccountsSheet({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AccountsSheet> createState() => _AccountsSheetState();
+}
+
+enum _AccountFilter { accounts, cards, other }
+
+class _AccountsSheetState extends ConsumerState<AccountsSheet> {
+  _AccountFilter _filter = _AccountFilter.accounts;
+
+  bool _matchesFilter(AccountRow a) => switch (_filter) {
+        _AccountFilter.accounts => a.type == AccountType.cash ||
+            a.type == AccountType.bank ||
+            a.type == AccountType.savings,
+        _AccountFilter.cards => a.type == AccountType.credit,
+        _AccountFilter.other => a.type == AccountType.ewallet,
+      };
+
+  @override
+  Widget build(BuildContext context) {
     final accounts = ref.watch(accountsProvider).value ?? const <AccountRow>[];
     final repo = ref.read(accountRepositoryProvider);
     final watchedCount = accounts.where((a) => a.watchedForSlips).length;
     final allOn = accounts.isNotEmpty && watchedCount == accounts.length;
+    final filtered = accounts.where(_matchesFilter).toList();
 
     return SheetScaffold(
       title: 'บัญชีที่ให้น้องบันสแกนสลิป',
+      action: TextButton(
+        onPressed: () {
+          for (final a in accounts) {
+            repo.setWatched(a.id, true);
+          }
+        },
+        child: Text('รีเซ็ต',
+            style: AppTypography.heading(
+                size: 14, weight: FontWeight.w500, color: AppColors.terra)),
+      ),
       footer: PrimaryButton(
         label: watchedCount > 0 ? 'บันทึก · $watchedCount บัญชี' : 'บันทึก',
         onPressed: () => Navigator.of(context).pop(),
@@ -32,6 +61,32 @@ class AccountsSheet extends ConsumerWidget {
         shrinkWrap: true,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
         children: [
+          Row(
+            children: [
+              _FilterChip(
+                icon: AppIcons.wallet,
+                label: 'ทุกบัญชี',
+                selected: _filter == _AccountFilter.accounts,
+                onTap: () =>
+                    setState(() => _filter = _AccountFilter.accounts),
+              ),
+              const SizedBox(width: 10),
+              _FilterChip(
+                icon: AppIcons.creditCard,
+                label: 'ทุกบัตร',
+                selected: _filter == _AccountFilter.cards,
+                onTap: () => setState(() => _filter = _AccountFilter.cards),
+              ),
+              const SizedBox(width: 10),
+              _FilterChip(
+                icon: AppIcons.ellipsis,
+                label: 'อื่นๆ',
+                selected: _filter == _AccountFilter.other,
+                onTap: () => setState(() => _filter = _AccountFilter.other),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           _Row(
             icon: AppIcons.wallet,
             iconBg: AppColors.terraWash,
@@ -53,7 +108,16 @@ class AccountsSheet extends ConsumerWidget {
                     weight: FontWeight.w500,
                     color: AppColors.ink3)),
           ),
-          for (final a in accounts)
+          if (filtered.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text('ไม่มีบัญชีในหมวดนี้',
+                    style:
+                        AppTypography.body(size: 13.5, color: AppColors.ink3)),
+              ),
+            ),
+          for (final a in filtered)
             _Row(
               icon: CategoryIcons.forKey(a.iconKey),
               iconBg: a.colorHex == null
@@ -71,7 +135,51 @@ class AccountsSheet extends ConsumerWidget {
   }
 
   String? _accountSub(AccountRow a) =>
-      a.type.name == 'bank' ? 'ออมทรัพย์' : null;
+      a.type == AccountType.bank ? 'ออมทรัพย์' : null;
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.terra : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+              color: selected ? AppColors.terra : AppColors.line, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 16,
+                color: selected ? AppColors.reverse : AppColors.ink2),
+            const SizedBox(width: 7),
+            Text(label,
+                style: AppTypography.heading(
+                    size: 14,
+                    weight: FontWeight.w500,
+                    color: selected ? AppColors.reverse : AppColors.ink2)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _Row extends StatelessWidget {

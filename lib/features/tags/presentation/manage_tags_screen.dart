@@ -75,6 +75,31 @@ class _ManageTagsScreenState extends ConsumerState<ManageTagsScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 22),
+            Text('เรียงตามการใช้งาน',
+                style: AppTypography.heading(
+                    size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.paper,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < sorted.length; i++) ...[
+                    if (i > 0)
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                    _TagUsageRow(
+                      tag: sorted[i],
+                      count: usage[sorted[i].id] ?? 0,
+                      onEdit: () => _rename(sorted[i]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         ],
       ),
@@ -86,6 +111,32 @@ class _ManageTagsScreenState extends ConsumerState<ManageTagsScreen> {
     if (name.isEmpty) return;
     await ref.read(tagRepositoryProvider).save(name: name);
     _controller.clear();
+  }
+
+  Future<void> _rename(TagRow t) async {
+    final controller = TextEditingController(text: t.name);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('แก้ชื่อแท็ก'),
+        content: TextField(controller: controller, autofocus: true),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: const Text('บันทึก')),
+        ],
+      ),
+    );
+    if (name != null && name.isNotEmpty) {
+      await ref.read(tagRepositoryProvider).save(
+            id: t.id,
+            name: name,
+            colorHex: t.colorHex,
+            sortOrder: t.sortOrder,
+          );
+    }
   }
 }
 
@@ -104,19 +155,19 @@ class _TagChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.only(left: 14, right: 8, top: 8, bottom: 8),
       decoration: BoxDecoration(
-        color: AppColors.paper,
+        color: AppColors.terraWash,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.line),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('#$label',
-              style: AppTypography.heading(size: 14, weight: FontWeight.w500)),
+              style: AppTypography.heading(
+                  size: 14, weight: FontWeight.w500, color: AppColors.terra700)),
           if (count > 0) ...[
             const SizedBox(width: 6),
             Text('$count',
-                style: AppTypography.body(size: 12, color: AppColors.ink3)),
+                style: AppTypography.body(size: 12, color: AppColors.terra700)),
           ],
           const SizedBox(width: 4),
           InkWell(
@@ -124,8 +175,55 @@ class _TagChip extends StatelessWidget {
             customBorder: const CircleBorder(),
             child: const Padding(
               padding: EdgeInsets.all(2),
-              child: Icon(AppIcons.x, size: 15, color: AppColors.ink3),
+              child: Icon(AppIcons.x, size: 15, color: AppColors.terra700),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A row in the usage-sorted tag list: # chip + name + count + edit pencil.
+class _TagUsageRow extends StatelessWidget {
+  const _TagUsageRow(
+      {required this.tag, required this.count, required this.onEdit});
+  final TagRow tag;
+  final int count;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.terraWash,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child:
+                const Icon(AppIcons.hash, size: 17, color: AppColors.terra700),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text('#${tag.name}', style: AppTypography.body(size: 15)),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.paper2,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text('$count ครั้ง',
+                style: AppTypography.body(size: 12, color: AppColors.ink3)),
+          ),
+          IconButton(
+            onPressed: onEdit,
+            icon: const Icon(AppIcons.pencil, size: 18, color: AppColors.ink3),
           ),
         ],
       ),

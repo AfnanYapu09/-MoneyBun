@@ -57,16 +57,50 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   @override
   Widget build(BuildContext context) {
     return SheetScaffold(
-      title: 'เพิ่มหมวดหมู่ใหม่',
+      title: 'หมวดใหม่',
       footer: PrimaryButton(label: 'บันทึก', onPressed: _save),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: _name,
-              decoration: const InputDecoration(hintText: 'ชื่อหมวดหมู่'),
+            // Live preview: chosen icon + name input.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.paper,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppColors.forHex(_colorHex),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(CategoryIcons.forKey(_iconKey),
+                        size: 22, color: Colors.white),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: TextField(
+                      controller: _name,
+                      style: AppTypography.body(size: 16),
+                      decoration: InputDecoration(
+                        isCollapsed: true,
+                        border: InputBorder.none,
+                        filled: false,
+                        hintText: 'ชื่อหมวด เช่น คาเฟ่',
+                        hintStyle:
+                            AppTypography.body(size: 16, color: AppColors.ink3),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 18),
             Text('ไอคอน',

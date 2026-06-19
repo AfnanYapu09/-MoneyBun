@@ -220,6 +220,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               value: _accountName(accounts, _fromAccountId),
               onTap: () => _pickAccount(accounts, true),
             ),
+          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+            child: Text('เพิ่มเติม',
+                style: AppTypography.heading(
+                    size: 13, weight: FontWeight.w500, color: AppColors.ink3)),
+          ),
+          const SizedBox(height: 10),
+          _Row(
+            icon: AppIcons.repeat,
+            label: 'จดซ้ำล่วงหน้า',
+            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('จดซ้ำล่วงหน้า — เร็วๆ นี้'))),
+          ),
         ],
       ),
     );
