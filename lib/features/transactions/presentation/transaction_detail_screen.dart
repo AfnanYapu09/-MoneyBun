@@ -209,10 +209,10 @@ class TransactionDetailScreen extends ConsumerWidget {
       return _AccountFlow(
         fromIcon: AppIcons.landmark,
         fromLabel: fromBank ?? 'โอนจาก',
-        fromName: hasSender ? sender! : (account ?? 'บัญชี'),
+        fromName: hasSender ? sender : (account ?? 'บัญชี'),
         toIcon: AppIcons.landmark,
         toLabel: toBank ?? 'เข้าบัญชี',
-        toName: hasReceiver ? receiver! : toBank,
+        toName: hasReceiver ? receiver : toBank,
       );
     }
 
