@@ -319,7 +319,6 @@ class _AccountFlow extends StatelessWidget {
   const _AccountFlow({
     required this.fromLabel,
     required this.fromName,
-    this.fromIcon = AppIcons.wallet,
     this.toLabel,
     this.toName,
     this.toIcon,
@@ -327,7 +326,6 @@ class _AccountFlow extends StatelessWidget {
 
   final String fromLabel;
   final String fromName;
-  final IconData fromIcon;
   final String? toLabel;
   final String? toName;
   final IconData? toIcon;
@@ -347,7 +345,8 @@ class _AccountFlow extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                IconChip(icon: fromIcon, size: 36, radius: 11, iconSize: 18),
+                const IconChip(
+                    icon: AppIcons.wallet, size: 36, radius: 11, iconSize: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
