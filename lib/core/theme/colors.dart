@@ -26,6 +26,7 @@ class AppColors {
   static const Color ink3 = Color(0xFFA0948A); // tertiary / placeholder / muted
 
   static const Color line = Color(0xFFE7E0D2); // borders, dividers
+  static const Color toggleOff = Color(0xFFD8D0C2); // off-state switch track
 
   // Positive / income
   static const Color green = Color(0xFF4E7A5E);

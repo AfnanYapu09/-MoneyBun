@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
 import 'app_icons.dart';
+import 'app_toggle.dart';
 import 'icon_chip.dart';
 
 /// Small uppercase-ish section label above a settings group.
@@ -53,6 +54,8 @@ class SettingRow extends StatelessWidget {
     required this.label,
     this.value,
     this.trailing,
+    this.toggleValue,
+    this.onToggle,
     this.onTap,
     this.showChevron = true,
     this.danger = false,
@@ -62,6 +65,11 @@ class SettingRow extends StatelessWidget {
   final String label;
   final String? value;
   final Widget? trailing;
+
+  /// When set, renders the design's custom [AppToggle] as the trailing widget.
+  final bool? toggleValue;
+  final ValueChanged<bool>? onToggle;
+
   final VoidCallback? onTap;
   final bool showChevron;
   final bool danger;
@@ -69,13 +77,16 @@ class SettingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fg = danger ? AppColors.danger : AppColors.ink;
+    final Widget? trailingWidget = toggleValue != null
+        ? AppToggle(value: toggleValue!, onChanged: onToggle)
+        : trailing;
     final row = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
         children: [
           IconChip(
             icon: icon,
-            size: 36,
+            size: 34,
             radius: 11,
             iconSize: 18,
             background: danger ? AppColors.dangerWash : AppColors.terraWash,
@@ -91,8 +102,8 @@ class SettingRow extends StatelessWidget {
               child: Text(value!,
                   style: AppTypography.body(size: 14, color: AppColors.ink3)),
             ),
-          if (trailing != null) trailing!,
-          if (trailing == null && onTap != null && showChevron) ...[
+          if (trailingWidget != null) trailingWidget,
+          if (trailingWidget == null && onTap != null && showChevron) ...[
             const SizedBox(width: 4),
             const Icon(AppIcons.chevronRight, size: 19, color: AppColors.ink3),
           ],
@@ -112,12 +123,16 @@ class SelectRow extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.leading,
+    this.secondary,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
   final Widget? leading;
+
+  /// Optional second line below [label] (e.g. a currency code).
+  final String? secondary;
 
   @override
   Widget build(BuildContext context) {
@@ -130,13 +145,27 @@ class SelectRow extends StatelessWidget {
           children: [
             if (leading != null) ...[leading!, const SizedBox(width: 12)],
             Expanded(
-              child: Text(label, style: AppTypography.body(size: 15)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: AppTypography.body(size: 15)),
+                  if (secondary != null)
+                    Text(secondary!,
+                        style: AppTypography.body(
+                            size: 12.5, color: AppColors.ink3)),
+                ],
+              ),
             ),
-            Icon(
-              selected ? AppIcons.check : null,
-              size: 20,
-              color: selected ? primary : Colors.transparent,
-            ),
+            selected
+                ? Icon(AppIcons.check, size: 20, color: primary)
+                : Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.line, width: 1.5),
+                    ),
+                  ),
           ],
         ),
       ),

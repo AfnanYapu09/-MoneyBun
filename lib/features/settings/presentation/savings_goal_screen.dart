@@ -7,6 +7,7 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/money.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
@@ -55,15 +56,15 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
               color: AppColors.greenTint,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('เก็บได้เดือนนี้',
+                Text('เดือนนี้เก็บได้แล้ว',
                     style:
                         AppTypography.body(size: 13, color: AppColors.green)),
                 const SizedBox(height: 2),
@@ -84,17 +85,41 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                     track: AppColors.green.withValues(alpha: 0.2),
                     height: 8,
                   ),
-                  const SizedBox(height: 6),
-                  Text('ถึงเป้า ${(pct * 100).round()}%',
-                      style: AppTypography.body(
-                          size: 12.5, color: AppColors.green)),
+                  const SizedBox(height: 8),
+                  if (saved >= goal)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.green,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(AppIcons.partyPopper,
+                              size: 14, color: Colors.white),
+                          const SizedBox(width: 5),
+                          Text('ถึงเป้าแล้ว ${(saved / goal * 100).round()}%',
+                              style: AppTypography.heading(
+                                  size: 12.5,
+                                  weight: FontWeight.w500,
+                                  color: Colors.white)),
+                        ],
+                      ),
+                    )
+                  else
+                    Text('ถึงเป้า ${(pct * 100).round()}%',
+                        style: AppTypography.body(
+                            size: 12.5, color: AppColors.green)),
                 ],
               ],
             ),
           ),
           const SizedBox(height: 20),
           Text('เป้าหมายต่อเดือน',
-              style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+              style: AppTypography.heading(
+                  size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
           const SizedBox(height: 8),
           TextField(
             controller: _amount,
@@ -121,7 +146,7 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: AppColors.line),
                       ),
-                      child: Text('฿${a ~/ 1000}k',
+                      child: Text('฿${_fmt(a)}',
                           style: AppTypography.heading(
                               size: 13,
                               weight: FontWeight.w500,
@@ -139,6 +164,10 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
       ),
     );
   }
+
+  String _fmt(int n) => n
+      .toString()
+      .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
 
   Future<void> _save() async {
     final cents = Money.parseToCents(_amount.text) ?? 0;

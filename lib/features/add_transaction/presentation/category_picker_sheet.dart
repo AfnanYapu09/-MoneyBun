@@ -35,8 +35,11 @@ class _CategoryPickerSheetState extends ConsumerState<CategoryPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(categoriesProvider).value ?? const [];
-    final expense =
-        categories.where((c) => c.type == CategoryType.expense).toList();
+    // Spending categories only — 'sys_other' is the stats fallback bucket and
+    // isn't user-pickable here.
+    final expense = categories
+        .where((c) => c.type == CategoryType.expense && c.id != 'sys_other')
+        .toList();
     final tags = ref.watch(tagsProvider).value ?? const [];
 
     return SheetScaffold(

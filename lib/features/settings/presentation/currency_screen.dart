@@ -12,10 +12,10 @@ class CurrencyScreen extends ConsumerWidget {
 
   static const _currencies = [
     ('THB', '฿', 'บาทไทย'),
-    ('USD', r'$', 'US Dollar'),
-    ('EUR', '€', 'Euro'),
-    ('JPY', '¥', 'Japanese Yen'),
-    ('GBP', '£', 'British Pound'),
+    ('USD', r'$', 'ดอลลาร์สหรัฐ'),
+    ('EUR', '€', 'ยูโร'),
+    ('JPY', '¥', 'เยนญี่ปุ่น'),
+    ('GBP', '£', 'ปอนด์'),
   ];
 
   @override
@@ -30,7 +30,17 @@ class CurrencyScreen extends ConsumerWidget {
           SettingGroup(children: [
             for (final c in _currencies)
               SelectRow(
-                label: '${c.$2}  ${c.$1} · ${c.$3}',
+                leading: SizedBox(
+                  width: 26,
+                  child: Text(c.$2,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.heading(
+                          size: 18,
+                          weight: FontWeight.w600,
+                          color: AppColors.terra700)),
+                ),
+                label: c.$3,
+                secondary: c.$1,
                 selected: current == c.$1,
                 onTap: () => repo.setCurrency(c.$1),
               ),

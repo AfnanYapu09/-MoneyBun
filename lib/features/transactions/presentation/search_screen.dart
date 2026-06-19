@@ -21,6 +21,18 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
   String _query = '';
+  final List<String> _recent = [];
+
+  void _runQuery(String v) {
+    setState(() => _query = v);
+    final t = v.trim();
+    if (t.isNotEmpty) {
+      _recent
+        ..remove(t)
+        ..insert(0, t);
+      if (_recent.length > 6) _recent.removeLast();
+    }
+  }
 
   @override
   void dispose() {
@@ -84,6 +96,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               controller: _controller,
                               autofocus: true,
                               onChanged: (v) => setState(() => _query = v),
+                              onSubmitted: _runQuery,
                               style: AppTypography.body(size: 14.5),
                               decoration: const InputDecoration(
                                 isCollapsed: true,
@@ -111,10 +124,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
             Expanded(
               child: q.isEmpty
-                  ? Center(
-                      child: Text('พิมพ์เพื่อค้นหารายการ',
-                          style: AppTypography.body(
-                              size: 14, color: AppColors.ink3)),
+                  ? _RecentSearches(
+                      recent: _recent.isNotEmpty
+                          ? _recent
+                          : categories.values
+                              .take(3)
+                              .map((c) => c.name)
+                              .toList(),
+                      onTap: (s) {
+                        _controller.text = s;
+                        setState(() => _query = s);
+                      },
                     )
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
@@ -150,6 +170,65 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "ค้นหาล่าสุด" chips shown when the query is empty.
+class _RecentSearches extends StatelessWidget {
+  const _RecentSearches({required this.recent, required this.onTap});
+  final List<String> recent;
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (recent.isEmpty) {
+      return Center(
+        child: Text('พิมพ์เพื่อค้นหารายการ',
+            style: AppTypography.body(size: 14, color: AppColors.ink3)),
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text('ค้นหาล่าสุด',
+              style: AppTypography.heading(
+                  size: 13, weight: FontWeight.w500, color: AppColors.ink3)),
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final r in recent)
+              InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => onTap(r),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: AppColors.paper,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(AppIcons.clock,
+                          size: 14, color: AppColors.ink3),
+                      const SizedBox(width: 6),
+                      Text(r,
+                          style: AppTypography.body(
+                              size: 13.5, color: AppColors.ink2)),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart'
+    show CupertinoSliverRefreshControl, RefreshIndicatorMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_motion.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/bun_scanning_block.dart';
+import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/pill.dart';
 import '../../../core/widgets/stat_chip.dart';
 import '../../../data/local/database.dart';
@@ -59,89 +62,126 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .where((b) => b.period == BudgetPeriod.monthly)
         .fold<int>(0, (s, b) => s + b.amountCents);
 
-    // The freshly-scanned, uncategorized slip (if any).
-    final scanned = txns
+    // Every freshly-scanned, uncategorized slip (newest first) — each shows a
+    // "+" row so the user can tap to categorise it.
+    final scannedRows = txns
         .where((t) =>
             t.type == TxnType.expense &&
             t.categoryId == null &&
             t.slipId != null)
         .toList()
       ..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
-    final scannedRow = scanned.isEmpty ? null : scanned.first;
+    final scannedIds = scannedRows.map((t) => t.id).toSet();
 
-    final recent = txns.where((t) => t.id != scannedRow?.id).take(6).toList();
+    final recent =
+        txns.where((t) => !scannedIds.contains(t.id)).take(6).toList();
     final watchedCount = accounts.values.where((a) => a.watchedForSlips).length;
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          color: AppColors.terra,
-          onRefresh: _scan,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
-            children: [
-              if (scan.scanning) ...[
-                const BunScanningBlock(),
-                const SizedBox(height: 18),
-              ],
-              StaggeredColumn(
-                spacing: 18,
-                children: [
-                  _Header(watchedCount: watchedCount),
-                  MonthChip(
-                    label: AppDate.formatMonth(month, locale: locale),
-                    onPrev: () =>
-                        ref.read(selectedMonthProvider.notifier).previous(),
-                    onNext: () =>
-                        ref.read(selectedMonthProvider.notifier).next(),
-                  ),
-                  _SpendingCard(
-                    spentCents: expense,
-                    budgetCents: totalBudget,
-                    scanning: scan.scanning,
-                    lastReadAt: settings?.lastSlipReadAt,
-                    onRefresh: _scan,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StatChip(
-                          icon: AppIcons.arrowDownLeft,
-                          label: 'รายรับ',
-                          amount: Money.compact(income),
-                          accent: AppColors.green,
-                          amountColor: AppColors.green,
+        child: CustomScrollView(
+          // Bouncing physics on every platform so the Cupertino-style refresh
+          // control (Bun scanning block) can be revealed by overscroll.
+          physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics()),
+          slivers: [
+            // Pull-to-refresh: NO Material spinner — reveals a pull hint, then
+            // the "น้องบันกำลังอ่านสลิป" scanning block while reading slips.
+            CupertinoSliverRefreshControl(
+              refreshTriggerPullDistance: 110,
+              refreshIndicatorExtent: 100,
+              onRefresh: _scan,
+              builder: _buildRefreshIndicator,
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
+              sliver: SliverToBoxAdapter(
+                child: StaggeredColumn(
+                  spacing: 18,
+                  children: [
+                    _Header(watchedCount: watchedCount),
+                    MonthChip(
+                      label: AppDate.formatMonth(month, locale: locale),
+                      onPrev: () =>
+                          ref.read(selectedMonthProvider.notifier).previous(),
+                      onNext: () =>
+                          ref.read(selectedMonthProvider.notifier).next(),
+                    ),
+                    _SpendingCard(
+                      spentCents: expense,
+                      budgetCents: totalBudget,
+                      scanning: scan.scanning,
+                      lastReadAt: settings?.lastSlipReadAt,
+                      onRefresh: _scan,
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: StatChip(
+                            icon: AppIcons.arrowDownLeft,
+                            label: 'รายรับ',
+                            amount: Money.compact(income),
+                            accent: AppColors.green,
+                            amountColor: AppColors.green,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: StatChip(
-                          icon: AppIcons.arrowUpRight,
-                          label: 'รายจ่าย',
-                          amount: Money.compact(expense),
-                          accent: AppColors.terra,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: StatChip(
+                            icon: AppIcons.arrowUpRight,
+                            label: 'รายจ่าย',
+                            amount: Money.compact(expense),
+                            accent: AppColors.terra,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  _RecentHeader(onSeeAll: () => context.push('/transactions')),
-                  _RecentList(
-                    scannedRow: scannedRow,
-                    recent: recent,
-                    categories: categories,
-                    accounts: accounts,
-                    locale: locale,
-                    onCategorize: _categorize,
-                  ),
-                ],
+                      ],
+                    ),
+                    _RecentHeader(
+                        onSeeAll: () => context.push('/transactions')),
+                    _RecentList(
+                      scannedRows: scannedRows,
+                      recent: recent,
+                      categories: categories,
+                      accounts: accounts,
+                      locale: locale,
+                      onCategorize: _categorize,
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  /// Custom pull-to-refresh chrome — replaces the Material circular spinner.
+  Widget _buildRefreshIndicator(
+    BuildContext context,
+    RefreshIndicatorMode mode,
+    double pulledExtent,
+    double triggerDistance,
+    double indicatorExtent,
+  ) {
+    switch (mode) {
+      case RefreshIndicatorMode.drag:
+        return const _PullHint(armed: false);
+      case RefreshIndicatorMode.armed:
+        return const _PullHint(armed: true);
+      case RefreshIndicatorMode.refresh:
+        return const Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 6),
+            child: BunScanningBlock(),
+          ),
+        );
+      case RefreshIndicatorMode.done:
+      case RefreshIndicatorMode.inactive:
+        return const SizedBox.shrink();
+    }
   }
 
   void _listenScan() {
@@ -204,6 +244,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
     if (open == true) await ref.read(slipImporterProvider).openSettings();
+  }
+}
+
+/// Pull-to-refresh hint shown while dragging (before the scan starts).
+class _PullHint extends StatelessWidget {
+  const _PullHint({required this.armed});
+  final bool armed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedRotation(
+              turns: armed ? 0.5 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(AppIcons.arrowDown,
+                  size: 16, color: AppColors.terra),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              armed ? 'ปล่อยเพื่อให้น้องบันอ่านสลิป' : 'ดึงลงเพื่ออัปเดตสลิป',
+              style: AppTypography.body(size: 13.5, color: AppColors.ink3),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -339,10 +411,10 @@ class _SpendingCard extends StatelessWidget {
         children: [
           Positioned(
             right: -8,
-            top: 6,
+            top: 14,
             child: Opacity(
               opacity: 0.9,
-              child: const BunAvatar(size: 64, variant: BunVariant.reverse),
+              child: const BunAvatar(size: 70, variant: BunVariant.reverse),
             ),
           ),
           Column(
@@ -445,7 +517,7 @@ class _RecentHeader extends StatelessWidget {
 
 class _RecentList extends StatelessWidget {
   const _RecentList({
-    required this.scannedRow,
+    required this.scannedRows,
     required this.recent,
     required this.categories,
     required this.accounts,
@@ -453,7 +525,7 @@ class _RecentList extends StatelessWidget {
     required this.onCategorize,
   });
 
-  final TransactionRow? scannedRow;
+  final List<TransactionRow> scannedRows;
   final List<TransactionRow> recent;
   final Map<String, CategoryRow> categories;
   final Map<String, AccountRow> accounts;
@@ -462,7 +534,7 @@ class _RecentList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (scannedRow == null && recent.isEmpty) {
+    if (scannedRows.isEmpty && recent.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 28),
         child: Column(
@@ -480,9 +552,8 @@ class _RecentList extends StatelessWidget {
       );
     }
     final children = <Widget>[];
-    if (scannedRow != null) {
-      children.add(_ScannedRow(
-          txn: scannedRow!, onTap: () => onCategorize(scannedRow!)));
+    for (final s in scannedRows) {
+      children.add(_ScannedRow(txn: s, onTap: () => onCategorize(s)));
     }
     for (var i = 0; i < recent.length; i++) {
       final t = recent[i];
@@ -523,16 +594,17 @@ class _ScannedRow extends StatelessWidget {
             onTap: onTap,
             customBorder:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: AppColors.terra, width: 2, style: BorderStyle.solid),
+            child: const DashedBorder(
+              radius: 14,
+              strokeWidth: 2,
+              child: SizedBox(
+                width: 42,
+                height: 42,
+                child: Center(
+                  child:
+                      Icon(AppIcons.plus, size: 20, color: AppColors.terra700),
+                ),
               ),
-              child: const Icon(AppIcons.plus,
-                  size: 20, color: AppColors.terra700),
             ),
           ),
           const SizedBox(width: 14),

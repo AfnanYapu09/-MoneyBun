@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Adaptive launcher-icon background = MoneyBun cream. -->
+    <color name="ic_launcher_background">#F1EEE4</color>
+    <!-- Native splash background = brand terracotta (matches the Dart splash). -->
+    <color name="splash_terra">#C4694A</color>
+</resources>

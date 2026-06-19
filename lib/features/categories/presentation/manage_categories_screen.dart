@@ -7,6 +7,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
+import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
@@ -49,6 +50,19 @@ class _ManageCategoriesScreenState
             ],
           ),
           const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
+            child: Row(
+              children: [
+                const Icon(AppIcons.gripVertical,
+                    size: 16, color: AppColors.ink3),
+                const SizedBox(width: 6),
+                Text('ลากเพื่อจัดเรียงลำดับ',
+                    style:
+                        AppTypography.body(size: 12.5, color: AppColors.ink3)),
+              ],
+            ),
+          ),
           Container(
             decoration: BoxDecoration(
               color: AppColors.paper,
@@ -72,23 +86,23 @@ class _ManageCategoriesScreenState
           InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () => showAddCategorySheet(context, type: _tab),
-            child: Container(
-              height: 52,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.terra, width: 1.5),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(AppIcons.plus, size: 20, color: AppColors.terra),
-                  const SizedBox(width: 8),
-                  Text('เพิ่มหมวด…ใหม่',
-                      style: AppTypography.heading(
-                          size: 16,
-                          weight: FontWeight.w500,
-                          color: AppColors.terra)),
-                ],
+            child: DashedBorder(
+              radius: 16,
+              strokeWidth: 1.5,
+              child: SizedBox(
+                height: 52,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(AppIcons.plus, size: 20, color: AppColors.terra),
+                    const SizedBox(width: 8),
+                    Text('เพิ่มหมวด…ใหม่',
+                        style: AppTypography.heading(
+                            size: 16,
+                            weight: FontWeight.w500,
+                            color: AppColors.terra)),
+                  ],
+                ),
               ),
             ),
           ),

@@ -40,7 +40,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
         children: [
-          const Center(child: BunAvatar(size: 56)),
+          const Center(child: BunAvatar(size: 70)),
           const SizedBox(height: 12),
           Center(
             child: Text('สร้างบัญชีใหม่',

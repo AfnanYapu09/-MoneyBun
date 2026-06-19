@@ -13,12 +13,16 @@ class SheetScaffold extends StatelessWidget {
     required this.title,
     required this.child,
     this.footer,
+    this.action,
     this.maxHeightFactor = 0.85,
   });
 
   final String title;
   final Widget child;
   final Widget? footer;
+
+  /// Optional trailing action shown before the close (X) button.
+  final Widget? action;
   final double maxHeightFactor;
 
   @override
@@ -43,6 +47,7 @@ class SheetScaffold extends StatelessWidget {
                       style: AppTypography.heading(
                           size: 17, weight: FontWeight.w600)),
                 ),
+                if (action != null) action!,
                 IconButton(
                   onPressed: () => Navigator.of(context).maybePop(),
                   icon: const Icon(AppIcons.x, size: 22),

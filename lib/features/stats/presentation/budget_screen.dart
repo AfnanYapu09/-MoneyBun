@@ -9,6 +9,7 @@ import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
+import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/pill.dart';
 import '../../../core/widgets/progress.dart';
@@ -221,22 +222,23 @@ class _DashedAddButton extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: AppColors.terra, width: 1.5, style: BorderStyle.solid),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(AppIcons.plus, size: 20, color: AppColors.terra),
-            const SizedBox(width: 8),
-            Text('เพิ่มงบหมวดใหม่',
-                style: AppTypography.heading(
-                    size: 16, weight: FontWeight.w500, color: AppColors.terra)),
-          ],
+      child: DashedBorder(
+        radius: 16,
+        strokeWidth: 1.5,
+        child: SizedBox(
+          height: 52,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(AppIcons.plus, size: 20, color: AppColors.terra),
+              const SizedBox(width: 8),
+              Text('เพิ่มงบหมวดใหม่',
+                  style: AppTypography.heading(
+                      size: 16,
+                      weight: FontWeight.w500,
+                      color: AppColors.terra)),
+            ],
+          ),
         ),
       ),
     );

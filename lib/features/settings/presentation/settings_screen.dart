@@ -74,6 +74,9 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ]),
             const SizedBox(height: 18),
+            const SettingSectionLabel('การแจ้งเตือน'),
+            const _NotificationsGroup(),
+            const SizedBox(height: 18),
             const SettingSectionLabel('ทั่วไป'),
             SettingGroup(children: [
               SettingRow(
@@ -106,10 +109,8 @@ class SettingsScreen extends ConsumerWidget {
               SettingRow(
                 icon: AppIcons.scanLine,
                 label: 'ใช้ API ตรวจสลิปออนไลน์',
-                trailing: Switch(
-                  value: settings.slipApiEnabled,
-                  onChanged: (v) => repo.setSlipApiEnabled(v),
-                ),
+                toggleValue: settings.slipApiEnabled,
+                onToggle: (v) => repo.setSlipApiEnabled(v),
               ),
               if (firebaseReady && user == null)
                 SettingRow(
@@ -142,7 +143,7 @@ class SettingsScreen extends ConsumerWidget {
             ]),
             const SizedBox(height: 20),
             Center(
-              child: Text('MoneyBun v0.1.0',
+              child: Text('moneyBun v1.0.0',
                   style: AppTypography.body(size: 12, color: AppColors.ink3)),
             ),
           ],
@@ -166,6 +167,37 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+/// Notification preferences — local UI state (no notification backend yet).
+class _NotificationsGroup extends StatefulWidget {
+  const _NotificationsGroup();
+
+  @override
+  State<_NotificationsGroup> createState() => _NotificationsGroupState();
+}
+
+class _NotificationsGroupState extends State<_NotificationsGroup> {
+  bool _logReminder = true;
+  bool _weeklySummary = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SettingGroup(children: [
+      SettingRow(
+        icon: AppIcons.bell,
+        label: 'เตือนให้จดรายการ',
+        toggleValue: _logReminder,
+        onToggle: (v) => setState(() => _logReminder = v),
+      ),
+      SettingRow(
+        icon: AppIcons.calendarCheck,
+        label: 'สรุปรายสัปดาห์',
+        toggleValue: _weeklySummary,
+        onToggle: (v) => setState(() => _weeklySummary = v),
+      ),
+    ]);
+  }
+}
+
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
     required this.name,
@@ -182,7 +214,7 @@ class _ProfileCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: AppColors.terra,
           borderRadius: BorderRadius.circular(24),
@@ -190,14 +222,14 @@ class _ProfileCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 54,
-              height: 54,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
                 color: AppColors.cream,
                 borderRadius: BorderRadius.circular(16),
               ),
               alignment: Alignment.center,
-              child: const BunAvatar(size: 36),
+              child: const BunAvatar(size: 40),
             ),
             const SizedBox(width: 14),
             Expanded(

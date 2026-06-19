@@ -20,7 +20,7 @@ class OnboardingScreen extends ConsumerWidget {
       backgroundColor: AppColors.cream,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 16, 28, 30),
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 30),
           child: Column(
             children: [
               Align(
@@ -44,7 +44,7 @@ class OnboardingScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(44),
                 ),
                 alignment: Alignment.center,
-                child: const BunAvatar(size: 150),
+                child: const BunCalculator(width: 212),
               ),
               const SizedBox(height: 24),
               Text('ให้น้องบันช่วยนับเงินให้',

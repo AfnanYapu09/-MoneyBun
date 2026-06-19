@@ -51,24 +51,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   height: 96,
                   decoration: BoxDecoration(
                     color: AppColors.terra,
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(30),
                   ),
                   alignment: Alignment.center,
-                  child: const BunAvatar(size: 64, variant: BunVariant.reverse),
+                  child: const BunAvatar(size: 70, variant: BunVariant.reverse),
                 ),
                 Positioned(
-                  right: 0,
-                  bottom: 0,
+                  right: -4,
+                  bottom: -4,
                   child: Container(
-                    width: 30,
-                    height: 30,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: AppColors.paper,
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.line),
                     ),
                     child: const Icon(AppIcons.camera,
-                        size: 15, color: AppColors.terra700),
+                        size: 16, color: AppColors.terra700),
                   ),
                 ),
               ],
@@ -76,8 +76,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 24),
           _Field(label: 'ชื่อที่แสดง', controller: _name),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _Field(label: 'ชื่อผู้ใช้', controller: _username, prefix: '@'),
+          const SizedBox(height: 12),
+          _Field(
+              label: 'อีเมล',
+              value: ref.watch(authStateProvider).value?.email ?? '—'),
+          const SizedBox(height: 12),
+          const _Field(label: 'เบอร์โทร', value: '08x-xxx-xxxx'),
           const SizedBox(height: 28),
           PrimaryButton(label: 'บันทึก', onPressed: _save),
         ],
@@ -95,25 +101,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 }
 
+/// A design "FieldBox": paper container with a small label and either an
+/// editable value (when [controller] is set) or a static read-only [value].
 class _Field extends StatelessWidget {
-  const _Field({required this.label, required this.controller, this.prefix});
+  const _Field({
+    required this.label,
+    this.controller,
+    this.value,
+    this.prefix,
+  });
   final String label;
-  final TextEditingController controller;
+  final TextEditingController? controller;
+  final String? value;
   final String? prefix;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          decoration: InputDecoration(prefixText: prefix),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.paper,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+          const SizedBox(height: 3),
+          if (controller != null)
+            TextField(
+              controller: controller,
+              style: AppTypography.body(size: 15.5),
+              decoration: InputDecoration(
+                isCollapsed: true,
+                border: InputBorder.none,
+                filled: false,
+                prefixText: prefix,
+                contentPadding: EdgeInsets.zero,
+              ),
+            )
+          else
+            Text(value ?? '—', style: AppTypography.body(size: 15.5)),
+        ],
+      ),
     );
   }
 }

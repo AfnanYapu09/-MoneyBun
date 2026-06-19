@@ -87,32 +87,32 @@ Future<bool> confirmLogout(BuildContext context) async {
     context: context,
     barrierColor: _barrier,
     builder: (c) => Dialog(
-      backgroundColor: AppColors.paper,
+      backgroundColor: AppColors.cream,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
+        padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 color: AppColors.dangerWash,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(AppIcons.logOut,
-                  color: AppColors.danger, size: 26),
+                  color: AppColors.danger, size: 28),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text('ออกจากระบบ?',
                 style:
-                    AppTypography.heading(size: 18, weight: FontWeight.w600)),
+                    AppTypography.heading(size: 19, weight: FontWeight.w600)),
             const SizedBox(height: 6),
-            Text('ข้อมูลของคุณยังอยู่ในเครื่องนี้',
+            Text('ข้อมูลของคุณถูกบันทึกไว้แล้ว เข้าสู่ระบบใหม่ได้ทุกเมื่อ',
                 textAlign: TextAlign.center,
                 style: AppTypography.body(size: 14, color: AppColors.ink2)),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             PrimaryButton(
               label: 'ออกจากระบบ',
               color: AppColors.danger,
