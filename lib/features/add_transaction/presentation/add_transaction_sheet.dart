@@ -47,34 +47,41 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _load() async {
-    if (widget.editId != null) {
-      final repo = ref.read(transactionRepositoryProvider);
-      final row = await repo.get(widget.editId!);
-      if (row != null) {
-        _type = row.type;
-        _amount.text =
-            row.amountCents == 0 ? '' : Money.toEditString(row.amountCents);
-        _categoryId = row.categoryId;
-        _note = row.note;
-        _fromAccountId = row.accountId.isEmpty ? null : row.accountId;
-        _toAccountId = row.toAccountId;
-        _occurredAt = AppDate.fromMillis(row.occurredAt);
-        _tagIds = await repo.tagIds(widget.editId!);
-        if (row.slipId != null) {
-          final slips = await ref.read(slipsByIdProvider.future);
-          _slip = slips[row.slipId];
-        }
-        // A slip whose sender == receiver moves money between the user's own
-        // accounts — it's a transfer (no category), persisted so stats stay right.
-        if (isSelfTransfer(_slip)) {
-          _type = TxnType.transfer;
-          if (row.type != TxnType.transfer) {
-            await repo.reclassifyAsTransfer(widget.editId!);
+    try {
+      if (widget.editId != null) {
+        final repo = ref.read(transactionRepositoryProvider);
+        final row = await repo.get(widget.editId!);
+        if (row != null) {
+          _type = row.type;
+          _amount.text =
+              row.amountCents == 0 ? '' : Money.toEditString(row.amountCents);
+          _categoryId = row.categoryId;
+          _note = row.note;
+          _fromAccountId = row.accountId.isEmpty ? null : row.accountId;
+          _toAccountId = row.toAccountId;
+          _occurredAt = AppDate.fromMillis(row.occurredAt);
+          _tagIds = await repo.tagIds(widget.editId!);
+          if (row.slipId != null) {
+            // Fetch just this slip, not the whole table, so the form never
+            // stalls hydrating every slip's OCR text.
+            _slip = await ref.read(slipRepositoryProvider).get(row.slipId!);
+          }
+          // A slip whose sender == receiver moves money between the user's own
+          // accounts — it's a transfer (no category), persisted so stats stay right.
+          if (isSelfTransfer(_slip)) {
+            _type = TxnType.transfer;
+            if (row.type != TxnType.transfer) {
+              await repo.reclassifyAsTransfer(widget.editId!);
+            }
           }
         }
       }
+    } catch (_) {
+      // A failed load must never leave the save button spinning — open the
+      // form with whatever loaded so the user can still edit and save.
+    } finally {
+      if (mounted) setState(() => _loaded = true);
     }
-    if (mounted) setState(() => _loaded = true);
   }
 
   @override

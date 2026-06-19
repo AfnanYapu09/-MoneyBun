@@ -156,14 +156,6 @@ final categoriesProvider = StreamProvider<List<CategoryRow>>(
   (ref) => ref.watch(categoryRepositoryProvider).watchCategories(),
 );
 
-/// Slips keyed by id, so an entry can show its image thumbnail + details.
-final slipsByIdProvider = StreamProvider<Map<String, SlipRow>>((ref) {
-  return ref
-      .watch(slipRepositoryProvider)
-      .watchAll()
-      .map((list) => {for (final s in list) s.id: s});
-});
-
 /// The month currently shown on Home / Stats.
 class SelectedMonth extends Notifier<DateTime> {
   @override
