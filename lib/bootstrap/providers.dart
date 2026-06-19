@@ -121,6 +121,17 @@ class ScanController extends Notifier<ScanState> {
   @override
   ScanState build() => const ScanState();
 
+  bool _autoScanned = false;
+
+  /// Trigger [scan] exactly once per app launch (called from Home on open).
+  /// The flag lives on this app-lifetime provider, so revisiting Home via the
+  /// bottom nav never re-fires it.
+  Future<void> autoScanOnce() async {
+    if (_autoScanned) return;
+    _autoScanned = true;
+    await scan();
+  }
+
   /// Read every new slip image from the gallery automatically (no album pick).
   Future<void> scan() async {
     if (state.scanning) return;

@@ -3,6 +3,7 @@ import 'package:photo_manager/photo_manager.dart';
 import '../../../data/repositories/slip_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../domain/entities/parsed_slip.dart';
+import '../../../domain/enums/enums.dart';
 import 'slip_pipeline.dart';
 
 /// Outcome of a scan — also a diagnostic so we can see where it stops when no
@@ -220,12 +221,25 @@ class SlipImporter {
   /// day of the slip.
   Future<void> _persist(ParsedSlip parsed, DateTime fallbackDate) async {
     final slipId = await _slips.save(parsed);
+    // A slip whose sender == receiver is money moved between the user's own
+    // accounts — store it as a transfer so it never counts as spending.
+    final isSelfTransfer = _namesMatch(parsed.senderName, parsed.receiverName);
     await _txns.save(
+      type: isSelfTransfer ? TxnType.transfer : TxnType.expense,
       amountCents: parsed.amountCents ?? 0,
       occurredAt: parsed.occurredAt ?? fallbackDate,
       slipId: slipId,
     );
   }
+
+  /// True when both names are present and equal once trimmed/case-folded.
+  static bool _namesMatch(String? a, String? b) {
+    final na = _normalizeName(a);
+    return na.isNotEmpty && na == _normalizeName(b);
+  }
+
+  static String _normalizeName(String? s) =>
+      (s ?? '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 }
 
 /// Mutable running totals for a single scan.

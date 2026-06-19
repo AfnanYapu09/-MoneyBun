@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../bootstrap/providers.dart';
+import '../../../core/constants/bank_codes.dart';
 import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
@@ -69,6 +70,13 @@ class TransactionDetailScreen extends ConsumerWidget {
       ...txnTags.map((t) => '#$t'),
     ].join(' · ');
     final slip = txn.slipId == null ? null : slips[txn.slipId];
+
+    // A slip whose sender == receiver moves money between the user's own
+    // accounts — promote it to a transfer so it stays out of spending stats.
+    if (txn.type == TxnType.expense && _isSelfTransfer(slip)) {
+      Future.microtask(() =>
+          ref.read(transactionRepositoryProvider).reclassifyAsTransfer(id));
+    }
 
     return SubScreenScaffold(
       title: 'รายละเอียดรายการ',
@@ -173,12 +181,41 @@ class TransactionDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// Account → counterparty flow card. For an expense the right side is the
-  /// slip's merchant (ร้านค้า); for income it's the sender; for a transfer it's
-  /// the destination account. Right side is hidden when unknown.
+  /// True when the slip's sender and receiver names match (own-account move).
+  bool _isSelfTransfer(SlipRow? slip) {
+    String norm(String? s) =>
+        (s ?? '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    final a = norm(slip?.senderName);
+    return a.isNotEmpty && a == norm(slip?.receiverName);
+  }
+
+  /// Account → counterparty flow card. When the slip carries sender/receiver
+  /// info we show the real bank → bank / name → name money flow; otherwise we
+  /// fall back to account → merchant (expense) / sender (income) / destination
+  /// account (transfer). The right side is hidden when unknown.
   Widget _accountFlow(
       TransactionRow txn, Map<String, AccountRow> accounts, SlipRow? slip) {
     final account = accounts[txn.accountId]?.name;
+
+    // Bank-transfer slip (source/destination bank codes present): show the
+    // real money flow — bank as the label, person as the name, on both sides.
+    final fromBank = BankCodes.byCode(slip?.senderBank)?.nameTh;
+    final toBank = BankCodes.byCode(slip?.receiverBank)?.nameTh;
+    if (fromBank != null || toBank != null) {
+      final sender = slip?.senderName;
+      final receiver = slip?.receiverName;
+      final hasSender = sender != null && sender.isNotEmpty;
+      final hasReceiver = receiver != null && receiver.isNotEmpty;
+      return _AccountFlow(
+        fromIcon: AppIcons.landmark,
+        fromLabel: fromBank ?? 'โอนจาก',
+        fromName: hasSender ? sender! : (account ?? 'บัญชี'),
+        toIcon: AppIcons.landmark,
+        toLabel: toBank ?? 'เข้าบัญชี',
+        toName: hasReceiver ? receiver! : toBank,
+      );
+    }
+
     switch (txn.type) {
       case TxnType.transfer:
         return _AccountFlow(
@@ -319,6 +356,7 @@ class _AccountFlow extends StatelessWidget {
   const _AccountFlow({
     required this.fromLabel,
     required this.fromName,
+    this.fromIcon = AppIcons.wallet,
     this.toLabel,
     this.toName,
     this.toIcon,
@@ -326,6 +364,7 @@ class _AccountFlow extends StatelessWidget {
 
   final String fromLabel;
   final String fromName;
+  final IconData fromIcon;
   final String? toLabel;
   final String? toName;
   final IconData? toIcon;
@@ -345,8 +384,7 @@ class _AccountFlow extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                const IconChip(
-                    icon: AppIcons.wallet, size: 36, radius: 11, iconSize: 18),
+                IconChip(icon: fromIcon, size: 36, radius: 11, iconSize: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(

@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart'
     show CupertinoSliverRefreshControl, RefreshIndicatorMode;
 import 'package:flutter/material.dart';
@@ -14,13 +15,11 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_motion.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/bun_scanning_block.dart';
-import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/pill.dart';
 import '../../../core/widgets/stat_chip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
-import '../../transactions/presentation/txn_display.dart';
-import '../../transactions/presentation/widgets/txn_row.dart';
+import '../../transactions/presentation/widgets/txn_day_group.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +29,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Auto-read slips once per app open (the guard lives on the controller so
+    // it fires once per launch even if Home is rebuilt by bottom-nav).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(scanControllerProvider.notifier).autoScanOnce();
+    });
+  }
+
   Future<void> _scan() => ref.read(scanControllerProvider.notifier).scan();
 
   @override
@@ -62,19 +71,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .where((b) => b.period == BudgetPeriod.monthly)
         .fold<int>(0, (s, b) => s + b.amountCents);
 
-    // Every freshly-scanned, uncategorized slip (newest first) — each shows a
-    // "+" row so the user can tap to categorise it.
-    final scannedRows = txns
-        .where((t) =>
-            t.type == TxnType.expense &&
-            t.categoryId == null &&
-            t.slipId != null)
-        .toList()
-      ..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
-    final scannedIds = scannedRows.map((t) => t.id).toSet();
-
-    final recent =
-        txns.where((t) => !scannedIds.contains(t.id)).take(6).toList();
+    // The home recent list surfaces only the actionable, still-uncategorised
+    // slip imports (newest first, capped); everything else lives on
+    // /transactions. Transfers/income are excluded — they need no category.
+    final recentUncategorized = txns
+        .where(TxnDayGroup.isUncategorized)
+        .sorted((a, b) => b.occurredAt.compareTo(a.occurredAt))
+        .take(10)
+        .toList();
     final watchedCount = accounts.values.where((a) => a.watchedForSlips).length;
 
     return Scaffold(
@@ -86,11 +90,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           physics: const BouncingScrollPhysics(
               parent: AlwaysScrollableScrollPhysics()),
           slivers: [
-            // Pull-to-refresh: NO Material spinner — reveals a pull hint, then
-            // the "น้องบันกำลังอ่านสลิป" scanning block while reading slips.
+            // Pull-to-refresh: NO Material spinner — just a pull hint. The
+            // "น้องบันกำลังอ่านสลิป" scanning block now lives in the body
+            // (between the header and the month chip).
             CupertinoSliverRefreshControl(
               refreshTriggerPullDistance: 110,
-              refreshIndicatorExtent: 100,
+              refreshIndicatorExtent: 0,
               onRefresh: _scan,
               builder: _buildRefreshIndicator,
             ),
@@ -101,6 +106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   spacing: 18,
                   children: [
                     _Header(watchedCount: watchedCount),
+                    if (scan.scanning) const BunScanningBlock(),
                     MonthChip(
                       label: AppDate.formatMonth(month, locale: locale),
                       onPrev: () =>
@@ -140,11 +146,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     _RecentHeader(
                         onSeeAll: () => context.push('/transactions')),
                     _RecentList(
-                      scannedRows: scannedRows,
-                      recent: recent,
+                      uncategorized: recentUncategorized,
                       categories: categories,
                       accounts: accounts,
                       locale: locale,
+                      onTapTxn: (id) => context.push('/transactions/$id'),
                       onCategorize: _categorize,
                     ),
                   ],
@@ -171,13 +177,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case RefreshIndicatorMode.armed:
         return const _PullHint(armed: true);
       case RefreshIndicatorMode.refresh:
-        return const Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 6),
-            child: BunScanningBlock(),
-          ),
-        );
       case RefreshIndicatorMode.done:
       case RefreshIndicatorMode.inactive:
         return const SizedBox.shrink();
@@ -402,6 +401,7 @@ class _SpendingCard extends StatelessWidget {
     final progress =
         hasBudget ? (spentCents / budgetCents).clamp(0.0, 1.0) : 0.0;
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.terra,
         borderRadius: BorderRadius.circular(24),
@@ -410,11 +410,11 @@ class _SpendingCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: -8,
-            top: 14,
+            right: -22,
+            top: 8,
             child: Opacity(
               opacity: 0.9,
-              child: const BunAvatar(size: 70, variant: BunVariant.reverse),
+              child: const BunAvatar(size: 104, variant: BunVariant.reverse),
             ),
           ),
           Column(
@@ -517,31 +517,31 @@ class _RecentHeader extends StatelessWidget {
 
 class _RecentList extends StatelessWidget {
   const _RecentList({
-    required this.scannedRows,
-    required this.recent,
+    required this.uncategorized,
     required this.categories,
     required this.accounts,
     required this.locale,
+    required this.onTapTxn,
     required this.onCategorize,
   });
 
-  final List<TransactionRow> scannedRows;
-  final List<TransactionRow> recent;
+  final List<TransactionRow> uncategorized;
   final Map<String, CategoryRow> categories;
   final Map<String, AccountRow> accounts;
   final String locale;
-  final Future<void> Function(TransactionRow) onCategorize;
+  final void Function(String id) onTapTxn;
+  final void Function(TransactionRow) onCategorize;
 
   @override
   Widget build(BuildContext context) {
-    if (scannedRows.isEmpty && recent.isEmpty) {
+    if (uncategorized.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 28),
         child: Column(
           children: [
             const BunAvatar(size: 72),
             const SizedBox(height: 12),
-            Text('ยังไม่มีรายการเดือนนี้',
+            Text('ไม่มีรายการที่ต้องจัดหมวด',
                 style:
                     AppTypography.heading(size: 15, weight: FontWeight.w500)),
             const SizedBox(height: 4),
@@ -551,81 +551,24 @@ class _RecentList extends StatelessWidget {
         ),
       );
     }
-    final children = <Widget>[];
-    for (final s in scannedRows) {
-      children.add(_ScannedRow(txn: s, onTap: () => onCategorize(s)));
-    }
-    for (var i = 0; i < recent.length; i++) {
-      final t = recent[i];
-      final d = txnDisplay(t,
-          categories: categories, accounts: accounts, locale: locale);
-      children.add(TxnRow(
-        icon: d.icon,
-        title: d.title,
-        sub: d.sub,
-        amountCents: t.amountCents,
-        type: t.type,
-        onTap: () => context.push('/transactions/${t.id}'),
-      ));
-    }
+    final byDay = groupBy<TransactionRow, DateTime>(
+      uncategorized,
+      (t) => AppDate.startOfDay(AppDate.fromMillis(t.occurredAt)),
+    );
+    final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
     return Column(
       children: [
-        for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) const Divider(height: 1),
-          children[i],
-        ],
+        for (final day in days)
+          TxnDayGroup(
+            day: day,
+            rows: byDay[day]!,
+            categories: categories,
+            accounts: accounts,
+            locale: locale,
+            onTapTxn: onTapTxn,
+            onCategorize: onCategorize,
+          ),
       ],
-    );
-  }
-}
-
-class _ScannedRow extends StatelessWidget {
-  const _ScannedRow({required this.txn, required this.onTap});
-  final TransactionRow txn;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          InkWell(
-            onTap: onTap,
-            customBorder:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            child: const DashedBorder(
-              radius: 14,
-              strokeWidth: 2,
-              child: SizedBox(
-                width: 42,
-                height: 42,
-                child: Center(
-                  child:
-                      Icon(AppIcons.plus, size: 20, color: AppColors.terra700),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('รายการใหม่จากสลิป',
-                    style: AppTypography.heading(
-                        size: 15, weight: FontWeight.w500)),
-                Text('แตะไอคอนเพื่อจัดหมวดหมู่',
-                    style:
-                        AppTypography.body(size: 12.5, color: AppColors.terra)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text('−${Money.compact(txn.amountCents.abs())}',
-              style: AppTypography.heading(size: 15, weight: FontWeight.w500)),
-        ],
-      ),
     );
   }
 }
