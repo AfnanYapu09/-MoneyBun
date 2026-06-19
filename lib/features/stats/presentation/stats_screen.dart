@@ -205,9 +205,13 @@ class _DonutCard extends StatelessWidget {
           children: [
             Text('ใช้จ่ายรวม',
                 style: AppTypography.body(size: 12, color: AppColors.ink3)),
-            Text(Money.compact(total),
-                style:
-                    AppTypography.heading(size: 22, weight: FontWeight.w600)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(Money.compact(total),
+                  maxLines: 1,
+                  style:
+                      AppTypography.heading(size: 22, weight: FontWeight.w600)),
+            ),
           ],
         ),
       ),

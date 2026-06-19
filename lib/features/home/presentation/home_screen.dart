@@ -79,7 +79,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .sorted((a, b) => b.occurredAt.compareTo(a.occurredAt))
         .take(10)
         .toList();
-    final watchedCount = accounts.values.where((a) => a.watchedForSlips).length;
 
     return Scaffold(
       body: SafeArea(
@@ -105,7 +104,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: StaggeredColumn(
                   spacing: 18,
                   children: [
-                    _Header(watchedCount: watchedCount),
+                    const _Header(),
                     if (scan.scanning) const BunScanningBlock(),
                     MonthChip(
                       label: AppDate.formatMonth(month, locale: locale),
@@ -150,7 +149,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       categories: categories,
                       accounts: accounts,
                       locale: locale,
-                      onTapTxn: (id) => context.push('/transactions/$id'),
+                      onTapTxn: (id) =>
+                          showAddTransactionSheet(context, editId: id),
                       onCategorize: _categorize,
                     ),
                   ],
@@ -279,8 +279,7 @@ class _PullHint extends StatelessWidget {
 }
 
 class _Header extends ConsumerWidget {
-  const _Header({required this.watchedCount});
-  final int watchedCount;
+  const _Header();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -303,16 +302,14 @@ class _Header extends ConsumerWidget {
             ],
           ),
         ),
-        _WalletButton(
-            count: watchedCount, onTap: () => showAccountsSheet(context)),
+        _WalletButton(onTap: () => showAccountsSheet(context)),
       ],
     );
   }
 }
 
 class _WalletButton extends StatelessWidget {
-  const _WalletButton({required this.count, required this.onTap});
-  final int count;
+  const _WalletButton({required this.onTap});
   final VoidCallback onTap;
 
   @override
@@ -320,60 +317,15 @@ class _WalletButton extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(15),
       onTap: onTap,
-      child: SizedBox(
-        width: 60,
-        height: 56,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 52,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.terraWash,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              alignment: Alignment.center,
-              child: const BunAvatar(size: 32),
-            ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: AppColors.terra,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.cream, width: 2),
-                ),
-                child: const Icon(AppIcons.wallet,
-                    size: 12, color: AppColors.reverse),
-              ),
-            ),
-            if (count > 0)
-              Positioned(
-                right: 0,
-                top: -2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  constraints:
-                      const BoxConstraints(minWidth: 17, minHeight: 17),
-                  decoration: BoxDecoration(
-                    color: AppColors.ink,
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: AppColors.cream, width: 2),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text('$count',
-                      style: AppTypography.heading(
-                          size: 10,
-                          weight: FontWeight.w500,
-                          color: AppColors.reverse)),
-                ),
-              ),
-          ],
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.terraWash,
+          borderRadius: BorderRadius.circular(15),
         ),
+        alignment: Alignment.center,
+        child: const Icon(AppIcons.wallet, size: 22, color: AppColors.terra700),
       ),
     );
   }
@@ -410,11 +362,11 @@ class _SpendingCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: -22,
-            top: 8,
+            right: -6,
+            top: 14,
             child: Opacity(
               opacity: 0.9,
-              child: const BunAvatar(size: 104, variant: BunVariant.reverse),
+              child: const BunAvatar(size: 76, variant: BunVariant.reverse),
             ),
           ),
           Column(

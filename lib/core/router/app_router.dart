@@ -21,7 +21,6 @@ import '../../features/stats/presentation/stats_screen.dart';
 import '../../features/tags/presentation/manage_tags_screen.dart';
 import '../../features/transactions/presentation/all_transactions_screen.dart';
 import '../../features/transactions/presentation/search_screen.dart';
-import '../../features/transactions/presentation/transaction_detail_screen.dart';
 import 'main_shell.dart';
 import 'transitions.dart';
 
@@ -68,11 +67,6 @@ GoRouter buildRouter(Ref ref) {
       GoRoute(
         path: '/transactions',
         pageBuilder: (c, s) => slidePage(const AllTransactionsScreen()),
-      ),
-      GoRoute(
-        path: '/transactions/:id',
-        pageBuilder: (c, s) =>
-            slidePage(TransactionDetailScreen(id: s.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/search',

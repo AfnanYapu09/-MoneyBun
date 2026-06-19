@@ -15,6 +15,7 @@ import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../transactions/presentation/widgets/account_flow.dart';
 import 'category_picker_sheet.dart';
 
 /// Full-height Add/Edit transaction sheet with expense/income/transfer tabs.
@@ -36,6 +37,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   String? _fromAccountId;
   String? _toAccountId;
   DateTime _occurredAt = DateTime.now();
+  SlipRow? _slip;
   bool _loaded = false;
 
   @override
@@ -58,6 +60,18 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         _toAccountId = row.toAccountId;
         _occurredAt = AppDate.fromMillis(row.occurredAt);
         _tagIds = await repo.tagIds(widget.editId!);
+        if (row.slipId != null) {
+          final slips = await ref.read(slipsByIdProvider.future);
+          _slip = slips[row.slipId];
+        }
+        // A slip whose sender == receiver moves money between the user's own
+        // accounts — it's a transfer (no category), persisted so stats stay right.
+        if (isSelfTransfer(_slip)) {
+          _type = TxnType.transfer;
+          if (row.type != TxnType.transfer) {
+            await repo.reclassifyAsTransfer(widget.editId!);
+          }
+        }
       }
     }
     if (mounted) setState(() => _loaded = true);
@@ -183,14 +197,38 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             ),
           ),
           const SizedBox(height: 14),
-          if (_type != TxnType.transfer)
+          // Category (non-transfer only)
+          if (_type != TxnType.transfer) ...[
             _Row(
               icon: AppIcons.layoutGrid,
               label: 'เลือกหมวดหมู่ / แท็ก',
               value: _categoryLabel(categories),
               onTap: _pickCategory,
             ),
-          if (_type == TxnType.transfer) ...[
+            const SizedBox(height: 14),
+          ],
+          // Account: a slip-backed entry shows the bank→bank / name→name flow
+          // read from the slip (read-only); manual entries keep the picker.
+          if (_slip != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+              child: Text('บัญชี',
+                  style: AppTypography.heading(
+                      size: 13,
+                      weight: FontWeight.w500,
+                      color: AppColors.ink3)),
+            ),
+            accountFlowFor(
+              type: _type,
+              accounts: accounts,
+              accountId: _fromAccountId,
+              toAccountId: _toAccountId,
+              slip: _slip,
+            ),
+            const SizedBox(height: 14),
+            SlipChip(onTap: () => showSlipViewer(context, _slip!)),
+            const SizedBox(height: 14),
+          ] else if (_type == TxnType.transfer) ...[
             _Row(
               icon: AppIcons.wallet,
               label: 'จากบัญชี',
@@ -204,22 +242,23 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               value: _accountName(accounts, _toAccountId),
               onTap: () => _pickAccount(accounts, false),
             ),
-          ],
-          const SizedBox(height: 14),
-          _Row(
-            icon: AppIcons.pencilLine,
-            label: 'เพิ่มโน้ต',
-            value: _note,
-            onTap: _editNote,
-          ),
-          const SizedBox(height: 14),
-          if (_type != TxnType.transfer)
+            const SizedBox(height: 14),
+          ] else ...[
             _Row(
               icon: AppIcons.wallet,
               label: 'บัญชี',
               value: _accountName(accounts, _fromAccountId),
               onTap: () => _pickAccount(accounts, true),
             ),
+            const SizedBox(height: 14),
+          ],
+          // Note
+          _Row(
+            icon: AppIcons.pencilLine,
+            label: 'เพิ่มโน้ต',
+            value: _note,
+            onTap: _editNote,
+          ),
           const SizedBox(height: 18),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
@@ -234,6 +273,33 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('จดซ้ำล่วงหน้า — เร็วๆ นี้'))),
           ),
+          if (widget.editId != null) ...[
+            const SizedBox(height: 22),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _confirmDelete,
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.dangerWash,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(AppIcons.trash2,
+                        size: 19, color: AppColors.danger),
+                    const SizedBox(width: 8),
+                    Text('ลบรายการนี้',
+                        style: AppTypography.heading(
+                            size: 16,
+                            weight: FontWeight.w500,
+                            color: AppColors.danger)),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -370,6 +436,26 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           tagIds: _type == TxnType.transfer ? const [] : _tagIds,
         );
     if (mounted) Navigator.of(context).pop(true);
+  }
+
+  Future<void> _confirmDelete() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        content: const Text('ต้องการลบรายการนี้ใช่ไหม?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(c, true), child: const Text('ลบ')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ref.read(transactionRepositoryProvider).delete(widget.editId!);
+      if (mounted) Navigator.of(context).pop(true);
+    }
   }
 }
 

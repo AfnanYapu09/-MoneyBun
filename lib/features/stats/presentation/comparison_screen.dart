@@ -15,7 +15,12 @@ class _MonthAgg {
   final DateTime month;
   final int income;
   final int expense;
-  int get saved => income - expense;
+
+  /// Savings is never negative — overspending shows as ฿0 saved, not a debt.
+  int get saved {
+    final s = income - expense;
+    return s < 0 ? 0 : s;
+  }
 }
 
 class ComparisonScreen extends ConsumerWidget {
@@ -180,9 +185,14 @@ class _HeroCard extends StatelessWidget {
                       ? AppColors.green
                       : AppColors.ink2)),
           const SizedBox(height: 2),
-          Text(value,
-              style: AppTypography.heading(
-                  size: 22, weight: FontWeight.w600, color: foreground)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value,
+                maxLines: 1,
+                style: AppTypography.heading(
+                    size: 22, weight: FontWeight.w600, color: foreground)),
+          ),
         ],
       ),
     );
@@ -249,9 +259,14 @@ class _MonthRow extends StatelessWidget {
               children: [
                 Text('เก็บได้',
                     style: AppTypography.body(size: 11, color: AppColors.ink3)),
-                Text(Money.compact(agg.saved),
-                    style: AppTypography.heading(
-                        size: 14, weight: FontWeight.w500)),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(Money.compact(agg.saved),
+                      maxLines: 1,
+                      style: AppTypography.heading(
+                          size: 14, weight: FontWeight.w500)),
+                ),
               ],
             ),
           ),
