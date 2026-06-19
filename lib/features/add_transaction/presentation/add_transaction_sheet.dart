@@ -220,7 +220,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             ),
             accountFlowFor(
               type: _type,
-              accounts: accounts,
+              accounts: {for (final a in accounts) a.id: a},
               accountId: _fromAccountId,
               toAccountId: _toAccountId,
               slip: _slip,
