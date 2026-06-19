@@ -69,6 +69,23 @@ class TransactionRepository {
     return txnId;
   }
 
+  /// Reclassify a slip-imported expense as a transfer. Used when a slip shows
+  /// money moving between the user's own accounts (sender name == receiver
+  /// name); transfers are excluded from every spending statistic. Idempotent.
+  Future<void> reclassifyAsTransfer(String id) async {
+    final existing = await _db.getTransaction(id);
+    if (existing == null || existing.type == TxnType.transfer) return;
+    await _db.upsertTransaction(
+      existing
+          .copyWith(
+            type: TxnType.transfer,
+            updatedAt: DateTime.now().millisecondsSinceEpoch,
+            syncStatus: _nextStatus(existing.syncStatus),
+          )
+          .toCompanion(true),
+    );
+  }
+
   /// Assign/clear the category of an entry (the home-screen tap action).
   Future<void> setCategory(String id, String? categoryId) async {
     final existing = await _db.getTransaction(id);
