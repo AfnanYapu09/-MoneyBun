@@ -57,18 +57,3 @@ jobs:
           name: moneybun-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: warn
-
-  functions:
-    name: Cloud Functions typecheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: functions
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - run: npm ci
-      - run: npx tsc --noEmit

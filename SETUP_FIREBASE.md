@@ -1,10 +1,11 @@
-# ตั้งค่า Firebase + ตรวจสลิปออนไลน์ (MoneyBun)
+# ตั้งค่า Firebase (Sync + ล็อกอิน) — MoneyBun
 
-> ขั้นตอนเหล่านี้ **ต้องทำบนเครื่องคุณเอง** เพราะผูกกับบัญชี Google / Firebase / billing / EasySlip ของคุณ
-> แอปใช้งานออฟไลน์ได้อยู่แล้วโดยไม่ต้องทำส่วนนี้ — ทำเมื่ออยากเปิด **sync ข้ามเครื่อง + ตรวจสลิปออนไลน์**
+> ขั้นตอนเหล่านี้ **ต้องทำบนเครื่องคุณเอง** เพราะผูกกับบัญชี Google / Firebase / billing ของคุณ
+> แอปใช้งานออฟไลน์ได้เต็มที่โดยไม่ต้องทำส่วนนี้ — **การอ่านสลิป (รวมชื่อ/ธนาคาร) ทำบนเครื่องล้วน
+> ไม่ต้องต่อเน็ต** ทำส่วนนี้เฉพาะเมื่ออยากเปิด **sync ข้ามเครื่อง + ล็อกอิน**
 
 ทุกอย่างฝั่งโค้ดเตรียมไว้ให้แล้ว: `firebase.json`, `firestore.rules` (กันข้อมูลข้ามผู้ใช้),
-`firestore.indexes.json`, `.firebaserc` (รอใส่ project id), Cloud Function `verifySlip` ใน `functions/`
+`firestore.indexes.json`, `.firebaserc` (รอใส่ project id)
 
 ---
 
@@ -56,41 +57,28 @@ Firebase ต้องการ **Web client ID** เพื่อรับ ID tok
    cd android && ./gradlew signingReport   # ดูค่า SHA1/SHA256 ของ debug
    ```
 
-## 4. Deploy กฎ Firestore + Cloud Function ตรวจสลิป
-
-Cloud Functions ต้องเปิด **Blaze plan** (จ่ายตามใช้จริง มี free quota) ที่
-Project settings → Usage and billing → Modify plan
+## 4. Deploy กฎ Firestore
 
 ```bash
-# สมัคร EasySlip ที่ https://easyslip.com แล้วเอา API token มา
-cd functions && npm install && cd ..
-
 firebase deploy --only firestore:rules          # อัปกฎความปลอดภัย
-firebase functions:secrets:set EASYSLIP_TOKEN   # วางค่า token ของ EasySlip
-firebase deploy --only functions                # deploy verifySlip (asia-southeast1)
 ```
 
-> ถ้าใช้ **SlipOK** แทน EasySlip: แก้ `EASYSLIP_URL` + การ map ผลลัพธ์ใน `functions/src/index.ts`
-> (โครงเขียนแบบ defensive ปรับ field path ได้ง่าย)
+> ไม่มี Cloud Functions แล้ว — การอ่านสลิปทั้งหมด (จำนวนเงิน/วันที่/อ้างอิง/ชื่อ/ธนาคาร) ทำในเครื่อง
+> ผ่าน QR + ML Kit (Latin) + Tesseract (ไทย, โมเดล `assets/tessdata/tha.traineddata`) จึงไม่ต้องเปิด Blaze plan
 
 ## 5. เปิดใช้งานในแอป
 
 1. เข้าแอป → **ตั้งค่า → เข้าสู่ระบบด้วย Google** → จะเริ่ม sync ขึ้น `users/{uid}/...`
-2. เปิดสวิตช์ **"ใช้ API ตรวจสลิปออนไลน์"** ในหน้าตั้งค่า
-3. ไปหน้าเพิ่มรายการ → สแกนสลิป → ปุ่ม **"ตรวจสอบออนไลน์"** จะเรียก `verifySlip` เพื่อเติมชื่อผู้ส่ง/ผู้รับ
-   (ที่ OCR ในเครื่องอ่านภาษาไทยไม่ได้)
+2. สแกนสลิปจากอัลบั้มได้เลย — ชื่อผู้โอน/ผู้รับ + ธนาคารต้นทาง/ปลายทาง ถูกอ่านบนเครื่องอัตโนมัติ
 
 ## ตรวจสอบ
 
 - ล็อกอินแล้วเพิ่มรายการ → เปิด Firestore console จะเห็น doc ใต้ `users/{uid}/transactions`
 - ลองอีกเครื่อง/ลงแอปใหม่แล้วล็อกอินบัญชีเดิม → ข้อมูลถูก pull กลับมา (last-write-wins)
-- ทดสอบ function: `firebase functions:log` ดู log ของ `verifySlip`
 
 ## ปัญหาที่พบบ่อย
 
 | อาการ | สาเหตุ / วิธีแก้ |
 |---|---|
 | ล็อกอินแล้วเด้งออก / token ไม่ผ่าน | ยังไม่ส่ง `--dart-define=GOOGLE_SERVER_CLIENT_ID=...` หรือยังไม่เพิ่ม SHA-1 |
-| `verifySlip` 401/unauthenticated | ยังไม่ได้ล็อกอิน หรือ region ไม่ตรง (โค้ดตั้ง `asia-southeast1`) |
-| deploy functions ไม่ได้ | ยังไม่เปิด Blaze plan |
-| ผลตรวจสลิป field ว่าง | ปรับ map ใน `functions/src/index.ts` ให้ตรง response จริงของ provider |
+| ชื่อ/ธนาคารบนสลิปอ่านพลาด | รูปเบลอ/ฟอนต์ตกแต่ง — Tesseract ไทยอ่านยาก ลองรูปคมชัดขึ้น (จำนวนเงิน/วันที่ยังอ่านได้ด้วย ML Kit) |

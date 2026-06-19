@@ -104,14 +104,8 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ]),
             const SizedBox(height: 18),
-            const SettingSectionLabel('สลิป & คลาวด์'),
+            const SettingSectionLabel('คลาวด์ (ซิงค์)'),
             SettingGroup(children: [
-              SettingRow(
-                icon: AppIcons.scanLine,
-                label: 'ใช้ API ตรวจสลิปออนไลน์',
-                toggleValue: settings.slipApiEnabled,
-                onToggle: (v) => repo.setSlipApiEnabled(v),
-              ),
               if (firebaseReady && user == null)
                 SettingRow(
                   icon: AppIcons.google,

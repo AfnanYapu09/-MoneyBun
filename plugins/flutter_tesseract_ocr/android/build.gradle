@@ -1,0 +1,40 @@
+// Modernised build script for the vendored flutter_tesseract_ocr plugin.
+// The upstream plugin (pub.dev 0.4.31) shipped its own buildscript pinning AGP
+// 7.1.2 and using jcenter(), which Gradle 9 / AGP 9 (this project's toolchain)
+// no longer support. We drop that buildscript block and let the app's AGP apply,
+// keeping the bundled Tesseract4Android AAR.
+group 'io.paratoner.flutter_tesseract_ocr'
+version '1.0'
+
+// Expose the bundled AAR to EVERY project, not just this one: the app resolves
+// its own runtime classpath (which pulls this plugin's `api` dependency), so the
+// flatDir repo must be visible to :app too. google()/mavenCentral() already come
+// from the app's root `allprojects` block (android/build.gradle.kts).
+rootProject.allprojects {
+    repositories {
+        flatDir {
+            dirs project(':flutter_tesseract_ocr').file('libs')
+        }
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    namespace 'io.paratoner.flutter_tesseract_ocr'
+    compileSdk 35
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        minSdk 21
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+}
+
+dependencies {
+    api(name: 'tesseract4android-release', ext: 'aar')
+}
