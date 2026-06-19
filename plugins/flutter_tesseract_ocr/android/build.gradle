@@ -6,6 +6,18 @@
 group 'io.paratoner.flutter_tesseract_ocr'
 version '1.0'
 
+// Expose the bundled AAR to EVERY project, not just this one: the app resolves
+// its own runtime classpath (which pulls this plugin's `api` dependency), so the
+// flatDir repo must be visible to :app too. google()/mavenCentral() already come
+// from the app's root `allprojects` block (android/build.gradle.kts).
+rootProject.allprojects {
+    repositories {
+        flatDir {
+            dirs project(':flutter_tesseract_ocr').file('libs')
+        }
+    }
+}
+
 apply plugin: 'com.android.library'
 
 android {
@@ -20,14 +32,6 @@ android {
     defaultConfig {
         minSdk 21
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-    }
-}
-
-repositories {
-    google()
-    mavenCentral()
-    flatDir {
-        dirs 'libs'
     }
 }
 
