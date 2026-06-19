@@ -28,7 +28,10 @@ dependencies:
   # Slip reading (fully on-device)
   mobile_scanner: ^7.0.0
   google_mlkit_text_recognition: ^0.15.0 # Latin OCR: amounts, dates, refs
-  flutter_tesseract_ocr: ^0.4.31 # Thai OCR: sender/receiver names & bank labels
+  # Thai OCR: sender/receiver names & bank labels. Vendored (see plugins/) with a
+  # modernised android/build.gradle so it builds under AGP 9 / Gradle 9.
+  flutter_tesseract_ocr:
+    path: plugins/flutter_tesseract_ocr
   photo_manager: ^3.0.0 # Android: read slips straight from a gallery album
 
   # Firebase (sync + auth). Real config supplied by `flutterfire configure`.
