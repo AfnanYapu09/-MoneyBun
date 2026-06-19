@@ -1,26 +1,15 @@
 import '../../../core/constants/bank_codes.dart';
 
-/// Sender / receiver names + bank codes recovered from a slip's **Thai** OCR
-/// text. Bank fields are [BankCodes] codes (e.g. `'004'`), matching what
-/// `account_flow.dart` resolves via `BankCodes.byCode`.
+/// Sender / receiver **names** recovered from a slip's Thai OCR text. Banks are
+/// NOT read here — they come from the QR code + Latin OCR in [SlipPipeline],
+/// which are reliable, unlike Thai OCR of bank names.
 class SlipParties {
-  const SlipParties({
-    this.senderName,
-    this.receiverName,
-    this.senderBankCode,
-    this.receiverBankCode,
-  });
+  const SlipParties({this.senderName, this.receiverName});
 
   final String? senderName;
   final String? receiverName;
-  final String? senderBankCode;
-  final String? receiverBankCode;
 
-  bool get isEmpty =>
-      senderName == null &&
-      receiverName == null &&
-      senderBankCode == null &&
-      receiverBankCode == null;
+  bool get isEmpty => senderName == null && receiverName == null;
 }
 
 /// Pure, plugin-free extraction of the two parties (who paid → who got paid)
@@ -30,7 +19,6 @@ class SlipParties {
 /// Tesseract output on stylised slip fonts is noisy, so the heuristics anchor
 /// on directional **labels** (`จาก`/`ไปยัง`/`ผู้โอน`/`ผู้รับเงิน`) and on Thai
 /// **honorifics** (`นาย`/`นาง`/`น.ส.`) rather than exact character accuracy.
-/// The QR sending-bank code (authoritative) is used to anchor the sender side.
 class SlipPartyExtractor {
   const SlipPartyExtractor._();
 
@@ -85,16 +73,13 @@ class SlipPartyExtractor {
   // The Thai Unicode block (U+0E00–U+0E7F).
   static final _thai = RegExp('[฀-๿]');
 
-  static SlipParties extract({
-    required String thaiText,
-    String? qrSenderBankCode,
-  }) {
+  static SlipParties extract({required String thaiText}) {
     final lines = thaiText
         .split('\n')
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
         .toList();
-    if (lines.isEmpty && qrSenderBankCode == null) return const SlipParties();
+    if (lines.isEmpty) return const SlipParties();
 
     final senderIdx = _labelIndex(lines, _senderLabels);
     final receiverIdx = _labelIndex(lines, _receiverLabels);
@@ -120,32 +105,7 @@ class SlipPartyExtractor {
       }
     }
 
-    // ---- Banks --------------------------------------------------------------
-    String? senderBankCode = qrSenderBankCode;
-    String? receiverBankCode;
-    if (senderIdx != null || receiverIdx != null) {
-      final senderRegion = _region(lines, senderIdx, receiverIdx);
-      final receiverRegion = _region(lines, receiverIdx, senderIdx);
-      senderBankCode ??= BankCodes.detectFromText(senderRegion)?.code;
-      receiverBankCode = BankCodes.detectFromText(receiverRegion)?.code;
-    } else {
-      final detected = BankCodes.detectAllFromText(thaiText);
-      final banks = detected.map((b) => b.code).toList();
-      senderBankCode ??= banks.isNotEmpty ? banks.first : null;
-      for (final code in banks) {
-        if (code != senderBankCode) {
-          receiverBankCode = code;
-          break;
-        }
-      }
-    }
-
-    return SlipParties(
-      senderName: senderName,
-      receiverName: receiverName,
-      senderBankCode: senderBankCode,
-      receiverBankCode: receiverBankCode,
-    );
+    return SlipParties(senderName: senderName, receiverName: receiverName);
   }
 
   /// Index of the first line containing any of [labels], or null.
@@ -185,15 +145,6 @@ class SlipPartyExtractor {
       }
     }
     return null;
-  }
-
-  /// The joined text between [start] (inclusive) and [end] (exclusive). When
-  /// [end] is null or not after [start], a short window from [start] is used.
-  static String _region(List<String> lines, int? start, int? end) {
-    if (start == null) return '';
-    final stop = (end != null && end > start) ? end : (start + 5);
-    final clamped = stop < lines.length ? stop : lines.length;
-    return lines.sublist(start, clamped).join('\n');
   }
 
   /// A line is a plausible party name when it carries Thai letters, isn't just

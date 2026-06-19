@@ -54,26 +54,38 @@ void main() {
       expect(slip.confidence, 0.5);
     });
 
-    test('maps parties (names + receiver bank) and bumps confidence', () {
+    test('maps party names + Latin-detected banks and bumps confidence', () {
       const qr = SlipQrData(crcValid: true, bankCode: '004');
       const ext = SlipExtraction(amountCents: 5000, confidence: 0.6);
       const parties = SlipParties(
         senderName: 'นาย สมชาย ใจดี',
         receiverName: 'นางสาว สมหญิง รักดี',
-        senderBankCode: '004',
-        receiverBankCode: '014',
       );
       final slip = SlipPipeline.combine(
         qr: qr,
         extraction: ext,
         parties: parties,
+        latinBankCodes: ['004', '014'],
       );
       expect(slip.senderName, 'นาย สมชาย ใจดี');
       expect(slip.receiverName, 'นางสาว สมหญิง รักดี');
-      expect(slip.senderBank, '004');
-      expect(slip.receiverBank, '014');
+      expect(slip.senderBank, '004'); // from QR
+      expect(slip.receiverBank, '014'); // Latin-detected other bank
       // 0.6 + 0.1 (crc) + 0.1 (sender) + 0.05 (receiver) + 0.05 (recv bank).
       expect(slip.confidence, closeTo(0.9, 1e-9));
+    });
+
+    test('receiver bank is the Latin bank that differs from the sender', () {
+      const qr = SlipQrData(crcValid: true, bankCode: '004');
+      const ext = SlipExtraction(amountCents: 5000, confidence: 0.6);
+      // Only the sender's own bank is visible in Latin → no receiver bank.
+      final slip = SlipPipeline.combine(
+        qr: qr,
+        extraction: ext,
+        latinBankCodes: ['004'],
+      );
+      expect(slip.senderBank, '004');
+      expect(slip.receiverBank, isNull);
     });
   });
 }

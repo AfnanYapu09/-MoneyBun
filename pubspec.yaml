@@ -32,6 +32,7 @@ dependencies:
   # modernised android/build.gradle so it builds under AGP 9 / Gradle 9.
   flutter_tesseract_ocr:
     path: plugins/flutter_tesseract_ocr
+  image: ^4.0.0 # pre-process slip images before Thai OCR (grayscale/contrast)
   photo_manager: ^3.0.0 # Android: read slips straight from a gallery album
 
   # Firebase (sync + auth). Real config supplied by `flutterfire configure`.

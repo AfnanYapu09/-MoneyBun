@@ -1,3 +1,4 @@
+import '../../../core/constants/bank_codes.dart';
 import '../../../domain/entities/parsed_slip.dart';
 import '../../../domain/enums/enums.dart';
 import 'slip_extractor.dart';
@@ -24,6 +25,10 @@ class SlipPipeline {
     final qr = payload != null ? EmvTlvParser.parseSlip(payload) : null;
     final latinText = await _ocr.recognizeLatin(imagePath);
     final extraction = SlipExtractor.extract(latinText);
+    // Banks come from reliable signals only — bank tokens ML Kit can read in
+    // Latin (KBANK/SCB/BBL…), ordered by where they appear.
+    final latinBanks =
+        BankCodes.detectAllFromText(latinText).map((b) => b.code).toList();
 
     // Gate the costly Thai OCR behind the same "looks like a slip" signal the
     // importer uses, so non-slip photos never pay the Tesseract cost.
@@ -31,10 +36,7 @@ class SlipPipeline {
     SlipParties? parties;
     if (qr != null || extraction.amountCents != null) {
       thaiText = await _ocr.recognizeThai(imagePath);
-      parties = SlipPartyExtractor.extract(
-        thaiText: thaiText,
-        qrSenderBankCode: qr?.bankCode,
-      );
+      parties = SlipPartyExtractor.extract(thaiText: thaiText);
     }
 
     var rawText = latinText;
@@ -46,7 +48,15 @@ class SlipPipeline {
       ocrText: rawText,
       extraction: extraction,
       parties: parties,
+      latinBankCodes: latinBanks,
     );
+  }
+
+  /// Release the reusable QR controller + ML Kit recognizer. Call once when a
+  /// scan batch finishes.
+  Future<void> dispose() async {
+    await _qr.dispose();
+    await _ocr.dispose();
   }
 
   /// Pure combination of QR + OCR + party signals into a [ParsedSlip].
@@ -58,11 +68,21 @@ class SlipPipeline {
     String? ocrText,
     required SlipExtraction extraction,
     SlipParties? parties,
+    List<String> latinBankCodes = const [],
   }) {
-    // The QR's bank code is the SENDER's bank (authoritative); fall back to the
-    // Thai party parse, then to the Latin keyword guess.
-    final senderBank =
-        qr?.bankCode ?? parties?.senderBankCode ?? extraction.bankCode;
+    // Banks come from reliable signals ONLY: the QR's sending-bank code
+    // (authoritative) and Latin OCR (ML Kit reads bank abbreviations well).
+    // Thai OCR of bank names is too noisy to trust — showing nothing beats
+    // showing a wrong bank.
+    final senderBank = qr?.bankCode ??
+        (latinBankCodes.isNotEmpty ? latinBankCodes.first : null);
+    String? receiverBank;
+    for (final code in latinBankCodes) {
+      if (code != senderBank) {
+        receiverBank = code;
+        break;
+      }
+    }
     final transRef = qr?.transRef ?? extraction.transRef;
 
     var confidence = extraction.confidence;
@@ -76,7 +96,7 @@ class SlipPipeline {
     // Names are read by noisy Thai OCR, so they add only modest confidence.
     if (parties?.senderName != null) confidence += 0.1;
     if (parties?.receiverName != null) confidence += 0.05;
-    if (parties?.receiverBankCode != null) confidence += 0.05;
+    if (receiverBank != null) confidence += 0.05;
     confidence = confidence.clamp(0, 1).toDouble();
 
     final source = extraction.amountCents == null && qr != null
@@ -94,7 +114,7 @@ class SlipPipeline {
       senderName: parties?.senderName,
       senderBank: senderBank,
       receiverName: parties?.receiverName,
-      receiverBank: parties?.receiverBankCode,
+      receiverBank: receiverBank,
       rawOcrText: ocrText,
       confidence: confidence,
     );
