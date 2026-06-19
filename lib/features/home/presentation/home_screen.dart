@@ -360,10 +360,11 @@ class _SpendingCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned(
-            right: -6,
-            top: 14,
+            right: -22,
+            top: -14,
             child: Opacity(
               opacity: 0.9,
               child: const BunAvatar(size: 76, variant: BunVariant.reverse),
