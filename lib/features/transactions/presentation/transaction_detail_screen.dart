@@ -10,6 +10,7 @@ import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/icon_chip.dart';
+import '../../../core/widgets/slip_image.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
@@ -37,6 +38,8 @@ class TransactionDetailScreen extends ConsumerWidget {
       for (final t in ref.watch(tagsProvider).value ?? const <TagRow>[]) t.id: t
     };
     final links = ref.watch(allTransactionTagsProvider).value ?? const [];
+    final slips =
+        ref.watch(slipsByIdProvider).value ?? const <String, SlipRow>{};
 
     if (txn == null) {
       return const SubScreenScaffold(
@@ -65,6 +68,7 @@ class TransactionDetailScreen extends ConsumerWidget {
       if (category != null) category.name,
       ...txnTags.map((t) => '#$t'),
     ].join(' · ');
+    final slip = txn.slipId == null ? null : slips[txn.slipId];
 
     return SubScreenScaffold(
       title: 'รายละเอียดรายการ',
@@ -89,7 +93,7 @@ class TransactionDetailScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 24),
-          if (txn.type != TxnType.transfer)
+          if (txn.type != TxnType.transfer) ...[
             _card([
               _DetailRow(
                 icon: AppIcons.layoutGrid,
@@ -98,16 +102,13 @@ class TransactionDetailScreen extends ConsumerWidget {
                 onTap: () => _pickCategory(context, ref),
               ),
             ]),
-          if (txn.type == TxnType.transfer) ...[
-            Text('บัญชี',
-                style: AppTypography.heading(
-                    size: 13, weight: FontWeight.w500, color: AppColors.ink3)),
-            const SizedBox(height: 8),
-            _AccountFlow(
-              from: accounts[txn.accountId]?.name ?? 'บัญชี',
-              to: accounts[txn.toAccountId]?.name ?? 'บัญชี',
-            ),
+            const SizedBox(height: 18),
           ],
+          Text('บัญชี',
+              style: AppTypography.heading(
+                  size: 13, weight: FontWeight.w500, color: AppColors.ink3)),
+          const SizedBox(height: 8),
+          _accountFlow(txn, accounts, slip),
           const SizedBox(height: 12),
           _card([
             _DetailRow(
@@ -120,6 +121,10 @@ class TransactionDetailScreen extends ConsumerWidget {
               _DetailRow(
                   icon: AppIcons.pencilLine, label: 'โน้ต', value: txn.note!),
           ]),
+          if (slip != null) ...[
+            const SizedBox(height: 12),
+            _SlipChip(onTap: () => _viewSlip(context, slip)),
+          ],
           const SizedBox(height: 22),
           InkWell(
             borderRadius: BorderRadius.circular(16),
@@ -164,6 +169,74 @@ class TransactionDetailScreen extends ConsumerWidget {
             rows[i],
           ],
         ],
+      ),
+    );
+  }
+
+  /// Account → counterparty flow card. For an expense the right side is the
+  /// slip's merchant (ร้านค้า); for income it's the sender; for a transfer it's
+  /// the destination account. Right side is hidden when unknown.
+  Widget _accountFlow(
+      TransactionRow txn, Map<String, AccountRow> accounts, SlipRow? slip) {
+    final account = accounts[txn.accountId]?.name;
+    switch (txn.type) {
+      case TxnType.transfer:
+        return _AccountFlow(
+          fromLabel: 'จ่ายจาก',
+          fromName: account ?? 'บัญชี',
+          toLabel: 'ไปยัง',
+          toName: accounts[txn.toAccountId]?.name ?? 'บัญชี',
+        );
+      case TxnType.income:
+        final sender = slip?.senderName;
+        final hasSender = sender != null && sender.isNotEmpty;
+        return _AccountFlow(
+          fromLabel: 'เข้าบัญชี',
+          fromName: account ?? 'บัญชี',
+          toLabel: hasSender ? 'จาก' : null,
+          toName: hasSender ? sender : null,
+          toIcon: AppIcons.userRound,
+        );
+      case TxnType.expense:
+        final merchant = slip?.receiverName;
+        final hasMerchant = merchant != null && merchant.isNotEmpty;
+        return _AccountFlow(
+          fromLabel: 'จ่ายจาก',
+          fromName: account ?? 'เงินสด',
+          toLabel: hasMerchant ? 'ร้านค้า' : null,
+          toName: hasMerchant ? merchant : null,
+          toIcon: AppIcons.store,
+        );
+    }
+  }
+
+  void _viewSlip(BuildContext context, SlipRow slip) {
+    showDialog<void>(
+      context: context,
+      barrierColor: const Color(0xE6211C18),
+      builder: (c) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: InteractiveViewer(
+                  child: SlipImage(slip: slip, fit: BoxFit.contain),
+                ),
+              ),
+            ),
+            Positioned(
+              top: -4,
+              right: -4,
+              child: IconButton(
+                onPressed: () => Navigator.pop(c),
+                icon: const Icon(AppIcons.x, color: AppColors.reverse, size: 26),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -242,12 +315,25 @@ class _DetailRow extends StatelessWidget {
 }
 
 class _AccountFlow extends StatelessWidget {
-  const _AccountFlow({required this.from, required this.to});
-  final String from;
-  final String to;
+  const _AccountFlow({
+    required this.fromLabel,
+    required this.fromName,
+    this.fromIcon = AppIcons.wallet,
+    this.toLabel,
+    this.toName,
+    this.toIcon,
+  });
+
+  final String fromLabel;
+  final String fromName;
+  final IconData fromIcon;
+  final String? toLabel;
+  final String? toName;
+  final IconData? toIcon;
 
   @override
   Widget build(BuildContext context) {
+    final hasTo = toName != null && toName!.isNotEmpty;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -257,37 +343,108 @@ class _AccountFlow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const IconChip(
-              icon: AppIcons.wallet, size: 36, radius: 11, iconSize: 18),
-          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text('จ่ายจาก',
-                    style:
-                        AppTypography.body(size: 11.5, color: AppColors.ink3)),
-                Text(from,
-                    style: AppTypography.heading(
-                        size: 14, weight: FontWeight.w500)),
+                IconChip(
+                    icon: fromIcon, size: 36, radius: 11, iconSize: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(fromLabel,
+                          style: AppTypography.body(
+                              size: 11.5, color: AppColors.ink3)),
+                      Text(fromName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.heading(
+                              size: 14, weight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          const Icon(AppIcons.arrowRight, size: 18, color: AppColors.ink3),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text('ไปยัง',
-                    style:
-                        AppTypography.body(size: 11.5, color: AppColors.ink3)),
-                Text(to,
-                    style: AppTypography.heading(
-                        size: 14, weight: FontWeight.w500)),
-              ],
+          if (hasTo) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child:
+                  Icon(AppIcons.arrowRight, size: 18, color: AppColors.ink3),
             ),
-          ),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(toLabel ?? '',
+                            style: AppTypography.body(
+                                size: 11.5, color: AppColors.ink3)),
+                        Text(toName!,
+                            textAlign: TextAlign.right,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.heading(
+                                size: 14, weight: FontWeight.w500)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  IconChip(
+                    icon: toIcon ?? AppIcons.store,
+                    size: 36,
+                    radius: 11,
+                    iconSize: 18,
+                    background: AppColors.paper2,
+                    foreground: AppColors.ink2,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// "สลิปต้นฉบับ / ดูรูป" chip — opens the stored slip image.
+class _SlipChip extends StatelessWidget {
+  const _SlipChip({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          color: AppColors.paper,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.line),
+        ),
+        child: Row(
+          children: [
+            const IconChip(
+                icon: AppIcons.receiptText,
+                size: 40,
+                radius: 11,
+                iconSize: 19),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text('สลิปต้นฉบับ',
+                  style: AppTypography.body(size: 14.5)),
+            ),
+            Text('ดูรูป',
+                style: AppTypography.heading(
+                    size: 13, weight: FontWeight.w400, color: AppColors.terra)),
+          ],
+        ),
       ),
     );
   }

@@ -46,7 +46,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     borderRadius: BorderRadius.circular(38),
                   ),
                   alignment: Alignment.center,
-                  child: const BunAvatar(size: 96),
+                  child: const BunAvatar(size: 112),
                 ),
                 const SizedBox(height: 26),
                 const Wordmark(size: 44, color: AppColors.reverse),

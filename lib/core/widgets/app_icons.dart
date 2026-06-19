@@ -45,6 +45,8 @@ class AppIcons {
   static const IconData store = LucideIcons.store;
   static const IconData repeat = LucideIcons.repeat;
   static const IconData calendar = LucideIcons.calendar;
+  static const IconData calendarCheck = LucideIcons.calendarCheck;
+  static const IconData refreshCw = LucideIcons.refreshCw;
   static const IconData layoutGrid = LucideIcons.layoutGrid;
   static const IconData hash = LucideIcons.hash;
   static const IconData pencil = LucideIcons.pencil;
