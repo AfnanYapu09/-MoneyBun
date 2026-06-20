@@ -103,6 +103,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 isCollapsed: true,
                                 filled: false,
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
                                 hintText: 'ค้นหารายการ…',
                               ),
                             ),
