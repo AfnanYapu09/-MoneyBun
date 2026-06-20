@@ -5,6 +5,7 @@ import '../../features/add_transaction/presentation/add_transaction_sheet.dart';
 import '../../features/add_transaction/presentation/category_picker_sheet.dart';
 import '../../features/categories/presentation/add_category_sheet.dart';
 import '../../features/stats/presentation/budget_sheet.dart';
+import '../../data/local/database.dart';
 import '../../domain/enums/enums.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
@@ -56,14 +57,14 @@ Future<void> showAccountsSheet(BuildContext context) {
   );
 }
 
-/// Set a per-category budget.
-Future<bool?> showBudgetSheet(BuildContext context) {
+/// Set a per-category budget, or edit [budget] when passed.
+Future<bool?> showBudgetSheet(BuildContext context, {BudgetRow? budget}) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     barrierColor: _barrier,
     backgroundColor: Colors.transparent,
-    builder: (_) => const BudgetSheet(),
+    builder: (_) => BudgetSheet(budget: budget),
   );
 }
 

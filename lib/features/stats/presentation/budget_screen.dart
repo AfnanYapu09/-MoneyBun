@@ -139,10 +139,14 @@ class BudgetScreen extends ConsumerWidget {
                 children: [
                   for (var i = 0; i < budgets.length; i++) ...[
                     if (i > 0) const SizedBox(height: 18),
-                    _BudgetBar(
-                      category: categories[budgets[i].categoryId],
-                      spent: spentByCat[budgets[i].categoryId] ?? 0,
-                      limit: budgets[i].amountCents,
+                    InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => showBudgetSheet(context, budget: budgets[i]),
+                      child: _BudgetBar(
+                        category: categories[budgets[i].categoryId],
+                        spent: spentByCat[budgets[i].categoryId] ?? 0,
+                        limit: budgets[i].amountCents,
+                      ),
                     ),
                   ],
                 ],
