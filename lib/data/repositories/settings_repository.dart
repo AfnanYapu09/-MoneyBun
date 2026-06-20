@@ -144,8 +144,7 @@ class SettingsRepository {
   Future<void> setDisabledScanIds(Set<String> ids) =>
       set(SettingsKeys.disabledScanIds, ids.join(','));
   Future<void> setDisplayName(String v) => set(SettingsKeys.displayName, v);
-  Future<void> setAvatarPath(String path) =>
-      set(SettingsKeys.avatarPath, path);
+  Future<void> setAvatarPath(String path) => set(SettingsKeys.avatarPath, path);
   Future<void> setUsername(String v) => set(SettingsKeys.username, v);
   Future<void> setPhone(String v) => set(SettingsKeys.phone, v);
 
