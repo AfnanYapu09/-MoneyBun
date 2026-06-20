@@ -15,6 +15,7 @@ class ScanResult {
     this.inspected = 0,
     this.imported = 0,
     this.errors = 0,
+    this.scannedAtMs = 0,
   });
 
   /// Total candidate images considered (bank albums + recent fallback).
@@ -31,6 +32,10 @@ class ScanResult {
 
   /// Images whose read threw (decode / ML Kit failure) and were skipped.
   final int errors;
+
+  /// The instant this scan started (ms since epoch) — persisted as the next
+  /// scan's incremental watermark.
+  final int scannedAtMs;
 }
 
 /// Reads slip images straight from the phone gallery and turns each genuine
@@ -48,15 +53,18 @@ class SlipImporter {
     required SlipRepository slips,
     required TransactionRepository transactions,
     required Future<Set<String>> Function() importedAssetIds,
+    required Future<int?> Function() lastSlipReadAt,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
-        _importedAssetIds = importedAssetIds;
+        _importedAssetIds = importedAssetIds,
+        _lastSlipReadAt = lastSlipReadAt;
 
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
   final TransactionRepository _txns;
   final Future<Set<String>> Function() _importedAssetIds;
+  final Future<int?> Function() _lastSlipReadAt;
 
   /// Cap on how many recent "all photos" the fallback pass inspects.
   static const _scanCap = 150;
@@ -145,44 +153,65 @@ class SlipImporter {
   /// Scan bank albums + recent photos for slips. Dedups by gallery asset id, so
   /// an already-imported photo is never imported twice. Returns a [ScanResult].
   Future<ScanResult> scanNew() async {
-    final paths = await PhotoManager.getAssetPathList(
-      type: RequestType.image,
-    );
-    if (paths.isEmpty) return const ScanResult();
-    final already = await _importedAssetIds();
+    final scanStart = DateTime.now();
+    try {
+      final paths = await PhotoManager.getAssetPathList(
+        type: RequestType.image,
+      );
+      if (paths.isEmpty) {
+        return ScanResult(scannedAtMs: scanStart.millisecondsSinceEpoch);
+      }
+      final already = await _importedAssetIds();
+      // Incremental watermark: only re-read photos newer than the last scan,
+      // so a re-scan with no new photos does ~0 work instead of re-running the
+      // pipeline over the same recent (non-slip) photos every time.
+      final lastMs = await _lastSlipReadAt();
+      final cutoff = (lastMs == null || lastMs == 0)
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(lastMs);
 
-    final acc = _ScanAcc();
+      final acc = _ScanAcc();
 
-    // 1) Bank/e-wallet albums: import every image (they are all slips).
-    for (final album in paths) {
-      if (album.isAll || !_isSlipAlbum(album.name)) continue;
-      acc.matchedAlbums++;
-      final count = await album.assetCountAsync;
-      final end = count < _albumCap ? count : _albumCap;
-      final assets = await album.getAssetListRange(start: 0, end: end);
-      acc.albumCount += assets.length;
-      await _ingest(assets, already, acc, requireSlipLook: false);
+      // 1) Bank/e-wallet albums: import every image (they are all slips).
+      //    Already-imported ones are skipped cheaply via [already].
+      for (final album in paths) {
+        if (album.isAll || !_isSlipAlbum(album.name)) continue;
+        acc.matchedAlbums++;
+        final count = await album.assetCountAsync;
+        final end = count < _albumCap ? count : _albumCap;
+        final assets = await album.getAssetListRange(start: 0, end: end);
+        acc.albumCount += assets.length;
+        await _ingest(assets, already, acc, requireSlipLook: false);
+      }
+
+      // 2) Fallback: recent photos of the whole gallery that look like slips
+      //    (screenshots / downloaded slips not in a bank album). Only those
+      //    created since the last scan are inspected.
+      final all = paths.firstWhere(
+        (p) => p.isAll,
+        orElse: () => paths.first,
+      );
+      final total = await all.assetCountAsync;
+      final end = total < _scanCap ? total : _scanCap;
+      final recent = await all.getAssetListRange(start: 0, end: end);
+      acc.albumCount += recent.length;
+      final fresh = cutoff == null
+          ? recent
+          : recent.where((a) => a.createDateTime.isAfter(cutoff)).toList();
+      await _ingest(fresh, already, acc, requireSlipLook: true);
+
+      return ScanResult(
+        albumCount: acc.albumCount,
+        matchedAlbums: acc.matchedAlbums,
+        inspected: acc.inspected,
+        imported: acc.imported,
+        errors: acc.errors,
+        scannedAtMs: scanStart.millisecondsSinceEpoch,
+      );
+    } finally {
+      // Release the reusable QR controller + ML Kit recognizer once per scan.
+      await _pipeline.dispose();
     }
-
-    // 2) Fallback: recent photos of the whole gallery that look like slips
-    //    (screenshots / downloaded slips not in a bank album).
-    final all = paths.firstWhere(
-      (p) => p.isAll,
-      orElse: () => paths.first,
-    );
-    final total = await all.assetCountAsync;
-    final end = total < _scanCap ? total : _scanCap;
-    final recent = await all.getAssetListRange(start: 0, end: end);
-    acc.albumCount += recent.length;
-    await _ingest(recent, already, acc, requireSlipLook: true);
-
-    return ScanResult(
-      albumCount: acc.albumCount,
-      matchedAlbums: acc.matchedAlbums,
-      inspected: acc.inspected,
-      imported: acc.imported,
-      errors: acc.errors,
-    );
   }
 
   Future<void> _ingest(

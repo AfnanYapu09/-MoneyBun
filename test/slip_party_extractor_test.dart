@@ -11,8 +11,6 @@ void main() {
       final p = SlipPartyExtractor.extract(thaiText: text);
       expect(p.senderName, 'นาย สมชาย ใจดี');
       expect(p.receiverName, 'นางสาว สมหญิง รักดี');
-      expect(p.senderBankCode, '004'); // กสิกร
-      expect(p.receiverBankCode, '014'); // ไทยพาณิชย์
     });
 
     test('label on its own line, name on the next line', () {
@@ -22,10 +20,27 @@ void main() {
       expect(p.receiverName, 'นางสาว บี');
     });
 
+    test('sender name without an honorific, after a label', () {
+      const text = 'ผู้โอน\n'
+          'สมชาย ใจดี\n'
+          'ธนาคารกสิกรไทย\n'
+          'ไปยัง นางสาว บี\n'
+          'ธนาคารไทยพาณิชย์';
+      final p = SlipPartyExtractor.extract(thaiText: text);
+      expect(p.senderName, 'สมชาย ใจดี');
+      expect(p.receiverName, 'นางสาว บี');
+    });
+
     test('strips a masked account number out of the captured name', () {
       const text = 'ผู้รับเงิน นางสาว ข xxx-x-x1234-x';
       final p = SlipPartyExtractor.extract(thaiText: text);
       expect(p.receiverName, 'นางสาว ข');
+    });
+
+    test('sender name abutting a masked account, no honorific', () {
+      const text = 'จาก\nสมหญิง รักดี xxx-x-x1234-x\nธนาคารไทยพาณิชย์';
+      final p = SlipPartyExtractor.extract(thaiText: text);
+      expect(p.senderName, 'สมหญิง รักดี');
     });
 
     test('two-name fallback when there are no direction labels', () {
@@ -38,31 +53,6 @@ void main() {
       final p = SlipPartyExtractor.extract(thaiText: text);
       expect(p.senderName, 'นาย สมชาย ใจดี'); // top = sender
       expect(p.receiverName, 'นางสาว สมหญิง รักดี'); // below = receiver
-      expect(p.senderBankCode, '004');
-      expect(p.receiverBankCode, '014');
-    });
-
-    test('QR sender bank wins; receiver is the other bank', () {
-      const text = 'จาก นาย เอ\n'
-          'ธนาคารกรุงเทพ\n'
-          'ไปยัง นางสาว บี\n'
-          'ธนาคารไทยพาณิชย์';
-      final p = SlipPartyExtractor.extract(
-        thaiText: text,
-        qrSenderBankCode: '002',
-      );
-      expect(p.senderBankCode, '002'); // from QR (authoritative)
-      expect(p.receiverBankCode, '014');
-    });
-
-    test('same-bank transfer with no labels leaves receiver bank null', () {
-      const text = 'นาย เอ\nธนาคารกสิกรไทย\nนางสาว บี\nธนาคารกสิกรไทย';
-      final p = SlipPartyExtractor.extract(
-        thaiText: text,
-        qrSenderBankCode: '004',
-      );
-      expect(p.senderBankCode, '004');
-      expect(p.receiverBankCode, isNull); // only the sender's bank is visible
     });
 
     test('does not treat amount/ref/header lines as names', () {

@@ -90,6 +90,8 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     slips: ref.watch(slipRepositoryProvider),
     transactions: ref.watch(transactionRepositoryProvider),
     importedAssetIds: db.importedAssetIds,
+    lastSlipReadAt: () async =>
+        (await ref.read(settingsRepositoryProvider).read()).lastSlipReadAt,
   );
 });
 
@@ -137,9 +139,11 @@ class ScanController extends Notifier<ScanState> {
     }
     try {
       final result = await importer.scanNew();
+      // Persist the scan's START time as the next incremental watermark, so a
+      // photo saved *during* the scan is still picked up next run.
       await ref
           .read(settingsRepositoryProvider)
-          .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
+          .setLastSlipReadAt(result.scannedAtMs);
       state = ScanState(result: result, limited: perm.limited);
     } catch (e) {
       state = ScanState(error: e, limited: perm.limited);
