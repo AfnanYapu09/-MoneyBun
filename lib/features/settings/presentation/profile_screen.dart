@@ -157,6 +157,7 @@ class _Field extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.paper,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
