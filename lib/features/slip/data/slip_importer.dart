@@ -1,5 +1,6 @@
 import 'package:photo_manager/photo_manager.dart';
 
+import '../../../core/constants/bank_catalog.dart';
 import '../../../data/repositories/slip_repository.dart';
 import '../../../data/repositories/transaction_repository.dart';
 import '../../../domain/entities/parsed_slip.dart';
@@ -15,7 +16,6 @@ class ScanResult {
     this.inspected = 0,
     this.imported = 0,
     this.errors = 0,
-    this.scannedAtMs = 0,
   });
 
   /// Total candidate images considered (bank albums + recent fallback).
@@ -32,10 +32,6 @@ class ScanResult {
 
   /// Images whose read threw (decode / ML Kit failure) and were skipped.
   final int errors;
-
-  /// The instant this scan started (ms since epoch) — persisted as the next
-  /// scan's incremental watermark.
-  final int scannedAtMs;
 }
 
 /// Reads slip images straight from the phone gallery and turns each genuine
@@ -53,23 +49,20 @@ class SlipImporter {
     required SlipRepository slips,
     required TransactionRepository transactions,
     required Future<Set<String>> Function() importedAssetIds,
-    required Future<int?> Function() lastSlipReadAt,
-    required Future<Set<String>> Function() disabledBankCodes,
+    required Future<Set<String>> Function() disabledScanIds,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
         _importedAssetIds = importedAssetIds,
-        _lastSlipReadAt = lastSlipReadAt,
-        _disabledBankCodes = disabledBankCodes;
+        _disabledScanIds = disabledScanIds;
 
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
   final TransactionRepository _txns;
   final Future<Set<String>> Function() _importedAssetIds;
-  final Future<int?> Function() _lastSlipReadAt;
 
-  /// BOT bank codes the user turned off (their albums are skipped this scan).
-  final Future<Set<String>> Function() _disabledBankCodes;
+  /// Scan-catalog ids the user turned off (their albums are skipped this scan).
+  final Future<Set<String>> Function() _disabledScanIds;
 
   /// Cap on how many recent "all photos" the fallback pass inspects.
   static const _scanCap = 150;
@@ -77,24 +70,17 @@ class SlipImporter {
   /// Cap on images read per bank album (protects a long slip history).
   static const _albumCap = 300;
 
-  /// Only ever look back this many days — even on a first scan or after a long
-  /// gap — so a scan never trawls a whole month of old photos (slow), only the
-  /// past week.
+  /// Only read photos from the past this-many days, so a scan never trawls a
+  /// whole month of old photos (slow). Already-imported photos are skipped by
+  /// asset id, so this window alone keeps re-scans cheap.
   static const _scanWindowDays = 7;
 
-  /// The earliest photo-creation time a scan should read, given [now] and the
-  /// last-read watermark [lastReadMs] (ms since epoch; null/0 when never read).
-  ///
-  /// Always clamps to the last [_scanWindowDays] days: a first scan, or one
-  /// after a long absence, reads only the past week (not the whole history);
-  /// frequent scans read only what's newer than the last read. Pure + static so
-  /// it can be unit-tested.
-  static DateTime computeScanCutoff(DateTime now, int? lastReadMs) {
-    final weekAgo = now.subtract(const Duration(days: _scanWindowDays));
-    if (lastReadMs == null || lastReadMs == 0) return weekAgo;
-    final watermark = DateTime.fromMillisecondsSinceEpoch(lastReadMs);
-    return watermark.isBefore(weekAgo) ? weekAgo : watermark;
-  }
+  /// The earliest photo-creation time a scan reads: always the last
+  /// [_scanWindowDays] days. Asset-id dedup (not a moving watermark) prevents
+  /// re-imports, so a just-saved slip is always found once the gallery indexes
+  /// it. Pure + static so it can be unit-tested.
+  static DateTime scanCutoff(DateTime now) =>
+      now.subtract(const Duration(days: _scanWindowDays));
 
   /// Album-name fragments (lowercase) that Thai banking / e-wallet apps use for
   /// the folder they save slips into. Matched albums are imported in full.
@@ -121,6 +107,8 @@ class SlipImporter {
     'baac', 'ธกส',
     // UOB
     'uob', 'tmrw',
+    // GHB / อาคารสงเคราะห์
+    'ghb', 'อาคารสงเคราะห์', 'ธอส',
     // เป๋าตัง / Paotang
     'paotang', 'pao tang', 'เป๋าตัง',
     // other banks / e-wallets
@@ -130,26 +118,6 @@ class SlipImporter {
     // generic slip hints
     'prompt', 'slip', 'สลิป', 'ธนาคาร', 'โอนเงิน',
   ];
-
-  /// Bank-album fragments grouped by BOT bank code, so a matched album can be
-  /// attributed to a bank and skipped when the user turns that bank off. Keep
-  /// these fragments in sync with the bank entries in [_slipAlbumKeywords].
-  static const _bankAlbumKeywords = <String, List<String>>{
-    '004': ['k plus', 'kplus', 'kasikorn', 'กสิกร', 'kbank', 'make by kbank'],
-    '006': ['krungthai', 'กรุงไทย'],
-    '014': ['scb', 'ไทยพาณิชย์'],
-    '002': ['bualuang', 'bangkok bank', 'กรุงเทพ'],
-    '011': ['ttb', 'tmb'],
-    '025': ['kma', 'krungsri', 'กรุงศรี', 'uchoose'],
-    '030': ['gsb', 'mymo', 'ออมสิน'],
-    '034': ['baac', 'ธกส'],
-    '024': ['uob', 'tmrw'],
-    '022': ['cimb'],
-    '069': ['kkp', 'kiatnakin'],
-    '067': ['tisco'],
-    '073': ['lh bank', 'lhbank'],
-    'TRUEMONEY': ['truemoney', 'true money', 'ทรูมันนี่', 'ทรูมัน'],
-  };
 
   bool _isSlipAlbum(String name) => isSlipAlbumName(name);
 
@@ -173,14 +141,15 @@ class SlipImporter {
     return _slipAlbumKeywords.any(n.contains);
   }
 
-  /// The BOT bank code an album belongs to (e.g. a Kasikorn album → '004', MAKE
-  /// → '004'), or null for a generic / e-wallet slip folder with no bank code.
-  /// Lets a scan skip a bank's album when that bank is turned off.
-  static String? bankCodeForAlbumName(String name) {
+  /// The scan-catalog id an album belongs to (a Kasikorn album → 'kbank', a
+  /// MAKE album → 'make'), or null for a generic slip folder not tied to a
+  /// togglable bank. Lets a scan skip a bank's album when it's turned off.
+  static String? albumScanId(String name) {
     final n = name.toLowerCase().trim();
-    if (_isMakeKbank(n)) return '004';
-    for (final entry in _bankAlbumKeywords.entries) {
-      if (entry.value.any(n.contains)) return entry.key;
+    if (_isMakeKbank(n)) return 'make';
+    for (final bank in BankCatalog.all) {
+      if (bank.id == 'make') continue; // handled above (safe MAKE detection)
+      if (bank.albumKeywords.any(n.contains)) return bank.id;
     }
     return null;
   }
@@ -214,19 +183,15 @@ class SlipImporter {
       final paths = await PhotoManager.getAssetPathList(
         type: RequestType.image,
       );
-      if (paths.isEmpty) {
-        return ScanResult(scannedAtMs: scanStart.millisecondsSinceEpoch);
-      }
+      if (paths.isEmpty) return const ScanResult();
       final already = await _importedAssetIds();
-      // Incremental + bounded window: only read photos newer than the last scan
-      // and never older than the past week. So a re-scan with no new photos does
-      // ~0 work, and a first scan / scan after a long gap reads just the last
-      // 7 days instead of trawling a whole month.
-      final lastMs = await _lastSlipReadAt();
-      final cutoff = computeScanCutoff(scanStart, lastMs);
+      // Only look at the past week; asset-id dedup (not a moving watermark)
+      // skips photos already imported, so a just-saved slip is always found
+      // once indexed, while re-scans stay cheap.
+      final cutoff = scanCutoff(scanStart);
       bool inWindow(AssetEntity a) => a.createDateTime.isAfter(cutoff);
       // Banks the user turned off in the accounts sheet — skip their albums.
-      final disabledBanks = await _disabledBankCodes();
+      final disabled = await _disabledScanIds();
 
       final acc = _ScanAcc();
 
@@ -234,8 +199,8 @@ class SlipImporter {
       //    slips). Already-imported ones are skipped cheaply via [already].
       for (final album in paths) {
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
-        final bankCode = bankCodeForAlbumName(album.name);
-        if (bankCode != null && disabledBanks.contains(bankCode)) continue;
+        final scanId = albumScanId(album.name);
+        if (scanId != null && disabled.contains(scanId)) continue;
         acc.matchedAlbums++;
         final count = await album.assetCountAsync;
         final end = count < _albumCap ? count : _albumCap;
@@ -265,7 +230,6 @@ class SlipImporter {
         inspected: acc.inspected,
         imported: acc.imported,
         errors: acc.errors,
-        scannedAtMs: scanStart.millisecondsSinceEpoch,
       );
     } finally {
       // Release the reusable QR controller + ML Kit recognizer once per scan.

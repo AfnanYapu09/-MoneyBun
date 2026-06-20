@@ -2,42 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../bootstrap/providers.dart';
+import '../../../core/constants/bank_catalog.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_toggle.dart';
-import '../../../core/widgets/category_icons.dart';
+import '../../../core/widgets/bank_logo.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
-import '../../../data/local/database.dart';
 
 /// Bottom sheet to choose which banks' gallery albums น้องบัน scans for slips.
-/// Each toggle persists `watchedForSlips` immediately (no Save button); the slip
+/// Each toggle persists immediately to settings (no Save button); the slip
 /// importer skips the albums of banks turned off here.
-class AccountsSheet extends ConsumerStatefulWidget {
+class AccountsSheet extends ConsumerWidget {
   const AccountsSheet({super.key});
 
   @override
-  ConsumerState<AccountsSheet> createState() => _AccountsSheetState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider).value;
+    final disabled = settings?.disabledScanIds ?? const <String>{};
+    final repo = ref.read(settingsRepositoryProvider);
+    final allOn = disabled.isEmpty;
 
-class _AccountsSheetState extends ConsumerState<AccountsSheet> {
-  @override
-  Widget build(BuildContext context) {
-    final accounts = ref.watch(accountsProvider).value ?? const <AccountRow>[];
-    final repo = ref.read(accountRepositoryProvider);
-    // Only bank / e-wallet accounts have a slip album to scan (cash has none).
-    final banks = accounts.where((a) => a.bankCode != null).toList();
-    final watchedCount = banks.where((a) => a.watchedForSlips).length;
-    final allOn = banks.isNotEmpty && watchedCount == banks.length;
+    void setAll(bool on) {
+      final ids = on ? <String>{} : {for (final b in BankCatalog.all) b.id};
+      repo.setDisabledScanIds(ids);
+    }
+
+    void toggle(String id) {
+      final next = disabled.toSet();
+      if (!next.add(id)) next.remove(id); // already disabled → re-enable
+      repo.setDisabledScanIds(next);
+    }
 
     return SheetScaffold(
       title: 'บัญชีที่ให้น้องบันสแกนสลิป',
       action: TextButton(
-        onPressed: () {
-          for (final a in banks) {
-            repo.setWatched(a.id, true);
-          }
-        },
+        onPressed: () => setAll(true),
         child: Text('รีเซ็ต',
             style: AppTypography.heading(
                 size: 14, weight: FontWeight.w500, color: AppColors.terra)),
@@ -51,38 +51,28 @@ class _AccountsSheetState extends ConsumerState<AccountsSheet> {
             child: Text('ปิดธนาคารที่ไม่ต้องการให้อ่านสลิปจากอัลบั้ม',
                 style: AppTypography.body(size: 13.5, color: AppColors.ink3)),
           ),
-          _Row(
-            icon: AppIcons.wallet,
-            iconBg: AppColors.terraWash,
-            iconFg: AppColors.terra700,
+          _ToggleRow(
+            leading: Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(
+                color: AppColors.terraWash,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(AppIcons.wallet,
+                  size: 20, color: AppColors.terra700),
+            ),
             name: 'ทุกธนาคาร',
             on: allOn,
-            onToggle: () {
-              for (final a in banks) {
-                repo.setWatched(a.id, !allOn);
-              }
-            },
+            onTap: () => setAll(!allOn),
           ),
           const Divider(height: 14),
-          if (banks.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: Text('ยังไม่มีบัญชีธนาคาร',
-                    style:
-                        AppTypography.body(size: 13.5, color: AppColors.ink3)),
-              ),
-            ),
-          for (final a in banks)
-            _Row(
-              icon: CategoryIcons.forKey(a.iconKey),
-              iconBg: a.colorHex == null
-                  ? AppColors.terra
-                  : AppColors.forHex(a.colorHex!),
-              iconFg: Colors.white,
-              name: a.name,
-              on: a.watchedForSlips,
-              onToggle: () => repo.setWatched(a.id, !a.watchedForSlips),
+          for (final bank in BankCatalog.all)
+            _ToggleRow(
+              leading: BankLogo(bank: bank),
+              name: bank.nameTh,
+              on: !disabled.contains(bank.id),
+              onTap: () => toggle(bank.id),
             ),
         ],
       ),
@@ -90,36 +80,28 @@ class _AccountsSheetState extends ConsumerState<AccountsSheet> {
   }
 }
 
-class _Row extends StatelessWidget {
-  const _Row({
-    required this.icon,
-    required this.iconBg,
-    required this.iconFg,
+class _ToggleRow extends StatelessWidget {
+  const _ToggleRow({
+    required this.leading,
     required this.name,
     required this.on,
-    required this.onToggle,
+    required this.onTap,
   });
-  final IconData icon;
-  final Color iconBg;
-  final Color iconFg;
+
+  final Widget leading;
   final String name;
   final bool on;
-  final VoidCallback onToggle;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onToggle,
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 11),
         child: Row(
           children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-              child: Icon(icon, size: 20, color: iconFg),
-            ),
+            leading,
             const SizedBox(width: 14),
             Expanded(
               child: Text(name, style: AppTypography.body(size: 15)),

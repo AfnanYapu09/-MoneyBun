@@ -19,6 +19,7 @@ class AppSettings {
     this.biometricEnabled = false,
     this.savingsGoalCents = 0,
     this.lastSlipReadAt,
+    this.disabledScanIds = const {},
     this.displayName = 'คุณบัน',
     this.username = 'moneybun',
     this.phone = '',
@@ -36,6 +37,9 @@ class AppSettings {
   final bool biometricEnabled;
   final int savingsGoalCents;
   final int? lastSlipReadAt;
+
+  /// Scan-catalog ids the user turned off (their slip albums aren't scanned).
+  final Set<String> disabledScanIds;
   final String displayName;
   final String username;
   final String phone;
@@ -58,6 +62,10 @@ class AppSettings {
       lastSlipReadAt: m[SettingsKeys.lastSlipReadAt] == null
           ? null
           : i(SettingsKeys.lastSlipReadAt),
+      disabledScanIds: (m[SettingsKeys.disabledScanIds] ?? '')
+          .split(',')
+          .where((s) => s.isNotEmpty)
+          .toSet(),
       displayName: m[SettingsKeys.displayName] ?? 'คุณบัน',
       username: m[SettingsKeys.username] ?? 'moneybun',
       phone: m[SettingsKeys.phone] ?? '',
@@ -79,6 +87,7 @@ class SettingsKeys {
   static const biometricEnabled = 'biometricEnabled';
   static const savingsGoalCents = 'savingsGoalCents';
   static const lastSlipReadAt = 'lastSlipReadAt';
+  static const disabledScanIds = 'disabledScanIds';
   static const displayName = 'displayName';
   static const username = 'username';
   static const phone = 'phone';
@@ -126,6 +135,8 @@ class SettingsRepository {
       setInt(SettingsKeys.savingsGoalCents, cents);
   Future<void> setLastSlipReadAt(int ms) =>
       setInt(SettingsKeys.lastSlipReadAt, ms);
+  Future<void> setDisabledScanIds(Set<String> ids) =>
+      set(SettingsKeys.disabledScanIds, ids.join(','));
   Future<void> setDisplayName(String v) => set(SettingsKeys.displayName, v);
   Future<void> setUsername(String v) => set(SettingsKeys.username, v);
   Future<void> setPhone(String v) => set(SettingsKeys.phone, v);

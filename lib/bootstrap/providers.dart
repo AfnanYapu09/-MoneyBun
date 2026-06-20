@@ -90,25 +90,9 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     slips: ref.watch(slipRepositoryProvider),
     transactions: ref.watch(transactionRepositoryProvider),
     importedAssetIds: db.importedAssetIds,
-    lastSlipReadAt: () async =>
-        (await ref.read(settingsRepositoryProvider).read()).lastSlipReadAt,
-    // Banks switched off in the accounts sheet (watchedForSlips == false) whose
-    // code isn't also kept on by another account — their albums are skipped.
-    disabledBankCodes: () async {
-      final accounts =
-          await ref.read(accountRepositoryProvider).watchAccounts().first;
-      final withCode = accounts.where((a) => a.bankCode != null);
-      final watched = withCode
-          .where((a) => a.watchedForSlips)
-          .map((a) => a.bankCode!)
-          .toSet();
-      final disabled = withCode
-          .where((a) => !a.watchedForSlips)
-          .map((a) => a.bankCode!)
-          .toSet();
-      disabled.removeAll(watched);
-      return disabled;
-    },
+    // Banks turned off in the accounts sheet (their scan-catalog ids).
+    disabledScanIds: () async =>
+        (await ref.read(settingsRepositoryProvider).read()).disabledScanIds,
   );
 });
 
@@ -156,11 +140,12 @@ class ScanController extends Notifier<ScanState> {
     }
     try {
       final result = await importer.scanNew();
-      // Persist the scan's START time as the next incremental watermark, so a
-      // photo saved *during* the scan is still picked up next run.
+      // Record when the scan ran — for the "last read at" label only. The
+      // scanner no longer uses a watermark (it reads the past 7 days and dedups
+      // by asset id), so this can never hide a just-saved slip.
       await ref
           .read(settingsRepositoryProvider)
-          .setLastSlipReadAt(result.scannedAtMs);
+          .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
       state = ScanState(result: result, limited: perm.limited);
     } catch (e) {
       state = ScanState(error: e, limited: perm.limited);
