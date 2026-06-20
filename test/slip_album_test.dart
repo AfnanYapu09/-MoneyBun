@@ -52,4 +52,21 @@ void main() {
       expect(cutoff, yesterday); // watermark is newer than a week ago
     });
   });
+
+  group('SlipImporter.bankCodeForAlbumName', () {
+    test('attributes a bank album to its BOT code', () {
+      expect(SlipImporter.bankCodeForAlbumName('K PLUS'), '004');
+      expect(SlipImporter.bankCodeForAlbumName('MAKE'), '004');
+      expect(SlipImporter.bankCodeForAlbumName('MAKE by KBank'), '004');
+      expect(SlipImporter.bankCodeForAlbumName('Krungthai NEXT'), '006');
+      expect(SlipImporter.bankCodeForAlbumName('SCB EASY'), '014');
+      expect(SlipImporter.bankCodeForAlbumName('TrueMoney'), 'TRUEMONEY');
+    });
+
+    test('returns null for e-wallet / generic albums with no bank code', () {
+      expect(SlipImporter.bankCodeForAlbumName('เป๋าตัง'), isNull);
+      expect(SlipImporter.bankCodeForAlbumName('ShopeePay'), isNull);
+      expect(SlipImporter.bankCodeForAlbumName('Slip'), isNull);
+    });
+  });
 }

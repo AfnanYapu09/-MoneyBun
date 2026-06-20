@@ -107,7 +107,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       header: SegmentedControl<TxnType>(
         iconOverLabel: true,
         value: _type,
-        onChanged: (t) => setState(() => _type = t),
+        onChanged: (t) {
+          setState(() => _type = t);
+          _persistLive();
+        },
         segments: const [
           Segment(
               value: TxnType.expense,
@@ -126,12 +129,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               color: AppColors.terra),
         ],
       ),
-      footer: PrimaryButton(
-        label: 'บันทึก',
-        color: _accent,
-        onPressed: _loaded ? _save : null,
-        loading: !_loaded,
-      ),
+      // Edit mode saves live (every change persists); only the Add flow keeps a
+      // commit button.
+      footer: _footer(),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
         children: [
@@ -172,6 +172,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 Expanded(
                   child: TextField(
                     controller: _amount,
+                    onChanged: (_) => _persistLive(),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -214,25 +215,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             ),
             const SizedBox(height: 14),
           ],
-          // Account: a slip-backed entry shows the bank→bank / name→name flow
-          // read from the slip (read-only); manual entries keep the picker.
+          // Account: slip-backed entries only show a link to the original slip
+          // (no account/name flow); manual entries keep the account picker.
           if (_slip != null) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-              child: Text('บัญชี',
-                  style: AppTypography.heading(
-                      size: 13,
-                      weight: FontWeight.w500,
-                      color: AppColors.ink3)),
-            ),
-            accountFlowFor(
-              type: _type,
-              accounts: {for (final a in accounts) a.id: a},
-              accountId: _fromAccountId,
-              toAccountId: _toAccountId,
-              slip: _slip,
-            ),
-            const SizedBox(height: 14),
             SlipChip(onTap: () => showSlipViewer(context, _slip!)),
             const SizedBox(height: 14),
           ] else if (_type == TxnType.transfer) ...[
@@ -345,6 +330,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         _categoryId = pick.categoryId;
         _tagIds = pick.tagIds;
       });
+      _persistLive();
     }
   }
 
@@ -380,6 +366,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     );
     if (id != null) {
       setState(() => from ? _fromAccountId = id : _toAccountId = id);
+      _persistLive();
     }
   }
 
@@ -403,7 +390,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         ],
       ),
     );
-    if (note != null) setState(() => _note = note.isEmpty ? null : note);
+    if (note != null) {
+      setState(() => _note = note.isEmpty ? null : note);
+      _persistLive();
+    }
   }
 
   Future<void> _pickDate() async {
@@ -420,6 +410,39 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     );
     setState(() => _occurredAt = DateTime(date.year, date.month, date.day,
         time?.hour ?? _occurredAt.hour, time?.minute ?? _occurredAt.minute));
+    _persistLive();
+  }
+
+  /// Add mode keeps a commit button; edit mode saves live (no button).
+  Widget? _footer() {
+    if (widget.editId != null) return null;
+    return PrimaryButton(
+      label: 'บันทึก',
+      color: _accent,
+      onPressed: _loaded ? _save : null,
+      loading: !_loaded,
+    );
+  }
+
+  /// Edit mode only: persist the current form immediately on every change, so
+  /// there is no Save button. Silent (no validation snackbar, no pop) — the
+  /// home/stats lists update live via their streams.
+  Future<void> _persistLive() async {
+    if (widget.editId == null || !_loaded) return;
+    final cents = Money.parseToCents(_amount.text) ?? 0;
+    final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
+    final defaultAccount = accounts.isEmpty ? null : accounts.first.id;
+    await ref.read(transactionRepositoryProvider).save(
+          id: widget.editId,
+          type: _type,
+          amountCents: cents,
+          accountId: _fromAccountId ?? defaultAccount ?? '',
+          toAccountId: _type == TxnType.transfer ? _toAccountId : null,
+          categoryId: _type == TxnType.transfer ? null : _categoryId,
+          note: _note,
+          occurredAt: _occurredAt,
+          tagIds: _type == TxnType.transfer ? const [] : _tagIds,
+        );
   }
 
   Future<void> _save() async {
