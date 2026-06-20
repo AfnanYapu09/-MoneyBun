@@ -85,7 +85,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.paper,
                         borderRadius: BorderRadius.circular(13),
-                        border: Border.all(color: AppColors.line),
+                        border: Border.all(color: AppColors.terra, width: 1.5),
                       ),
                       child: Row(
                         children: [
