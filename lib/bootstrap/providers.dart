@@ -92,6 +92,23 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     importedAssetIds: db.importedAssetIds,
     lastSlipReadAt: () async =>
         (await ref.read(settingsRepositoryProvider).read()).lastSlipReadAt,
+    // Banks switched off in the accounts sheet (watchedForSlips == false) whose
+    // code isn't also kept on by another account — their albums are skipped.
+    disabledBankCodes: () async {
+      final accounts =
+          await ref.read(accountRepositoryProvider).watchAccounts().first;
+      final withCode = accounts.where((a) => a.bankCode != null);
+      final watched = withCode
+          .where((a) => a.watchedForSlips)
+          .map((a) => a.bankCode!)
+          .toSet();
+      final disabled = withCode
+          .where((a) => !a.watchedForSlips)
+          .map((a) => a.bankCode!)
+          .toSet();
+      disabled.removeAll(watched);
+      return disabled;
+    },
   );
 });
 

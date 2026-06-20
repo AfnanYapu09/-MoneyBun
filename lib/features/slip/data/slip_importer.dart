@@ -54,17 +54,22 @@ class SlipImporter {
     required TransactionRepository transactions,
     required Future<Set<String>> Function() importedAssetIds,
     required Future<int?> Function() lastSlipReadAt,
+    required Future<Set<String>> Function() disabledBankCodes,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
         _importedAssetIds = importedAssetIds,
-        _lastSlipReadAt = lastSlipReadAt;
+        _lastSlipReadAt = lastSlipReadAt,
+        _disabledBankCodes = disabledBankCodes;
 
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
   final TransactionRepository _txns;
   final Future<Set<String>> Function() _importedAssetIds;
   final Future<int?> Function() _lastSlipReadAt;
+
+  /// BOT bank codes the user turned off (their albums are skipped this scan).
+  final Future<Set<String>> Function() _disabledBankCodes;
 
   /// Cap on how many recent "all photos" the fallback pass inspects.
   static const _scanCap = 150;
@@ -126,26 +131,58 @@ class SlipImporter {
     'prompt', 'slip', 'สลิป', 'ธนาคาร', 'โอนเงิน',
   ];
 
+  /// Bank-album fragments grouped by BOT bank code, so a matched album can be
+  /// attributed to a bank and skipped when the user turns that bank off. Keep
+  /// these fragments in sync with the bank entries in [_slipAlbumKeywords].
+  static const _bankAlbumKeywords = <String, List<String>>{
+    '004': ['k plus', 'kplus', 'kasikorn', 'กสิกร', 'kbank', 'make by kbank'],
+    '006': ['krungthai', 'กรุงไทย'],
+    '014': ['scb', 'ไทยพาณิชย์'],
+    '002': ['bualuang', 'bangkok bank', 'กรุงเทพ'],
+    '011': ['ttb', 'tmb'],
+    '025': ['kma', 'krungsri', 'กรุงศรี', 'uchoose'],
+    '030': ['gsb', 'mymo', 'ออมสิน'],
+    '034': ['baac', 'ธกส'],
+    '024': ['uob', 'tmrw'],
+    '022': ['cimb'],
+    '069': ['kkp', 'kiatnakin'],
+    '067': ['tisco'],
+    '073': ['lh bank', 'lhbank'],
+    'TRUEMONEY': ['truemoney', 'true money', 'ทรูมันนี่', 'ทรูมัน'],
+  };
+
   bool _isSlipAlbum(String name) => isSlipAlbumName(name);
 
-  /// Whether [name] is a bank/e-wallet slip album. Public + static so it can be
-  /// unit-tested.
-  ///
   /// MAKE by KBank is special-cased: its gallery folder's real MediaStore
   /// bucket name is often just "MAKE" (the gallery only *labels* it
   /// "MAKE by KBank"), and a bare "make" keyword is unsafe (it would match
   /// "Makeup"). So MAKE is matched by exact/prefix rules instead.
+  static bool _isMakeKbank(String n) =>
+      n == 'make' ||
+      n.startsWith('make ') ||
+      n.startsWith('make_') ||
+      n.startsWith('make-') ||
+      n.startsWith('makeby') ||
+      n.contains('make by');
+
+  /// Whether [name] is a bank/e-wallet slip album. Public + static so it can be
+  /// unit-tested.
   static bool isSlipAlbumName(String name) {
     final n = name.toLowerCase().trim();
-    if (n == 'make' ||
-        n.startsWith('make ') ||
-        n.startsWith('make_') ||
-        n.startsWith('make-') ||
-        n.startsWith('makeby') ||
-        n.contains('make by')) {
-      return true;
-    }
+    if (_isMakeKbank(n)) return true;
     return _slipAlbumKeywords.any(n.contains);
+  }
+
+  /// The BOT bank code an album belongs to (e.g. a Kasikorn album → '004', MAKE
+  /// → '004'), or null for a generic / e-wallet slip folder with no bank code.
+  /// Lets a scan skip a bank's album when that bank is turned off.
+  static String? bankCodeForAlbumName(String name) {
+    final n = name.toLowerCase().trim();
+    if (_isMakeKbank(n)) return '004';
+    for (final entry in _bankAlbumKeywords.entries) {
+      if (entry.value.any(n.contains)) return entry.key;
+    }
+    return null;
   }
 
   /// Request photo access. Returns whether it was granted and whether it's the
@@ -188,6 +225,8 @@ class SlipImporter {
       final lastMs = await _lastSlipReadAt();
       final cutoff = computeScanCutoff(scanStart, lastMs);
       bool inWindow(AssetEntity a) => a.createDateTime.isAfter(cutoff);
+      // Banks the user turned off in the accounts sheet — skip their albums.
+      final disabledBanks = await _disabledBankCodes();
 
       final acc = _ScanAcc();
 
@@ -195,6 +234,8 @@ class SlipImporter {
       //    slips). Already-imported ones are skipped cheaply via [already].
       for (final album in paths) {
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
+        final bankCode = bankCodeForAlbumName(album.name);
+        if (bankCode != null && disabledBanks.contains(bankCode)) continue;
         acc.matchedAlbums++;
         final count = await album.assetCountAsync;
         final end = count < _albumCap ? count : _albumCap;
