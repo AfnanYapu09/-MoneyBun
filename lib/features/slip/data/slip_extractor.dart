@@ -1,4 +1,3 @@
-import '../../../core/constants/bank_codes.dart';
 import '../../../core/utils/app_date.dart';
 
 /// What heuristic extraction could recover from a slip's OCR text.
@@ -7,21 +6,18 @@ class SlipExtraction {
     this.amountCents,
     this.occurredAt,
     this.transRef,
-    this.bankCode,
     this.confidence = 0,
   });
 
   final int? amountCents;
   final DateTime? occurredAt;
   final String? transRef;
-  final String? bankCode;
   final double confidence;
 }
 
-/// Heuristic extraction of amount / date-time / reference / bank from the Latin
-/// OCR text of a Thai bank slip. This pass reads Arabic digits and Latin bank
-/// tokens only — Thai names and Thai bank labels are recovered separately by
-/// [SlipPartyExtractor] from the on-device Thai (Tesseract) OCR pass.
+/// Heuristic extraction of amount / date-time / reference from the Latin OCR
+/// text of a Thai bank slip. Reads Arabic digits only — names and banks are not
+/// read at all (the amount is the single thing we care about).
 class SlipExtractor {
   const SlipExtractor._();
 
@@ -36,19 +32,16 @@ class SlipExtractor {
     final amountCents = _largestAmount(ocrText);
     final occurredAt = _firstDateTime(ocrText);
     final transRef = _firstRef(ocrText);
-    final bank = BankCodes.detectFromText(ocrText);
 
     var confidence = 0.2;
     if (amountCents != null) confidence += 0.4;
     if (occurredAt != null) confidence += 0.1;
     if (transRef != null) confidence += 0.1;
-    if (bank != null) confidence += 0.1;
 
     return SlipExtraction(
       amountCents: amountCents,
       occurredAt: occurredAt,
       transRef: transRef,
-      bankCode: bank?.code,
       confidence: confidence.clamp(0, 1).toDouble(),
     );
   }

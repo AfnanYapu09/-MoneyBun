@@ -25,14 +25,9 @@ dependencies:
   # Navigation
   go_router: ^14.0.0
 
-  # Slip reading (fully on-device)
+  # Slip reading (fully on-device): QR + ML Kit Latin OCR read the amount only.
   mobile_scanner: ^7.0.0
   google_mlkit_text_recognition: ^0.15.0 # Latin OCR: amounts, dates, refs
-  # Thai OCR: sender/receiver names & bank labels. Vendored (see plugins/) with a
-  # modernised android/build.gradle so it builds under AGP 9 / Gradle 9.
-  flutter_tesseract_ocr:
-    path: plugins/flutter_tesseract_ocr
-  image: ^4.0.0 # pre-process slip images before Thai OCR (grayscale/contrast)
   photo_manager: ^3.0.0 # Android: read slips straight from a gallery album
 
   # Firebase (sync + auth). Real config supplied by `flutterfire configure`.
@@ -67,6 +62,3 @@ flutter:
   # Drop final pixel-art PNGs into assets/images/bun/ and declare them here later.
   assets:
     - google_fonts/
-    # Tesseract Thai model + config (bundled for fully offline slip OCR).
-    - assets/
-    - assets/tessdata/

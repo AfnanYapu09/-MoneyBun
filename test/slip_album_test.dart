@@ -24,4 +24,32 @@ void main() {
       expect(SlipImporter.isSlipAlbumName('Screenshots'), isFalse);
     });
   });
+
+  group('SlipImporter.computeScanCutoff', () {
+    final now = DateTime(2026, 6, 20, 12);
+    final weekAgo = now.subtract(const Duration(days: 7));
+
+    test('first scan (no watermark) reads only the past week', () {
+      expect(SlipImporter.computeScanCutoff(now, null), weekAgo);
+      expect(SlipImporter.computeScanCutoff(now, 0), weekAgo);
+    });
+
+    test('after a long absence still reads only the past week', () {
+      final monthAgo = now.subtract(const Duration(days: 30));
+      final cutoff = SlipImporter.computeScanCutoff(
+        now,
+        monthAgo.millisecondsSinceEpoch,
+      );
+      expect(cutoff, weekAgo); // clamped — never older than a week
+    });
+
+    test('frequent use reads only what is newer than the last read', () {
+      final yesterday = now.subtract(const Duration(days: 1));
+      final cutoff = SlipImporter.computeScanCutoff(
+        now,
+        yesterday.millisecondsSinceEpoch,
+      );
+      expect(cutoff, yesterday); // watermark is newer than a week ago
+    });
+  });
 }

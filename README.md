@@ -9,9 +9,9 @@ phone gallery album (QR + fully on-device OCR — no cloud), local-first with op
 
 ## ฟีเจอร์ (Features)
 
-- 🧾 **สแกนอัลบั้มอัตโนมัติ** — เลือกอัลบั้มที่เก็บสลิป น้องบันอ่านทุกรูปที่ยังไม่เคยอ่าน (กันซ้ำ),
-  สแกน QR (EMVCo TLV) + OCR ในเครื่องล้วน: ML Kit (Latin) ดึงจำนวนเงิน/วันที่/อ้างอิง และ Tesseract (ไทย)
-  ดึง **ชื่อผู้โอน→ผู้รับ + ธนาคารต้นทาง→ปลายทาง** ทั้งหมดออฟไลน์ ไม่ต้องต่อเน็ต และเก็บรูปสลิปไว้ในแอป
+- 🧾 **สแกนอัลบั้มอัตโนมัติ** — น้องบันอ่านเฉพาะสลิป **ใหม่ภายใน 7 วันล่าสุด** ที่ยังไม่เคยอ่าน (กันซ้ำ จึงเร็ว),
+  สแกน QR (EMVCo TLV) + OCR ในเครื่องล้วน: ML Kit (Latin) ดึง **จำนวนเงิน** (พร้อมวันที่/อ้างอิง)
+  ทั้งหมดออฟไลน์ ไม่ต้องต่อเน็ต และเก็บรูปสลิปไว้ในแอป
 - 🏠 **หน้าหลัก** — รายการสลิปจัดกลุ่มตามวัน เลื่อนดูทั้งเดือน + ยอดรวมเดือน · แตะ chip เพื่อ **เลือกหมวดหมู่ต่อสลิป**
 - 🗂️ **หมวดหมู่ลิสต์เดียว** — อาหาร/ช้อปปิ้ง/การศึกษา/บ้าน/เดินทาง/สุขภาพ/บันเทิง + **ให้ยืม** + **ย้ายเงิน** + อื่นๆ
 - 📊 **สถิติ** — สรุปเดือน + สัดส่วนตามหมวดหมู่
@@ -21,7 +21,7 @@ phone gallery album (QR + fully on-device OCR — no cloud), local-first with op
 ## สถาปัตยกรรม (Tech)
 
 Flutter • Riverpod • Drift (SQLite, source of truth) • go_router • Firebase (Auth/Firestore) •
-ML Kit Text Recognition (Latin) • Tesseract OCR (Thai, offline) • mobile_scanner
+ML Kit Text Recognition (Latin) • mobile_scanner
 
 ```
 lib/
@@ -30,7 +30,6 @@ lib/
   domain/      entities, enums
   features/    home, add_transaction, stats, settings, slip
   bootstrap/   providers (Riverpod), firebase_options (placeholder)
-assets/tessdata/  bundled Tesseract Thai model (tha.traineddata) for offline OCR
 ```
 
 ## เริ่มพัฒนา (Run locally)
@@ -48,7 +47,7 @@ flutter test                     # unit tests (TLV/CRC, OCR extract, repositorie
 
 ## ตั้งค่า Firebase (จำเป็นสำหรับ Sync เท่านั้น)
 
-แอป **ทำงานออฟไลน์ได้เต็มที่โดยไม่ต้องมี Firebase** — การอ่านสลิป (รวมชื่อ/ธนาคาร) ทำบนเครื่องล้วน
+แอป **ทำงานออฟไลน์ได้เต็มที่โดยไม่ต้องมี Firebase** — การอ่านสลิป (จำนวนเงิน) ทำบนเครื่องล้วน
 ส่วนนี้ใช้เปิดการซิงค์/ล็อกอินเท่านั้น:
 
 1. สร้างโปรเจกต์ใน [Firebase Console](https://console.firebase.google.com) เปิด **Authentication (Google)**
@@ -69,8 +68,8 @@ GitHub Actions (`.github/workflows/ci.yml`): `pub get` → `gen-l10n` → `build
 
 ## ข้อจำกัดที่ทราบ
 
-- ML Kit OCR ไม่อ่านอักษรไทย จึงใช้ **Tesseract (ไทย, ออฟไลน์)** อ่านชื่อ/ธนาคารแทน — ความแม่นยำชื่อไทย
-  ขึ้นกับคุณภาพรูป/ฟอนต์สลิป อาจคลาดเคลื่อนได้บนสลิปที่เบลอหรือฟอนต์ตกแต่ง (จำนวนเงิน/วันที่ยังใช้ ML Kit ที่แม่นกว่า)
+- การอ่านสลิปดึงเฉพาะ **จำนวนเงิน** (วันที่/อ้างอิงประกอบ) ด้วย QR + ML Kit — **ไม่อ่านชื่อ/ธนาคาร** เพื่อความเร็ว+แม่นยำ
+  ผู้ใช้เลือกหมวดหมู่/แก้ประเภทรายการเองได้ · การสแกนจำกัดเฉพาะสลิปใหม่ภายใน 7 วันล่าสุด (กันการไล่อ่านทั้งเดือน)
 - Sync conflict ใช้ last-write-wins (เหมาะกับผู้ใช้คนเดียวหลายเครื่อง)
 - งบประมาณ/เปรียบเทียบเดือน: โครงข้อมูลรองรับแล้ว (ตาราง budgets) แต่ยังไม่ต่อ UI
 
