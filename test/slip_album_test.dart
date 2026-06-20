@@ -25,48 +25,30 @@ void main() {
     });
   });
 
-  group('SlipImporter.computeScanCutoff', () {
-    final now = DateTime(2026, 6, 20, 12);
-    final weekAgo = now.subtract(const Duration(days: 7));
-
-    test('first scan (no watermark) reads only the past week', () {
-      expect(SlipImporter.computeScanCutoff(now, null), weekAgo);
-      expect(SlipImporter.computeScanCutoff(now, 0), weekAgo);
-    });
-
-    test('after a long absence still reads only the past week', () {
-      final monthAgo = now.subtract(const Duration(days: 30));
-      final cutoff = SlipImporter.computeScanCutoff(
-        now,
-        monthAgo.millisecondsSinceEpoch,
+  group('SlipImporter.scanCutoff', () {
+    test('always reads only the past 7 days (no watermark)', () {
+      final now = DateTime(2026, 6, 20, 12);
+      expect(
+        SlipImporter.scanCutoff(now),
+        now.subtract(const Duration(days: 7)),
       );
-      expect(cutoff, weekAgo); // clamped — never older than a week
-    });
-
-    test('frequent use reads only what is newer than the last read', () {
-      final yesterday = now.subtract(const Duration(days: 1));
-      final cutoff = SlipImporter.computeScanCutoff(
-        now,
-        yesterday.millisecondsSinceEpoch,
-      );
-      expect(cutoff, yesterday); // watermark is newer than a week ago
     });
   });
 
-  group('SlipImporter.bankCodeForAlbumName', () {
-    test('attributes a bank album to its BOT code', () {
-      expect(SlipImporter.bankCodeForAlbumName('K PLUS'), '004');
-      expect(SlipImporter.bankCodeForAlbumName('MAKE'), '004');
-      expect(SlipImporter.bankCodeForAlbumName('MAKE by KBank'), '004');
-      expect(SlipImporter.bankCodeForAlbumName('Krungthai NEXT'), '006');
-      expect(SlipImporter.bankCodeForAlbumName('SCB EASY'), '014');
-      expect(SlipImporter.bankCodeForAlbumName('TrueMoney'), 'TRUEMONEY');
+  group('SlipImporter.albumScanId', () {
+    test('attributes a bank album to its catalog id', () {
+      expect(SlipImporter.albumScanId('K PLUS'), 'kbank');
+      expect(SlipImporter.albumScanId('MAKE'), 'make');
+      expect(SlipImporter.albumScanId('MAKE by KBank'), 'make');
+      expect(SlipImporter.albumScanId('Krungthai NEXT'), 'ktb');
+      expect(SlipImporter.albumScanId('SCB EASY'), 'scb');
+      expect(SlipImporter.albumScanId('ธอส'), 'ghb');
+      expect(SlipImporter.albumScanId('เป๋าตัง'), 'paotang');
     });
 
-    test('returns null for e-wallet / generic albums with no bank code', () {
-      expect(SlipImporter.bankCodeForAlbumName('เป๋าตัง'), isNull);
-      expect(SlipImporter.bankCodeForAlbumName('ShopeePay'), isNull);
-      expect(SlipImporter.bankCodeForAlbumName('Slip'), isNull);
+    test('returns null for generic albums not tied to a catalog bank', () {
+      expect(SlipImporter.albumScanId('Slip'), isNull);
+      expect(SlipImporter.albumScanId('Screenshots'), isNull);
     });
   });
 }
