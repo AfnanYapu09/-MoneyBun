@@ -7,7 +7,7 @@ import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/bun_avatar.dart';
+import '../../../core/widgets/profile_avatar.dart';
 import '../../../core/widgets/setting_row.dart';
 import '../../../data/repositories/settings_repository.dart';
 
@@ -37,6 +37,7 @@ class SettingsScreen extends ConsumerWidget {
             _ProfileCard(
               name: user?.displayName ?? settings.displayName,
               username: settings.username,
+              avatarPath: settings.avatarPath,
               onTap: () => context.push('/settings/profile'),
             ),
             const SizedBox(height: 18),
@@ -196,10 +197,12 @@ class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
     required this.name,
     required this.username,
+    required this.avatarPath,
     required this.onTap,
   });
   final String name;
   final String username;
+  final String? avatarPath;
   final VoidCallback onTap;
 
   @override
@@ -215,15 +218,12 @@ class _ProfileCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.cream,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: const BunAvatar(size: 40),
+            ProfileAvatar(
+              avatarPath: avatarPath,
+              size: 56,
+              radius: 16,
+              bunSize: 40,
+              bunBackground: AppColors.cream,
             ),
             const SizedBox(width: 14),
             Expanded(
