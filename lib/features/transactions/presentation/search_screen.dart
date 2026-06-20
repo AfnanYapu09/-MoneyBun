@@ -96,11 +96,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             child: TextField(
                               controller: _controller,
                               autofocus: true,
+                              textAlignVertical: TextAlignVertical.center,
                               onChanged: (v) => setState(() => _query = v),
                               onSubmitted: _runQuery,
                               style: AppTypography.body(size: 14.5),
                               decoration: const InputDecoration(
-                                isCollapsed: true,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
                                 filled: false,
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
