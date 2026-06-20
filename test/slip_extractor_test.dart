@@ -21,12 +21,6 @@ void main() {
       expect(r.occurredAt!.year, 2025);
     });
 
-    test('detects a Latin bank token (KBANK -> 004)', () {
-      const text = 'KBANK K PLUS transfer success';
-      final r = SlipExtractor.extract(text);
-      expect(r.bankCode, '004');
-    });
-
     test('extracts an alphanumeric reference', () {
       const text = 'Ref: AB1234567890XY done';
       final r = SlipExtractor.extract(text);

@@ -72,6 +72,25 @@ class SlipImporter {
   /// Cap on images read per bank album (protects a long slip history).
   static const _albumCap = 300;
 
+  /// Only ever look back this many days — even on a first scan or after a long
+  /// gap — so a scan never trawls a whole month of old photos (slow), only the
+  /// past week.
+  static const _scanWindowDays = 7;
+
+  /// The earliest photo-creation time a scan should read, given [now] and the
+  /// last-read watermark [lastReadMs] (ms since epoch; null/0 when never read).
+  ///
+  /// Always clamps to the last [_scanWindowDays] days: a first scan, or one
+  /// after a long absence, reads only the past week (not the whole history);
+  /// frequent scans read only what's newer than the last read. Pure + static so
+  /// it can be unit-tested.
+  static DateTime computeScanCutoff(DateTime now, int? lastReadMs) {
+    final weekAgo = now.subtract(const Duration(days: _scanWindowDays));
+    if (lastReadMs == null || lastReadMs == 0) return weekAgo;
+    final watermark = DateTime.fromMillisecondsSinceEpoch(lastReadMs);
+    return watermark.isBefore(weekAgo) ? weekAgo : watermark;
+  }
+
   /// Album-name fragments (lowercase) that Thai banking / e-wallet apps use for
   /// the folder they save slips into. Matched albums are imported in full.
   /// Avoid over-broad single words (e.g. bare "make" → matches "makeup") — use
@@ -162,18 +181,18 @@ class SlipImporter {
         return ScanResult(scannedAtMs: scanStart.millisecondsSinceEpoch);
       }
       final already = await _importedAssetIds();
-      // Incremental watermark: only re-read photos newer than the last scan,
-      // so a re-scan with no new photos does ~0 work instead of re-running the
-      // pipeline over the same recent (non-slip) photos every time.
+      // Incremental + bounded window: only read photos newer than the last scan
+      // and never older than the past week. So a re-scan with no new photos does
+      // ~0 work, and a first scan / scan after a long gap reads just the last
+      // 7 days instead of trawling a whole month.
       final lastMs = await _lastSlipReadAt();
-      final cutoff = (lastMs == null || lastMs == 0)
-          ? null
-          : DateTime.fromMillisecondsSinceEpoch(lastMs);
+      final cutoff = computeScanCutoff(scanStart, lastMs);
+      bool inWindow(AssetEntity a) => a.createDateTime.isAfter(cutoff);
 
       final acc = _ScanAcc();
 
-      // 1) Bank/e-wallet albums: import every image (they are all slips).
-      //    Already-imported ones are skipped cheaply via [already].
+      // 1) Bank/e-wallet albums: import slips from the window (they are all
+      //    slips). Already-imported ones are skipped cheaply via [already].
       for (final album in paths) {
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
         acc.matchedAlbums++;
@@ -181,12 +200,13 @@ class SlipImporter {
         final end = count < _albumCap ? count : _albumCap;
         final assets = await album.getAssetListRange(start: 0, end: end);
         acc.albumCount += assets.length;
-        await _ingest(assets, already, acc, requireSlipLook: false);
+        final fresh = assets.where(inWindow).toList();
+        await _ingest(fresh, already, acc, requireSlipLook: false);
       }
 
       // 2) Fallback: recent photos of the whole gallery that look like slips
       //    (screenshots / downloaded slips not in a bank album). Only those
-      //    created since the last scan are inspected.
+      //    created within the window are inspected.
       final all = paths.firstWhere(
         (p) => p.isAll,
         orElse: () => paths.first,
@@ -195,9 +215,7 @@ class SlipImporter {
       final end = total < _scanCap ? total : _scanCap;
       final recent = await all.getAssetListRange(start: 0, end: end);
       acc.albumCount += recent.length;
-      final fresh = cutoff == null
-          ? recent
-          : recent.where((a) => a.createDateTime.isAfter(cutoff)).toList();
+      final fresh = recent.where(inWindow).toList();
       await _ingest(fresh, already, acc, requireSlipLook: true);
 
       return ScanResult(
@@ -250,25 +268,15 @@ class SlipImporter {
   /// day of the slip.
   Future<void> _persist(ParsedSlip parsed, DateTime fallbackDate) async {
     final slipId = await _slips.save(parsed);
-    // A slip whose sender == receiver is money moved between the user's own
-    // accounts — store it as a transfer so it never counts as spending.
-    final isSelfTransfer = _namesMatch(parsed.senderName, parsed.receiverName);
+    // A slip now yields only an amount, so every import is recorded as an
+    // expense; the user can change the type per-transaction when needed.
     await _txns.save(
-      type: isSelfTransfer ? TxnType.transfer : TxnType.expense,
+      type: TxnType.expense,
       amountCents: parsed.amountCents ?? 0,
       occurredAt: parsed.occurredAt ?? fallbackDate,
       slipId: slipId,
     );
   }
-
-  /// True when both names are present and equal once trimmed/case-folded.
-  static bool _namesMatch(String? a, String? b) {
-    final na = _normalizeName(a);
-    return na.isNotEmpty && na == _normalizeName(b);
-  }
-
-  static String _normalizeName(String? s) =>
-      (s ?? '').trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 }
 
 /// Mutable running totals for a single scan.
