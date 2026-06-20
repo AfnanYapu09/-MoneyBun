@@ -227,6 +227,17 @@ class AppDatabase extends _$AppDatabase {
   Future<void> upsertBudget(BudgetsCompanion row) =>
       into(budgets).insertOnConflictUpdate(row);
 
+  /// Soft-delete: mark deleted + pending so the delete syncs, then GC later.
+  Future<void> softDeleteBudget(String id, int now) {
+    return (update(budgets)..where((b) => b.id.equals(id))).write(
+      BudgetsCompanion(
+        deleted: const Value(true),
+        syncStatus: const Value(SyncStatus.pendingDelete),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
   // ---- Sync helpers ------------------------------------------------------
 
   Future<List<TransactionRow>> pendingTransactions() => (select(transactions)

@@ -20,9 +20,13 @@ import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 import '../../add_transaction/presentation/category_picker_sheet.dart';
 
-/// Bottom sheet to set a per-category budget.
+/// Bottom sheet to set a per-category budget — creates a new one, or edits the
+/// existing [budget] when it is passed in.
 class BudgetSheet extends ConsumerStatefulWidget {
-  const BudgetSheet({super.key});
+  const BudgetSheet({super.key, this.budget});
+
+  /// When non-null, the sheet edits this budget instead of creating a new one.
+  final BudgetRow? budget;
 
   @override
   ConsumerState<BudgetSheet> createState() => _BudgetSheetState();
@@ -33,6 +37,17 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   final _amount = TextEditingController();
   BudgetPeriod _period = BudgetPeriod.monthly;
   bool _alert80 = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final b = widget.budget;
+    if (b != null) {
+      _categoryId = b.categoryId;
+      _amount.text = Money.toEditString(b.amountCents);
+      _period = b.period;
+    }
+  }
 
   @override
   void dispose() {
@@ -50,7 +65,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     final cat = _categoryId == null ? null : categories[_categoryId];
 
     return SheetScaffold(
-      title: 'ตั้งงบประมาณ',
+      title: widget.budget == null ? 'ตั้งงบประมาณ' : 'แก้ไขงบประมาณ',
       footer: PrimaryButton(label: 'บันทึกงบ', onPressed: _save),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -217,6 +232,33 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                 ],
               ),
             ),
+            if (widget.budget != null) ...[
+              const SizedBox(height: 18),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _delete,
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerWash,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(AppIcons.trash2,
+                          size: 19, color: AppColors.danger),
+                      const SizedBox(width: 8),
+                      Text('ลบงบประมาณนี้',
+                          style: AppTypography.heading(
+                              size: 16,
+                              weight: FontWeight.w500,
+                              color: AppColors.danger)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -245,15 +287,26 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
       return;
     }
     final now = DateTime.now();
+    final b = widget.budget;
+    final start = b?.startDate ?? AppDate.toMillis(AppDate.startOfMonth(now));
     await ref.read(databaseProvider).upsertBudget(BudgetsCompanion.insert(
-          id: const Uuid().v4(),
+          id: b?.id ?? const Uuid().v4(),
           categoryId: Value(_categoryId),
           period: _period,
           amountCents: cents,
-          startDate: AppDate.toMillis(AppDate.startOfMonth(now)),
-          createdAt: now.millisecondsSinceEpoch,
+          startDate: start,
+          createdAt: b?.createdAt ?? now.millisecondsSinceEpoch,
           updatedAt: now.millisecondsSinceEpoch,
         ));
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
+  Future<void> _delete() async {
+    final id = widget.budget?.id;
+    if (id == null) return;
+    await ref
+        .read(databaseProvider)
+        .softDeleteBudget(id, DateTime.now().millisecondsSinceEpoch);
     if (mounted) Navigator.of(context).pop(true);
   }
 }
