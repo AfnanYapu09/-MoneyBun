@@ -363,8 +363,8 @@ class _SpendingCard extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Positioned(
-            right: -22,
-            top: -14,
+            right: -30,
+            top: -8,
             child: Opacity(
               opacity: 0.9,
               child: const BunAvatar(size: 76, variant: BunVariant.reverse),

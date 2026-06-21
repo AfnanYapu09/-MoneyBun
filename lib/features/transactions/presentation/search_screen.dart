@@ -85,7 +85,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.paper,
                         borderRadius: BorderRadius.circular(13),
-                        border: Border.all(color: AppColors.line),
+                        border: Border.all(color: AppColors.terra, width: 1.5),
                       ),
                       child: Row(
                         children: [
@@ -96,13 +96,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             child: TextField(
                               controller: _controller,
                               autofocus: true,
+                              textAlignVertical: TextAlignVertical.center,
                               onChanged: (v) => setState(() => _query = v),
                               onSubmitted: _runQuery,
                               style: AppTypography.body(size: 14.5),
                               decoration: const InputDecoration(
-                                isCollapsed: true,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
                                 filled: false,
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
                                 hintText: 'ค้นหารายการ…',
                               ),
                             ),

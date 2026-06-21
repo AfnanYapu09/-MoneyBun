@@ -23,6 +23,7 @@ class AppSettings {
     this.displayName = 'คุณบัน',
     this.username = 'moneybun',
     this.phone = '',
+    this.avatarPath,
   });
 
   final bool onboardingSeen;
@@ -43,6 +44,9 @@ class AppSettings {
   final String displayName;
   final String username;
   final String phone;
+
+  /// Absolute path to the user's chosen profile photo (null = use the mascot).
+  final String? avatarPath;
 
   factory AppSettings.fromMap(Map<String, String> m) {
     bool b(String k, [bool d = false]) => m[k] == null ? d : m[k] == 'true';
@@ -69,6 +73,7 @@ class AppSettings {
       displayName: m[SettingsKeys.displayName] ?? 'คุณบัน',
       username: m[SettingsKeys.username] ?? 'moneybun',
       phone: m[SettingsKeys.phone] ?? '',
+      avatarPath: m[SettingsKeys.avatarPath],
     );
   }
 }
@@ -91,6 +96,7 @@ class SettingsKeys {
   static const displayName = 'displayName';
   static const username = 'username';
   static const phone = 'phone';
+  static const avatarPath = 'avatarPath';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -138,6 +144,7 @@ class SettingsRepository {
   Future<void> setDisabledScanIds(Set<String> ids) =>
       set(SettingsKeys.disabledScanIds, ids.join(','));
   Future<void> setDisplayName(String v) => set(SettingsKeys.displayName, v);
+  Future<void> setAvatarPath(String path) => set(SettingsKeys.avatarPath, path);
   Future<void> setUsername(String v) => set(SettingsKeys.username, v);
   Future<void> setPhone(String v) => set(SettingsKeys.phone, v);
 

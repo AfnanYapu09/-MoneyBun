@@ -1,13 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/profile_avatar.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -47,34 +52,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
           Center(
-            child: Stack(
-              children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    color: AppColors.terra,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  alignment: Alignment.center,
-                  child: const BunAvatar(size: 70, variant: BunVariant.reverse),
-                ),
-                Positioned(
-                  right: -4,
-                  bottom: -4,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.paper,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.line),
+            child: GestureDetector(
+              onTap: _pickAvatar,
+              child: Stack(
+                children: [
+                  ProfileAvatar(size: 96, avatarPath: settings?.avatarPath),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: AppColors.terra,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(AppIcons.camera,
+                          size: 15, color: AppColors.reverse),
                     ),
-                    child: const Icon(AppIcons.camera,
-                        size: 16, color: AppColors.terra700),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -109,6 +107,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ..clearSnackBars()
       ..showSnackBar(const SnackBar(content: Text('บันทึกโปรไฟล์แล้ว')));
     context.pop();
+  }
+
+  /// Pick a photo from the gallery, copy it into the app's documents dir, and
+  /// store its path — so the avatar is actually changed and persists.
+  Future<void> _pickAvatar() async {
+    final old = ref.read(appSettingsProvider).value?.avatarPath;
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+    final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}'
+        '${p.extension(picked.path)}';
+    final dir = await getApplicationDocumentsDirectory();
+    final dest = p.join(dir.path, name);
+    await File(picked.path).copy(dest);
+    await ref.read(settingsRepositoryProvider).setAvatarPath(dest);
+    // Best-effort cleanup of the previous photo.
+    if (old != null && old.isNotEmpty && old != dest) {
+      try {
+        File(old).deleteSync();
+      } catch (_) {}
+    }
   }
 }
 
