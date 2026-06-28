@@ -9,7 +9,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/pill.dart';
+import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
 import 'widgets/txn_day_group.dart';
@@ -21,8 +21,8 @@ class AllTransactionsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider).languageCode;
-    final month = ref.watch(selectedMonthProvider);
-    final txns = ref.watch(monthTransactionsProvider).value ?? const [];
+    final period = ref.watch(selectedPeriodProvider);
+    final txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -48,17 +48,18 @@ class AllTransactionsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 28),
         children: [
-          MonthChip(
-            label: AppDate.formatMonth(month, locale: locale),
-            onPrev: () => ref.read(selectedMonthProvider.notifier).previous(),
-            onNext: () => ref.read(selectedMonthProvider.notifier).next(),
+          PeriodChip(
+            label: period.label(locale),
+            onTapLabel: () => showPeriodPickerSheet(context),
+            onPrev: () => ref.read(selectedPeriodProvider.notifier).previous(),
+            onNext: () => ref.read(selectedPeriodProvider.notifier).next(),
           ),
           const SizedBox(height: 6),
           if (days.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 60),
               child: Center(
-                child: Text('ยังไม่มีรายการเดือนนี้',
+                child: Text('ยังไม่มีรายการ${period.periodNoun(locale)}',
                     style: AppTypography.body(size: 14, color: AppColors.ink3)),
               ),
             ),

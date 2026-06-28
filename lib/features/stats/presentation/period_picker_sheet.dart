@@ -1,0 +1,282 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../bootstrap/providers.dart';
+import '../../../core/theme/colors.dart';
+import '../../../core/theme/typography.dart';
+import '../../../core/utils/app_date.dart';
+import '../../../core/utils/date_period.dart';
+import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/segmented_control.dart';
+import '../../../core/widgets/sheet_scaffold.dart';
+
+/// Bottom-sheet period picker. Top toggle switches รายเดือน / รายสัปดาห์;
+/// monthly shows a 12-month grid with a year stepper, weekly shows the weeks of
+/// the navigated month. Picking a value updates [selectedPeriodProvider] and
+/// closes the sheet.
+class PeriodPickerSheet extends ConsumerStatefulWidget {
+  const PeriodPickerSheet({super.key});
+
+  @override
+  ConsumerState<PeriodPickerSheet> createState() => _PeriodPickerSheetState();
+}
+
+class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
+  late PeriodMode _mode;
+  late int _navYear; // month grid: year being browsed
+  late DateTime _navMonth; // week list: month being browsed (start-of-month)
+
+  @override
+  void initState() {
+    super.initState();
+    final period = ref.read(selectedPeriodProvider);
+    _mode = period.mode;
+    _navYear = period.anchor.year;
+    _navMonth = period.monthAnchor;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider).languageCode;
+    return SheetScaffold(
+      title: 'เลือกช่วงเวลา',
+      maxHeightFactor: 0.72,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedControl<PeriodMode>(
+              segments: const [
+                Segment(value: PeriodMode.month, label: 'รายเดือน'),
+                Segment(value: PeriodMode.week, label: 'รายสัปดาห์'),
+              ],
+              value: _mode,
+              onChanged: (m) => setState(() => _mode = m),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: _mode == PeriodMode.month
+                  ? _MonthGrid(
+                      year: _navYear,
+                      locale: locale,
+                      onStepYear: (d) => setState(() => _navYear += d),
+                      onPick: (month) {
+                        ref
+                            .read(selectedPeriodProvider.notifier)
+                            .setMonth(month);
+                        Navigator.of(context).maybePop();
+                      },
+                    )
+                  : _WeekList(
+                      navMonth: _navMonth,
+                      locale: locale,
+                      onStepMonth: (d) => setState(
+                          () => _navMonth = AppDate.addMonths(_navMonth, d)),
+                      onPick: (weekStart) {
+                        ref
+                            .read(selectedPeriodProvider.notifier)
+                            .setWeek(weekStart);
+                        Navigator.of(context).maybePop();
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ‹ year › stepper above a 3×4 grid of month buttons.
+class _MonthGrid extends ConsumerWidget {
+  const _MonthGrid({
+    required this.year,
+    required this.locale,
+    required this.onStepYear,
+    required this.onPick,
+  });
+
+  final int year;
+  final String locale;
+  final void Function(int delta) onStepYear;
+  final void Function(DateTime month) onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final period = ref.watch(selectedPeriodProvider);
+    final isThai = locale.startsWith('th');
+    final displayYear = isThai ? year + AppDate.buddhistOffset : year;
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Stepper(
+            label: '$displayYear',
+            onPrev: () => onStepYear(-1),
+            onNext: () => onStepYear(1),
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 3,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 2.1,
+            children: [
+              for (var m = 1; m <= 12; m++)
+                _PickTile(
+                  label: AppDate.formatMonthName(DateTime(year, m),
+                      locale: locale),
+                  selected: period.isMonth &&
+                      period.anchor.year == year &&
+                      period.anchor.month == m,
+                  onTap: () => onPick(DateTime(year, m)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ‹ month year › stepper above the list of weeks overlapping that month.
+class _WeekList extends ConsumerWidget {
+  const _WeekList({
+    required this.navMonth,
+    required this.locale,
+    required this.onStepMonth,
+    required this.onPick,
+  });
+
+  final DateTime navMonth;
+  final String locale;
+  final void Function(int delta) onStepMonth;
+  final void Function(DateTime weekStart) onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final period = ref.watch(selectedPeriodProvider);
+    final monthEnd = AppDate.endOfMonth(navMonth);
+    // Every week (Sunday start) that overlaps the navigated month.
+    final weeks = <DateTime>[];
+    var w = AppDate.startOfWeek(navMonth);
+    while (!w.isAfter(monthEnd)) {
+      weeks.add(w);
+      w = AppDate.addWeeks(w, 1);
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _Stepper(
+          label: AppDate.formatMonth(navMonth, locale: locale),
+          onPrev: () => onStepMonth(-1),
+          onNext: () => onStepMonth(1),
+        ),
+        const SizedBox(height: 12),
+        Flexible(
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: weeks.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (_, i) => _PickTile(
+              label: AppDate.formatWeekRange(weeks[i], locale: locale),
+              selected: period.isWeek && period.anchor == weeks[i],
+              onTap: () => onPick(weeks[i]),
+              alignStart: true,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Stepper extends StatelessWidget {
+  const _Stepper(
+      {required this.label, required this.onPrev, required this.onNext});
+  final String label;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _RoundIcon(icon: AppIcons.chevronLeft, onTap: onPrev),
+        Text(label,
+            style: AppTypography.heading(size: 16, weight: FontWeight.w600)),
+        _RoundIcon(icon: AppIcons.chevronRight, onTap: onNext),
+      ],
+    );
+  }
+}
+
+class _RoundIcon extends StatelessWidget {
+  const _RoundIcon({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      radius: 22,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppColors.paper,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.line),
+        ),
+        child: Icon(icon, size: 18, color: AppColors.ink2),
+      ),
+    );
+  }
+}
+
+class _PickTile extends StatelessWidget {
+  const _PickTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.alignStart = false,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool alignStart;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.terra : AppColors.paper,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.terra : AppColors.line,
+          ),
+        ),
+        alignment: alignStart ? Alignment.centerLeft : Alignment.center,
+        child: Text(
+          label,
+          style: AppTypography.heading(
+            size: 14,
+            weight: FontWeight.w500,
+            color: selected ? AppColors.reverse : AppColors.ink,
+          ),
+        ),
+      ),
+    );
+  }
+}

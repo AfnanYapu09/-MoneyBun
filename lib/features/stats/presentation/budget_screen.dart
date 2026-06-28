@@ -5,13 +5,12 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/icon_chip.dart';
-import '../../../core/widgets/pill.dart';
+import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
@@ -23,11 +22,15 @@ class BudgetScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider).languageCode;
-    final month = ref.watch(selectedMonthProvider);
-    final txns = ref.watch(monthTransactionsProvider).value ?? const [];
+    final period = ref.watch(selectedPeriodProvider);
+    final txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final budgets = (ref.watch(budgetsProvider).value ?? const <BudgetRow>[])
         .where((b) => b.period == BudgetPeriod.monthly && b.categoryId != null)
         .toList();
+    // In week mode the monthly budget is prorated to the week so weekly
+    // spending compares against a fair share (7 / days-in-month).
+    final factor = period.monthlyProration;
+    int target(int monthlyCents) => (monthlyCents * factor).round();
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -40,21 +43,23 @@ class BudgetScreen extends ConsumerWidget {
       spentByCat.update(t.categoryId!, (v) => v + t.amountCents,
           ifAbsent: () => t.amountCents);
     }
-    final totalBudget = budgets.fold<int>(0, (s, b) => s + b.amountCents);
+    final totalBudget =
+        budgets.fold<int>(0, (s, b) => s + target(b.amountCents));
     final totalSpent =
         budgets.fold<int>(0, (s, b) => s + (spentByCat[b.categoryId] ?? 0));
     final remaining = totalBudget - totalSpent;
-    final daysLeft = AppDate.endOfMonth(month).day - DateTime.now().day;
+    final daysLeft = period.daysRemaining;
 
     return SubScreenScaffold(
       title: 'งบประมาณ',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 28),
         children: [
-          MonthChip(
-            label: AppDate.formatMonth(month, locale: locale),
-            onPrev: () => ref.read(selectedMonthProvider.notifier).previous(),
-            onNext: () => ref.read(selectedMonthProvider.notifier).next(),
+          PeriodChip(
+            label: period.label(locale),
+            onTapLabel: () => showPeriodPickerSheet(context),
+            onPrev: () => ref.read(selectedPeriodProvider.notifier).previous(),
+            onNext: () => ref.read(selectedPeriodProvider.notifier).next(),
           ),
           const SizedBox(height: 18),
           // Summary card
@@ -109,7 +114,7 @@ class BudgetScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'เหลืออีก ${Money.compact(remaining)} · อีก ${daysLeft < 0 ? 0 : daysLeft} วันสิ้นเดือน',
+                  'เหลืออีก ${Money.compact(remaining)} · อีก $daysLeft วัน${period.periodEndNoun(locale)}',
                   style: AppTypography.body(
                       size: 13,
                       color: AppColors.reverse.withValues(alpha: 0.82)),
@@ -145,7 +150,7 @@ class BudgetScreen extends ConsumerWidget {
                       child: _BudgetBar(
                         category: categories[budgets[i].categoryId],
                         spent: spentByCat[budgets[i].categoryId] ?? 0,
-                        limit: budgets[i].amountCents,
+                        limit: target(budgets[i].amountCents),
                       ),
                     ),
                   ],

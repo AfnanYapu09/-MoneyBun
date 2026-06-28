@@ -3,16 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../bootstrap/providers.dart';
+import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_motion.dart';
 import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/icon_chip.dart';
+import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/pill.dart';
 import '../../../core/widgets/progress.dart';
+import '../../../core/widgets/week_strip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 
@@ -30,8 +32,8 @@ class StatsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider).languageCode;
-    final month = ref.watch(selectedMonthProvider);
-    final txns = ref.watch(monthTransactionsProvider).value ?? const [];
+    final period = ref.watch(selectedPeriodProvider);
+    final txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final allTxns = ref.watch(allTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
@@ -54,18 +56,17 @@ class StatsScreen extends ConsumerWidget {
     final ranked = byCategory.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
-    // Previous-month comparison badge.
-    final prevMonth = AppDate.addMonths(month, -1);
-    final prevStart = AppDate.toMillis(AppDate.startOfMonth(prevMonth));
-    final prevEnd = AppDate.toMillis(AppDate.endOfMonth(prevMonth));
+    // Previous-period comparison badge (previous month, or previous week).
+    final prev = period.previous();
     final prevTotal = allTxns
         .where((t) =>
             t.type == TxnType.expense &&
-            t.occurredAt >= prevStart &&
-            t.occurredAt <= prevEnd)
+            t.occurredAt >= prev.start &&
+            t.occurredAt <= prev.end)
         .fold<int>(0, (s, t) => s + t.amountCents);
     final pctChange =
         prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100).round() : null;
+    final prevNoun = period.isWeek ? 'สัปดาห์ก่อน' : 'เดือนก่อน';
 
     return Scaffold(
       body: SafeArea(
@@ -94,17 +95,25 @@ class StatsScreen extends ConsumerWidget {
                             ? AppColors.green
                             : AppColors.terra700,
                         label: pctChange <= 0
-                            ? 'น้อยกว่าเดือนก่อน ${pctChange.abs()}%'
-                            : 'มากกว่าเดือนก่อน $pctChange%',
+                            ? 'น้อยกว่า$prevNoun ${pctChange.abs()}%'
+                            : 'มากกว่า$prevNoun $pctChange%',
                       ),
                   ],
                 ),
-                MonthChip(
-                  label: AppDate.formatMonth(month, locale: locale),
+                PeriodChip(
+                  label: period.label(locale),
+                  onTapLabel: () => showPeriodPickerSheet(context),
                   onPrev: () =>
-                      ref.read(selectedMonthProvider.notifier).previous(),
-                  onNext: () => ref.read(selectedMonthProvider.notifier).next(),
+                      ref.read(selectedPeriodProvider.notifier).previous(),
+                  onNext: () =>
+                      ref.read(selectedPeriodProvider.notifier).next(),
                 ),
+                if (period.isWeek)
+                  WeekStrip(
+                    weekStart: period.anchor,
+                    dailyExpenseCents: weeklyExpenseCents(period.anchor, txns),
+                    locale: locale,
+                  ),
                 Text('เงินหมดไปกับอะไร',
                     style: AppTypography.heading(
                         size: 16, weight: FontWeight.w500)),

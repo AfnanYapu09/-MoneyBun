@@ -5,6 +5,7 @@ import '../../features/add_transaction/presentation/add_transaction_sheet.dart';
 import '../../features/add_transaction/presentation/category_picker_sheet.dart';
 import '../../features/categories/presentation/add_category_sheet.dart';
 import '../../features/stats/presentation/budget_sheet.dart';
+import '../../features/stats/presentation/period_picker_sheet.dart';
 import '../../data/local/database.dart';
 import '../../domain/enums/enums.dart';
 import '../theme/colors.dart';
@@ -54,6 +55,17 @@ Future<void> showAccountsSheet(BuildContext context) {
     barrierColor: _barrier,
     backgroundColor: Colors.transparent,
     builder: (_) => const AccountsSheet(),
+  );
+}
+
+/// Month/week time-filter picker (shared by Home / Stats / Budget).
+Future<void> showPeriodPickerSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    barrierColor: _barrier,
+    backgroundColor: Colors.transparent,
+    builder: (_) => const PeriodPickerSheet(),
   );
 }
 

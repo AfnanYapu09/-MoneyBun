@@ -16,6 +16,27 @@ class AppDate {
   static DateTime addMonths(DateTime d, int months) =>
       DateTime(d.year, d.month + months, d.day);
 
+  static DateTime addYears(DateTime d, int years) =>
+      DateTime(d.year + years, d.month, d.day);
+
+  /// Number of days in the calendar month containing [d].
+  static int daysInMonth(DateTime d) => DateTime(d.year, d.month + 1, 0).day;
+
+  // ---- Weeks (Sunday-first, the Thai convention) -------------------------
+
+  /// Start of the week (Sunday 00:00) containing [d]. `weekday` is 1..7 with
+  /// Mon=1 … Sun=7, so `weekday % 7` is the number of days since Sunday.
+  static DateTime startOfWeek(DateTime d) =>
+      startOfDay(d).subtract(Duration(days: d.weekday % 7));
+
+  /// End of the week (Saturday 23:59:59.999) containing [d].
+  static DateTime endOfWeek(DateTime d) => startOfWeek(d)
+      .add(const Duration(days: 7))
+      .subtract(const Duration(milliseconds: 1));
+
+  static DateTime addWeeks(DateTime d, int weeks) =>
+      d.add(Duration(days: 7 * weeks));
+
   static bool isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -55,6 +76,25 @@ class AppDate {
   static String formatTime(DateTime d, {required String locale}) {
     final isThai = locale.startsWith('th');
     return DateFormat('HH:mm', isThai ? 'th_TH' : 'en_US').format(d);
+  }
+
+  /// A week's range, e.g. `9–15 มิ.ย. 2569`. Collapses the month when both ends
+  /// share it (`30 มิ.ย.–6 ก.ค. 2569` when they differ). [weekStart] is the
+  /// Sunday; the week ends the following Saturday.
+  static String formatWeekRange(DateTime weekStart, {required String locale}) {
+    final isThai = locale.startsWith('th');
+    final start = startOfWeek(weekStart);
+    final end = start.add(const Duration(days: 6));
+    final tag = isThai ? 'th_TH' : 'en_US';
+    final dayFmt = DateFormat('d', tag);
+    final monthFmt = DateFormat('MMM', tag);
+    final year = isThai ? end.year + buddhistOffset : end.year;
+    if (start.month == end.month) {
+      return '${dayFmt.format(start)}–${dayFmt.format(end)} '
+          '${monthFmt.format(end)} $year';
+    }
+    return '${dayFmt.format(start)} ${monthFmt.format(start)}–'
+        '${dayFmt.format(end)} ${monthFmt.format(end)} $year';
   }
 
   /// Short day + month, no year: `18 มิ.ย.` / `18 Jun`.

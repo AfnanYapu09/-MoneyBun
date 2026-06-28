@@ -15,8 +15,9 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_motion.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/bun_scanning_block.dart';
-import '../../../core/widgets/pill.dart';
+import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/stat_chip.dart';
+import '../../../core/widgets/week_strip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 import '../../transactions/presentation/widgets/txn_day_group.dart';
@@ -44,8 +45,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider).languageCode;
-    final month = ref.watch(selectedMonthProvider);
-    final txns = ref.watch(monthTransactionsProvider).value ?? const [];
+    final period = ref.watch(selectedPeriodProvider);
+    final txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -67,9 +68,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final income = txns
         .where((t) => t.type == TxnType.income)
         .fold<int>(0, (s, t) => s + t.amountCents);
-    final totalBudget = budgets
+    // Sum of monthly budgets, prorated to the week (× 7/days) in week mode so
+    // the spending card compares like-for-like with the period's spending.
+    final monthlyBudget = budgets
         .where((b) => b.period == BudgetPeriod.monthly)
         .fold<int>(0, (s, b) => s + b.amountCents);
+    final totalBudget = (monthlyBudget * period.monthlyProration).round();
 
     // The home recent list surfaces only the actionable, still-uncategorised
     // slip imports (newest first, capped); everything else lives on
@@ -106,16 +110,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     const _Header(),
                     if (scan.scanning) const BunScanningBlock(),
-                    MonthChip(
-                      label: AppDate.formatMonth(month, locale: locale),
+                    PeriodChip(
+                      label: period.label(locale),
+                      onTapLabel: () => showPeriodPickerSheet(context),
                       onPrev: () =>
-                          ref.read(selectedMonthProvider.notifier).previous(),
+                          ref.read(selectedPeriodProvider.notifier).previous(),
                       onNext: () =>
-                          ref.read(selectedMonthProvider.notifier).next(),
+                          ref.read(selectedPeriodProvider.notifier).next(),
                     ),
+                    if (period.isWeek)
+                      WeekStrip(
+                        weekStart: period.anchor,
+                        dailyExpenseCents:
+                            weeklyExpenseCents(period.anchor, txns),
+                        locale: locale,
+                      ),
                     _SpendingCard(
                       spentCents: expense,
                       budgetCents: totalBudget,
+                      subtitleNoun: period.periodNoun(locale),
                       scanning: scan.scanning,
                       lastReadAt: settings?.lastSlipReadAt,
                       onRefresh: _scan,
@@ -335,6 +348,7 @@ class _SpendingCard extends StatelessWidget {
   const _SpendingCard({
     required this.spentCents,
     required this.budgetCents,
+    required this.subtitleNoun,
     required this.scanning,
     required this.lastReadAt,
     required this.onRefresh,
@@ -342,6 +356,7 @@ class _SpendingCard extends StatelessWidget {
 
   final int spentCents;
   final int budgetCents;
+  final String subtitleNoun;
   final bool scanning;
   final int? lastReadAt;
   final Future<void> Function() onRefresh;
@@ -373,7 +388,7 @@ class _SpendingCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('ใช้จ่ายเดือนนี้',
+              Text('ใช้จ่าย$subtitleNoun',
                   style: AppTypography.body(
                       size: 14,
                       color: AppColors.reverse.withValues(alpha: 0.82))),

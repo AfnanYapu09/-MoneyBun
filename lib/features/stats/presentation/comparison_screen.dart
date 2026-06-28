@@ -29,7 +29,7 @@ class ComparisonScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider).languageCode;
-    final selected = ref.watch(selectedMonthProvider);
+    final selected = ref.watch(selectedPeriodProvider).monthAnchor;
     final allTxns = ref.watch(allTransactionsProvider).value ?? const [];
 
     // Last 4 months ending at the selected month.

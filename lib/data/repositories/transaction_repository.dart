@@ -20,6 +20,10 @@ class TransactionRepository {
     return _db.watchTransactionsBetween(start, end);
   }
 
+  /// Active transactions whose `occurredAt` falls in `[startMs, endMs]`.
+  Stream<List<TransactionRow>> watchBetween(int startMs, int endMs) =>
+      _db.watchTransactionsBetween(startMs, endMs);
+
   Stream<List<TransactionRow>> watchAll() => _db.watchActiveTransactions();
 
   Future<TransactionRow?> get(String id) => _db.getTransaction(id);
