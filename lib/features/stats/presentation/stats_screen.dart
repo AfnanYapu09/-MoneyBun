@@ -14,13 +14,19 @@ import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/pill.dart';
 import '../../../core/widgets/progress.dart';
+import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/week_strip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 
-class StatsScreen extends ConsumerWidget {
+class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
 
+  @override
+  ConsumerState<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends ConsumerState<StatsScreen> {
   static const _palette = [
     AppColors.terra,
     AppColors.terraDeep,
@@ -29,8 +35,11 @@ class StatsScreen extends ConsumerWidget {
     Color(0xFFCDBFB0),
   ];
 
+  /// false → breakdown by category, true → by tag.
+  bool _byTag = false;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
     final txns = ref.watch(periodTransactionsProvider).value ?? const [];
@@ -166,41 +175,35 @@ class StatsScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                Text('แยกตามหมวด',
-                    style: AppTypography.heading(
-                        size: 16, weight: FontWeight.w500)),
-                if (ranked.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text('ยังไม่มีข้อมูล',
-                        style: AppTypography.body(
-                            size: 14, color: AppColors.ink3)),
-                  )
-                else
-                  Column(
-                    children: [
-                      for (var i = 0; i < ranked.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _CategoryBar(
-                            category: categories[ranked[i].key],
-                            cents: ranked[i].value,
-                            fraction: total == 0 ? 0 : ranked[i].value / total,
-                            color: _palette[i % _palette.length],
+                SegmentedControl<bool>(
+                  value: _byTag,
+                  onChanged: (v) => setState(() => _byTag = v),
+                  segments: const [
+                    Segment(value: false, label: 'ตามหมวดหมู่'),
+                    Segment(value: true, label: 'ตามแท็ก'),
+                  ],
+                ),
+                if (!_byTag)
+                  if (ranked.isEmpty)
+                    _emptyBreakdown('ยังไม่มีข้อมูล')
+                  else
+                    Column(
+                      children: [
+                        for (var i = 0; i < ranked.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _CategoryBar(
+                              category: categories[ranked[i].key],
+                              cents: ranked[i].value,
+                              fraction:
+                                  total == 0 ? 0 : ranked[i].value / total,
+                              color: _palette[i % _palette.length],
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                Text('แยกตามแท็ก',
-                    style: AppTypography.heading(
-                        size: 16, weight: FontWeight.w500)),
-                if (rankedTags.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text('ยังไม่มีรายการที่ติดแท็ก',
-                        style: AppTypography.body(
-                            size: 14, color: AppColors.ink3)),
-                  )
+                      ],
+                    )
+                else if (rankedTags.isEmpty)
+                  _emptyBreakdown('ยังไม่มีรายการที่ติดแท็ก')
                 else
                   Column(
                     children: [
@@ -226,6 +229,12 @@ class StatsScreen extends ConsumerWidget {
     );
   }
 }
+
+Widget _emptyBreakdown(String message) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Text(message,
+          style: AppTypography.body(size: 14, color: AppColors.ink3)),
+    );
 
 class _DonutCard extends StatelessWidget {
   const _DonutCard({

@@ -158,9 +158,8 @@ class _MonthGrid extends ConsumerWidget {
                 _PickTile(
                   label: AppDate.formatMonthShort(DateTime(year, m),
                       locale: locale),
-                  selected: period.isMonth &&
-                      period.anchor.year == year &&
-                      period.anchor.month == m,
+                  selected: period.monthAnchor.year == year &&
+                      period.monthAnchor.month == m,
                   onTap: () => onPick(DateTime(year, m)),
                 ),
             ],
@@ -213,7 +212,7 @@ class _WeekList extends ConsumerWidget {
             itemBuilder: (_, i) => _PickTile(
               label: 'สัปดาห์ ${i + 1}',
               subtitle: AppDate.formatWeekRange(weeks[i], locale: locale),
-              selected: period.isWeek && period.anchor == weeks[i],
+              selected: AppDate.startOfWeek(period.anchor) == weeks[i],
               onTap: () => onPick(weeks[i]),
               alignStart: true,
             ),
@@ -264,7 +263,7 @@ class _YearGrid extends ConsumerWidget {
               for (var y = blockStart; y < blockStart + 12; y++)
                 _PickTile(
                   label: '${y + offset}',
-                  selected: period.isYear && period.anchor.year == y,
+                  selected: period.anchor.year == y,
                   onTap: () => onPick(y),
                 ),
             ],

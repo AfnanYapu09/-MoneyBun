@@ -17,8 +17,9 @@ import '../../../domain/enums/enums.dart';
 List<DatePeriod> _comparisonPeriods(DatePeriod p) {
   switch (p.mode) {
     case PeriodMode.month:
+      // January through the selected month (so month 4 shows 4 bars, max 12).
       return [
-        for (var m = 1; m <= 12; m++)
+        for (var m = 1; m <= p.anchor.month; m++)
           DatePeriod.month(DateTime(p.anchor.year, m)),
       ];
     case PeriodMode.year:
@@ -51,17 +52,25 @@ class _PeriodAgg {
   }
 }
 
-class ComparisonScreen extends ConsumerWidget {
+class ComparisonScreen extends ConsumerStatefulWidget {
   const ComparisonScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ComparisonScreen> createState() => _ComparisonScreenState();
+}
+
+class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
+  /// The bar the user tapped to inspect (null → show the selected period).
+  DatePeriod? _focused;
+
+  @override
+  Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
     final allTxns = ref.watch(allTransactionsProvider).value ?? const [];
 
     // The spans to compare, depending on the active mode:
-    //   month → the 12 months of the selected year
+    //   month → January through the selected month
     //   year  → the last 5 years ending at the selected year
     //   week  → every week of the selected month
     final aggs = _comparisonPeriods(period).map((pp) {
@@ -76,10 +85,32 @@ class ComparisonScreen extends ConsumerWidget {
 
     final current =
         aggs.firstWhere((a) => a.period == period, orElse: () => aggs.last);
+    final focused =
+        aggs.firstWhere((a) => a.period == _focused, orElse: () => current);
     final avgSaved =
         (aggs.fold<int>(0, (s, a) => s + a.saved) / aggs.length).round();
     final unitWord =
         period.isWeek ? 'สัปดาห์' : (period.isYear ? 'ปี' : 'เดือน');
+
+    // Week bars/rows are numbered within the month; months/years use the date.
+    String labelAt(int i) => period.isWeek
+        ? 'สัปดาห์ ${i + 1}'
+        : _barLabel(aggs[i].period, locale);
+    String rowLabelAt(int i) => period.isWeek
+        ? 'สัปดาห์ ${i + 1}'
+        : _rowLabel(aggs[i].period, locale);
+
+    // Bottom list: month shows the last 4 (newest first); week ascends 1..N;
+    // year is newest first.
+    final List<int> listOrder;
+    if (period.isMonth) {
+      final from = (aggs.length - 4).clamp(0, aggs.length);
+      listOrder = [for (var i = aggs.length - 1; i >= from; i--) i];
+    } else if (period.isWeek) {
+      listOrder = [for (var i = 0; i < aggs.length; i++) i];
+    } else {
+      listOrder = [for (var i = aggs.length - 1; i >= 0; i--) i];
+    }
 
     return SubScreenScaffold(
       title: 'เปรียบเทียบ',
@@ -142,16 +173,24 @@ class ComparisonScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                _TappedSummary(
+                  label: labelAt(aggs.indexOf(focused)),
+                  income: focused.income,
+                  expense: focused.expense,
+                ),
                 const SizedBox(height: 14),
                 GroupedBarChart(
                   groupWidth: aggs.length > 7 ? 42 : null,
+                  onBarTap: (i) =>
+                      setState(() => _focused = aggs[i].period),
                   groups: [
-                    for (final a in aggs)
+                    for (var i = 0; i < aggs.length; i++)
                       BarGroupData(
-                        label: _barLabel(a.period, locale),
-                        income: a.income / 100.0,
-                        expense: a.expense / 100.0,
-                        active: a.period == current.period,
+                        label: labelAt(i),
+                        income: aggs[i].income / 100.0,
+                        expense: aggs[i].expense / 100.0,
+                        active: aggs[i].period == focused.period,
                       ),
                   ],
                 ),
@@ -170,12 +209,12 @@ class ComparisonScreen extends ConsumerWidget {
             ),
             child: Column(
               children: [
-                for (var i = aggs.length - 1; i >= 0; i--) ...[
-                  if (i < aggs.length - 1) const Divider(height: 1),
+                for (var j = 0; j < listOrder.length; j++) ...[
+                  if (j > 0) const Divider(height: 1),
                   _PeriodRow(
-                    agg: aggs[i],
-                    locale: locale,
-                    active: i == aggs.length - 1,
+                    label: rowLabelAt(listOrder[j]),
+                    agg: aggs[listOrder[j]],
+                    active: aggs[listOrder[j]].period == current.period,
                   ),
                 ],
               ],
@@ -183,6 +222,62 @@ class ComparisonScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// One-line readout of the tapped (or selected) bar's income / expense / saved.
+class _TappedSummary extends StatelessWidget {
+  const _TappedSummary({
+    required this.label,
+    required this.income,
+    required this.expense,
+  });
+  final String label;
+  final int income;
+  final int expense;
+
+  @override
+  Widget build(BuildContext context) {
+    final saved = (income - expense) < 0 ? 0 : income - expense;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.cream,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Text(label,
+              style: AppTypography.heading(size: 13, weight: FontWeight.w600)),
+          const Spacer(),
+          _Stat(label: 'รายรับ', value: income, color: AppColors.green),
+          const SizedBox(width: 12),
+          _Stat(label: 'รายจ่าย', value: expense, color: AppColors.terra),
+          const SizedBox(width: 12),
+          _Stat(label: 'เก็บได้', value: saved, color: AppColors.ink),
+        ],
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({required this.label, required this.value, required this.color});
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(label, style: AppTypography.body(size: 10, color: AppColors.ink3)),
+        Text(Money.compact(value),
+            style: AppTypography.heading(
+                size: 12.5, weight: FontWeight.w600, color: color)),
+      ],
     );
   }
 }
@@ -273,9 +368,9 @@ String _rowLabel(DatePeriod p, String locale) => switch (p.mode) {
 
 class _PeriodRow extends StatelessWidget {
   const _PeriodRow(
-      {required this.agg, required this.locale, required this.active});
+      {required this.label, required this.agg, required this.active});
+  final String label;
   final _PeriodAgg agg;
-  final String locale;
   final bool active;
 
   @override
@@ -286,7 +381,7 @@ class _PeriodRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(_rowLabel(agg.period, locale),
+            child: Text(label,
                 style:
                     AppTypography.heading(size: 14.5, weight: FontWeight.w500)),
           ),

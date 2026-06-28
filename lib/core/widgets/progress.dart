@@ -148,6 +148,7 @@ class GroupedBarChart extends StatelessWidget {
     this.incomeColor = AppColors.green,
     this.expenseColor = AppColors.terra,
     this.groupWidth,
+    this.onBarTap,
   });
 
   final List<BarGroupData> groups;
@@ -160,11 +161,17 @@ class GroupedBarChart extends StatelessWidget {
   /// months). When null, groups share the width via [Expanded].
   final double? groupWidth;
 
+  /// Tapped group index — lets the caller show that bar's data.
+  final void Function(int index)? onBarTap;
+
   @override
   Widget build(BuildContext context) {
     final max = groups.fold<double>(
         1, (m, g) => math.max(m, math.max(g.income, g.expense)));
-    final bars = [for (final g in groups) _group(g, max)];
+    final bars = [
+      for (var i = 0; i < groups.length; i++)
+        _tappable(i, _group(groups[i], max)),
+    ];
     if (groupWidth == null) {
       return SizedBox(
         height: height,
@@ -185,6 +192,15 @@ class GroupedBarChart extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _tappable(int index, Widget child) {
+    if (onBarTap == null) return child;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onBarTap!(index),
+      child: child,
     );
   }
 
