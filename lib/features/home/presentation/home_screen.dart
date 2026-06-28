@@ -17,7 +17,6 @@ import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/bun_scanning_block.dart';
 import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/stat_chip.dart';
-import '../../../core/widgets/week_strip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 import '../../transactions/presentation/widgets/txn_day_group.dart';
@@ -118,13 +117,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       onNext: () =>
                           ref.read(selectedPeriodProvider.notifier).next(),
                     ),
-                    if (period.isWeek)
-                      WeekStrip(
-                        weekStart: period.anchor,
-                        dailyExpenseCents:
-                            weeklyExpenseCents(period.anchor, txns),
-                        locale: locale,
-                      ),
                     _SpendingCard(
                       spentCents: expense,
                       budgetCents: totalBudget,

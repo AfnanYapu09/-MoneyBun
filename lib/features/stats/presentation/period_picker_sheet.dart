@@ -35,12 +35,24 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
     _navMonth = period.monthAnchor;
   }
 
+  /// Jump back to the current month / week (matching the active mode) and close.
+  void _jumpToToday() {
+    final notifier = ref.read(selectedPeriodProvider.notifier);
+    if (_mode == PeriodMode.month) {
+      notifier.setMonth(DateTime.now());
+    } else {
+      notifier.setWeek(DateTime.now());
+    }
+    Navigator.of(context).maybePop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider).languageCode;
     return SheetScaffold(
       title: 'เลือกช่วงเวลา',
       maxHeightFactor: 0.72,
+      action: _TodayButton(onTap: _jumpToToday),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
         child: Column(
@@ -121,14 +133,14 @@ class _MonthGrid extends ConsumerWidget {
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3,
+            crossAxisCount: 4,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 2.1,
+            childAspectRatio: 1.9,
             children: [
               for (var m = 1; m <= 12; m++)
                 _PickTile(
-                  label: AppDate.formatMonthName(DateTime(year, m),
+                  label: AppDate.formatMonthShort(DateTime(year, m),
                       locale: locale),
                   selected: period.isMonth &&
                       period.anchor.year == year &&
@@ -183,7 +195,8 @@ class _WeekList extends ConsumerWidget {
             itemCount: weeks.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _PickTile(
-              label: AppDate.formatWeekRange(weeks[i], locale: locale),
+              label: 'สัปดาห์ ${i + 1}',
+              subtitle: AppDate.formatWeekRange(weeks[i], locale: locale),
               selected: period.isWeek && period.anchor == weeks[i],
               onTap: () => onPick(weeks[i]),
               alignStart: true,
@@ -245,16 +258,19 @@ class _PickTile extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.subtitle,
     this.alignStart = false,
   });
 
   final String label;
+  final String? subtitle;
   final bool selected;
   final VoidCallback onTap;
   final bool alignStart;
 
   @override
   Widget build(BuildContext context) {
+    final fg = selected ? AppColors.reverse : AppColors.ink;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
@@ -268,14 +284,55 @@ class _PickTile extends StatelessWidget {
           ),
         ),
         alignment: alignStart ? Alignment.centerLeft : Alignment.center,
-        child: Text(
-          label,
-          style: AppTypography.heading(
-            size: 14,
-            weight: FontWeight.w500,
-            color: selected ? AppColors.reverse : AppColors.ink,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment:
+              alignStart ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: AppTypography.heading(
+                  size: 14, weight: FontWeight.w500, color: fg),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle!,
+                style: AppTypography.body(
+                  size: 12,
+                  color: selected
+                      ? AppColors.reverse.withValues(alpha: 0.85)
+                      : AppColors.ink3,
+                ),
+              ),
+            ],
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// "วันนี้" shortcut shown in the sheet header — jumps back to the current
+/// month / week.
+class _TodayButton extends StatelessWidget {
+  const _TodayButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(99),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: AppColors.terraWash,
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Text('วันนี้',
+            style: AppTypography.heading(
+                size: 13, weight: FontWeight.w500, color: AppColors.terra700)),
       ),
     );
   }
