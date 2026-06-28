@@ -188,10 +188,15 @@ class _BudgetBar extends StatelessWidget {
     return Row(
       children: [
         IconChip(
-            icon: CategoryIcons.forKey(category?.iconKey),
-            size: 42,
-            radius: 13,
-            iconSize: 20),
+          icon: CategoryIcons.forKey(category?.iconKey),
+          size: 42,
+          radius: 13,
+          iconSize: 20,
+          background: category == null
+              ? AppColors.terraWash
+              : AppColors.forHex(category!.colorHex),
+          foreground: category == null ? AppColors.terra700 : Colors.white,
+        ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(

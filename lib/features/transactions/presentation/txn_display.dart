@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../core/theme/colors.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
@@ -8,10 +9,15 @@ import '../../../domain/enums/enums.dart';
 
 /// Derived display fields for a transaction row.
 class TxnDisplay {
-  const TxnDisplay(this.icon, this.title, this.sub);
+  const TxnDisplay(this.icon, this.title, this.sub, {this.color});
   final IconData icon;
   final String title;
   final String sub;
+
+  /// The category's colour, so the row icon matches the look in
+  /// category management. Null for transfers / uncategorised rows, which keep
+  /// the default terra tint.
+  final Color? color;
 }
 
 TxnDisplay txnDisplay(
@@ -23,6 +29,8 @@ TxnDisplay txnDisplay(
   bool withDate = false,
 }) {
   final category = t.categoryId == null ? null : categories[t.categoryId];
+  final categoryColor =
+      category == null ? null : AppColors.forHex(category.colorHex);
   final when = AppDate.fromMillis(t.occurredAt);
   final time = AppDate.formatTime(when, locale: locale);
   // For lists that span more than one day (e.g. search results), lead the
@@ -46,7 +54,7 @@ TxnDisplay txnDisplay(
       final icon = category != null
           ? CategoryIcons.forKey(category.iconKey)
           : AppIcons.banknote;
-      return TxnDisplay(icon, title, sub);
+      return TxnDisplay(icon, title, sub, color: categoryColor);
     case TxnType.expense:
       if (t.categoryId == null) {
         return TxnDisplay(AppIcons.receiptText, 'รายการใหม่จากสลิป',
@@ -57,6 +65,7 @@ TxnDisplay txnDisplay(
           : (category?.name ?? 'รายการ');
       final sub =
           '$date${category?.name ?? 'อื่นๆ'}${withTime ? ' · $time' : ''}';
-      return TxnDisplay(CategoryIcons.forKey(category?.iconKey), title, sub);
+      return TxnDisplay(CategoryIcons.forKey(category?.iconKey), title, sub,
+          color: categoryColor);
   }
 }

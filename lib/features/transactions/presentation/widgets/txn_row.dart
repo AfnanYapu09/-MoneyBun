@@ -15,6 +15,7 @@ class TxnRow extends StatelessWidget {
     required this.sub,
     required this.amountCents,
     required this.type,
+    this.iconColor,
     this.onTap,
   });
 
@@ -23,6 +24,10 @@ class TxnRow extends StatelessWidget {
   final String sub;
   final int amountCents;
   final TxnType type;
+
+  /// The category colour for the leading icon (matches category management);
+  /// null falls back to the default terra tint.
+  final Color? iconColor;
   final VoidCallback? onTap;
 
   @override
@@ -36,7 +41,14 @@ class TxnRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          IconChip(icon: icon, size: 42, radius: 14, iconSize: 20),
+          IconChip(
+            icon: icon,
+            size: 42,
+            radius: 14,
+            iconSize: 20,
+            background: iconColor ?? AppColors.terraWash,
+            foreground: iconColor == null ? AppColors.terra700 : Colors.white,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
