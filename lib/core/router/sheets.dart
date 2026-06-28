@@ -17,6 +17,25 @@ import '../widgets/primary_button.dart';
 
 const _barrier = Color(0x61211C18); // rgba(33,28,24,.38)
 
+/// A form sheet that shows at 60% of the screen and grows to 90% while the
+/// keyboard is up (so the focused field stays visible). Anchored to the bottom.
+class _FormSheetSize extends StatelessWidget {
+  const _FormSheetSize({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final typing = MediaQuery.of(context).viewInsets.bottom > 0;
+    return AnimatedFractionallySizedBox(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      alignment: Alignment.bottomCenter,
+      heightFactor: typing ? 0.9 : 0.6,
+      child: child,
+    );
+  }
+}
+
 /// Runs [show] while marking a sheet open in [openSheetsProvider], so the home
 /// FAB hides for the sheet's whole lifetime (and reappears once it closes).
 Future<T?> _tracked<T>(
@@ -44,8 +63,7 @@ Future<bool?> showAddTransactionSheet(BuildContext context, {String? editId}) {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.94,
+      builder: (_) => _FormSheetSize(
         child: AddTransactionSheet(editId: editId),
       ),
     ),
@@ -114,8 +132,7 @@ Future<bool?> showBudgetSheet(BuildContext context, {BudgetRow? budget}) {
       useSafeArea: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.94,
+      builder: (_) => _FormSheetSize(
         child: BudgetSheet(budget: budget),
       ),
     ),
@@ -135,8 +152,7 @@ Future<bool?> showAddCategorySheet(
       useSafeArea: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.94,
+      builder: (_) => _FormSheetSize(
         child: AddCategorySheet(type: type),
       ),
     ),
