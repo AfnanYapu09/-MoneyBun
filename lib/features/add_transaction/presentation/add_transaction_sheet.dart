@@ -90,8 +90,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     super.dispose();
   }
 
-  Color get _accent =>
-      _type == TxnType.income ? AppColors.green : AppColors.terra;
+  Color get _accent => switch (_type) {
+        TxnType.income => AppColors.green,
+        TxnType.transfer => AppColors.amber,
+        TxnType.expense => AppColors.terra,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +133,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               value: TxnType.transfer,
               label: 'ย้ายเงิน',
               icon: AppIcons.arrowLeftRight,
-              color: AppColors.terra),
+              color: AppColors.amber),
         ],
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a

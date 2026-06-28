@@ -42,8 +42,8 @@ TxnDisplay txnDisplay(
     case TxnType.transfer:
       final from = accounts[t.accountId]?.name ?? 'บัญชี';
       final to = accounts[t.toAccountId]?.name ?? 'บัญชี';
-      return TxnDisplay(
-          AppIcons.arrowLeftRight, 'ย้ายเงิน', '$date$from → $to');
+      return TxnDisplay(AppIcons.arrowLeftRight, 'ย้ายเงิน', '$date$from → $to',
+          color: AppColors.amber);
     case TxnType.income:
       final title = (t.note != null && t.note!.isNotEmpty)
           ? t.note!

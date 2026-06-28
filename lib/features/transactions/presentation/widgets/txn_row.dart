@@ -35,7 +35,7 @@ class TxnRow extends StatelessWidget {
     final (sign, color) = switch (type) {
       TxnType.income => ('+', AppColors.green),
       TxnType.expense => ('−', AppColors.ink),
-      TxnType.transfer => ('', AppColors.ink3),
+      TxnType.transfer => ('', AppColors.amber),
     };
     final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),

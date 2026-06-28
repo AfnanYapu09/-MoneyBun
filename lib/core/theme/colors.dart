@@ -32,6 +32,10 @@ class AppColors {
   static const Color green = Color(0xFF4E7A5E);
   static const Color greenTint = Color(0xFFE3EDE2);
 
+  // Transfer (ย้ายเงิน) — amber / gold
+  static const Color amber = Color(0xFFBE8A1F);
+  static const Color amberWash = Color(0xFFF2E8CC);
+
   // Text / icons on terracotta
   static const Color reverse = Color(0xFFFBF4EE);
 
@@ -42,7 +46,7 @@ class AppColors {
   // Semantic transaction directions.
   static const Color income = green; // +฿ amounts
   static const Color expense = ink; // −฿ amounts (design uses ink, not red)
-  static const Color transfer = ink3; // neutral, no sign
+  static const Color transfer = amber; // ย้ายเงิน
 
   /// Parse a stored `colorHex` ("FFE8732C" or "#E8732C") into a [Color].
   static Color forHex(String hex) {
