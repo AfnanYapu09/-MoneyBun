@@ -80,14 +80,12 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     // Spending split by tag. A transaction can carry several tags, so its
     // amount counts toward each tag it has.
     final tags = {
-      for (final t in ref.watch(tagsProvider).value ?? const <TagRow>[])
-        t.id: t
+      for (final t in ref.watch(tagsProvider).value ?? const <TagRow>[]) t.id: t
     };
     final selectedById = {for (final t in selected) t.id: t.amountCents};
     final byTag = <String, int>{};
-    for (final link
-        in ref.watch(allTransactionTagsProvider).value ??
-            const <TransactionTagRow>[]) {
+    for (final link in ref.watch(allTransactionTagsProvider).value ??
+        const <TransactionTagRow>[]) {
       final cents = selectedById[link.transactionId];
       if (cents == null) continue;
       byTag.update(link.tagId, (v) => v + cents, ifAbsent: () => cents);
@@ -578,8 +576,7 @@ class _TagBar extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(tag?.name ?? '—',
-                      style: AppTypography.body(size: 14)),
+                  Text(tag?.name ?? '—', style: AppTypography.body(size: 14)),
                   Text(Money.compact(cents),
                       style: AppTypography.heading(
                           size: 14, weight: FontWeight.w500)),

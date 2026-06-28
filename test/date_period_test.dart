@@ -52,8 +52,9 @@ void main() {
     test('value equality by mode + anchor', () {
       expect(DatePeriod.month(DateTime(2026, 6, 1)),
           DatePeriod.month(DateTime(2026, 6, 20)));
-      expect(DatePeriod.month(DateTime(2026, 6)) ==
-          DatePeriod.week(DateTime(2026, 6, 14)),
+      expect(
+          DatePeriod.month(DateTime(2026, 6)) ==
+              DatePeriod.week(DateTime(2026, 6, 14)),
           isFalse);
     });
   });

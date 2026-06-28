@@ -93,12 +93,10 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
         period.isWeek ? 'สัปดาห์' : (period.isYear ? 'ปี' : 'เดือน');
 
     // Week bars/rows are numbered within the month; months/years use the date.
-    String labelAt(int i) => period.isWeek
-        ? 'สัปดาห์ ${i + 1}'
-        : _barLabel(aggs[i].period, locale);
-    String rowLabelAt(int i) => period.isWeek
-        ? 'สัปดาห์ ${i + 1}'
-        : _rowLabel(aggs[i].period, locale);
+    String labelAt(int i) =>
+        period.isWeek ? 'สัปดาห์ ${i + 1}' : _barLabel(aggs[i].period, locale);
+    String rowLabelAt(int i) =>
+        period.isWeek ? 'สัปดาห์ ${i + 1}' : _rowLabel(aggs[i].period, locale);
 
     // Bottom list: month runs Jan→focused month (newest first) so tapping a bar
     // trims it; week ascends 1..N; year is newest first.
@@ -182,8 +180,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                 const SizedBox(height: 14),
                 GroupedBarChart(
                   groupWidth: aggs.length > 7 ? 42 : null,
-                  onBarTap: (i) =>
-                      setState(() => _focused = aggs[i].period),
+                  onBarTap: (i) => setState(() => _focused = aggs[i].period),
                   groups: [
                     for (var i = 0; i < aggs.length; i++)
                       BarGroupData(

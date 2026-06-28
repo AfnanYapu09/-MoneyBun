@@ -47,8 +47,7 @@ class _FormSheetSize extends StatelessWidget {
 
 /// Runs [show] while marking a sheet open in [openSheetsProvider], so the home
 /// FAB hides for the sheet's whole lifetime (and reappears once it closes).
-Future<T?> _tracked<T>(
-    BuildContext context, Future<T?> Function() show) async {
+Future<T?> _tracked<T>(BuildContext context, Future<T?> Function() show) async {
   final notifier = ProviderScope.containerOf(context, listen: false)
       .read(openSheetsProvider.notifier);
   notifier.increment();
