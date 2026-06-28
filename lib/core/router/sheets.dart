@@ -59,7 +59,7 @@ Future<T?> _tracked<T>(
   }
 }
 
-/// Full-height Add/Edit transaction sheet.
+/// Add/Edit transaction sheet — sizes to its content (see [FullSheetScaffold]).
 Future<bool?> showAddTransactionSheet(BuildContext context, {String? editId}) {
   return _tracked(
     context,
@@ -72,9 +72,7 @@ Future<bool?> showAddTransactionSheet(BuildContext context, {String? editId}) {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
-      builder: (_) => _FormSheetSize(
-        child: AddTransactionSheet(editId: editId),
-      ),
+      builder: (_) => AddTransactionSheet(editId: editId),
     ),
   );
 }

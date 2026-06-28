@@ -183,7 +183,7 @@ class _MonthGrid extends ConsumerWidget {
 }
 
 /// ‹ month year › stepper above the list of weeks overlapping that month.
-class _WeekList extends ConsumerWidget {
+class _WeekList extends ConsumerStatefulWidget {
   const _WeekList({
     required this.navMonth,
     required this.locale,
@@ -197,39 +197,94 @@ class _WeekList extends ConsumerWidget {
   final void Function(DateTime weekStart) onPick;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_WeekList> createState() => _WeekListState();
+}
+
+class _WeekListState extends ConsumerState<_WeekList> {
+  // Tagged onto the highlighted (current/selected) week tile so we can bring it
+  // into view as soon as the week list is laid out.
+  final _selectedKey = GlobalKey();
+  final _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _revealSelected();
+  }
+
+  @override
+  void didUpdateWidget(_WeekList old) {
+    super.didUpdateWidget(old);
+    // Stepping to another month rebuilds the same list — re-centre on the
+    // highlighted week when it falls in the newly shown month.
+    if (old.navMonth != widget.navMonth) _revealSelected();
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// After layout, centre the highlighted week so it's visible the instant the
+  /// week list opens; if none of the shown weeks is highlighted, reset to top.
+  void _revealSelected() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _selectedKey.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.5,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      } else if (_scroll.hasClients) {
+        _scroll.jumpTo(0);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final period = ref.watch(selectedPeriodProvider);
-    final monthEnd = AppDate.endOfMonth(navMonth);
+    final monthEnd = AppDate.endOfMonth(widget.navMonth);
     // Every week (Sunday start) that overlaps the navigated month.
     final weeks = <DateTime>[];
-    var w = AppDate.startOfWeek(navMonth);
+    var w = AppDate.startOfWeek(widget.navMonth);
     while (!w.isAfter(monthEnd)) {
       weeks.add(w);
       w = AppDate.addWeeks(w, 1);
     }
+    final selectedStart =
+        AppDate.startOfWeek(period.isWeek ? period.anchor : DateTime.now());
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _Stepper(
-          label: AppDate.formatMonth(navMonth, locale: locale),
-          onPrev: () => onStepMonth(-1),
-          onNext: () => onStepMonth(1),
+          label: AppDate.formatMonth(widget.navMonth, locale: widget.locale),
+          onPrev: () => widget.onStepMonth(-1),
+          onNext: () => widget.onStepMonth(1),
         ),
         const SizedBox(height: 12),
         Flexible(
           child: ListView.separated(
+            controller: _scroll,
             shrinkWrap: true,
             itemCount: weeks.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _PickTile(
-              label: 'สัปดาห์ ${i + 1}',
-              subtitle: AppDate.formatWeekRange(weeks[i], locale: locale),
-              selected: AppDate.startOfWeek(
-                      period.isWeek ? period.anchor : DateTime.now()) ==
-                  weeks[i],
-              onTap: () => onPick(weeks[i]),
-              alignStart: true,
-            ),
+            itemBuilder: (_, i) {
+              final selected = selectedStart == weeks[i];
+              return _PickTile(
+                key: selected ? _selectedKey : null,
+                label: 'สัปดาห์ ${i + 1}',
+                subtitle:
+                    AppDate.formatWeekRange(weeks[i], locale: widget.locale),
+                selected: selected,
+                onTap: () => widget.onPick(weeks[i]),
+                alignStart: true,
+              );
+            },
           ),
         ),
       ],
@@ -335,6 +390,7 @@ class _RoundIcon extends StatelessWidget {
 
 class _PickTile extends StatelessWidget {
   const _PickTile({
+    super.key,
     required this.label,
     required this.selected,
     required this.onTap,

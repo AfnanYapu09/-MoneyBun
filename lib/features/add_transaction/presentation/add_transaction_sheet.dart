@@ -137,6 +137,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       // commit button.
       footer: _footer(),
       child: ListView(
+        shrinkWrap: true,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
         children: [
           // Date chip
