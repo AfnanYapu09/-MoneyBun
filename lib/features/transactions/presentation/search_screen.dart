@@ -164,6 +164,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               title: d.title,
                               sub: d.sub,
                               iconColor: d.color,
+                              emoji: d.emoji,
                               amountCents: t.amountCents,
                               type: t.type,
                               onTap: () => showAddTransactionSheet(context,

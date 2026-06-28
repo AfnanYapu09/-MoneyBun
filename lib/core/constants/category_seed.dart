@@ -15,7 +15,8 @@ class CategorySeed {
   final String nameTh;
   final String nameEn;
 
-  /// Key resolved to an [IconData] by `CategoryIcons` in the presentation layer.
+  /// Stable key resolved to an emoji by `CategoryEmoji` in the presentation
+  /// layer (kept as a key, not the glyph, so data/sync need no migration).
   final String iconKey;
   final String colorHex;
 

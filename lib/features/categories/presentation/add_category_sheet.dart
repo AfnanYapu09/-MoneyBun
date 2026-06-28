@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/widgets/category_icons.dart';
+import '../../../core/widgets/category_chip.dart';
+import '../../../core/widgets/category_emoji.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
@@ -70,15 +71,12 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: AppColors.forHex(_colorHex),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(CategoryIcons.forKey(_iconKey),
-                        size: 22, color: Colors.white),
+                  CategoryChip(
+                    iconKey: _iconKey,
+                    colorHex: _colorHex,
+                    size: 46,
+                    glyphSize: 24,
+                    circle: true,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -104,7 +102,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
               value: _showColors,
               onChanged: (v) => setState(() => _showColors = v),
               segments: const [
-                Segment(value: false, label: 'ไอคอน'),
+                Segment(value: false, label: 'อีโมจิ'),
                 Segment(value: true, label: 'สี'),
               ],
             ),
@@ -122,6 +120,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                       onTap: () => setState(() => _iconKey = k),
                       customBorder: const CircleBorder(),
                       child: Container(
+                        alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: _iconKey == k
                               ? AppColors.terraWash
@@ -133,8 +132,8 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                                   : AppColors.line,
                               width: _iconKey == k ? 1.5 : 1),
                         ),
-                        child: Icon(CategoryIcons.forKey(k),
-                            size: 20, color: AppColors.terra700),
+                        child: Text(CategoryEmoji.forKey(k),
+                            style: const TextStyle(fontSize: 20)),
                       ),
                     ),
                 ],

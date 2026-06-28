@@ -3,13 +3,16 @@ import 'package:flutter/widgets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/category_icons.dart';
+import '../../../core/widgets/category_emoji.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 
 /// Derived display fields for a transaction row.
 class TxnDisplay {
-  const TxnDisplay(this.icon, this.title, this.sub, {this.color});
+  const TxnDisplay(this.icon, this.title, this.sub, {this.color, this.emoji});
+
+  /// Fallback Lucide icon, used when [emoji] is null (transfers, uncategorised
+  /// rows, plain income).
   final IconData icon;
   final String title;
   final String sub;
@@ -18,6 +21,9 @@ class TxnDisplay {
   /// category management. Null for transfers / uncategorised rows, which keep
   /// the default terra tint.
   final Color? color;
+
+  /// The category emoji, shown in place of [icon] when set.
+  final String? emoji;
 }
 
 TxnDisplay txnDisplay(
@@ -51,10 +57,15 @@ TxnDisplay txnDisplay(
       final sub = category != null
           ? '$date${category.name}${withTime ? ' · $time' : ''}'
           : '$dateรายรับ${withTime ? ' · $time' : ''}';
-      final icon = category != null
-          ? CategoryIcons.forKey(category.iconKey)
-          : AppIcons.banknote;
-      return TxnDisplay(icon, title, sub, color: categoryColor);
+      final emoji =
+          category != null ? CategoryEmoji.forKey(category.iconKey) : null;
+      return TxnDisplay(
+        AppIcons.banknote,
+        title,
+        sub,
+        color: categoryColor,
+        emoji: emoji,
+      );
     case TxnType.expense:
       if (t.categoryId == null) {
         return TxnDisplay(AppIcons.receiptText, 'รายการใหม่จากสลิป',
@@ -65,7 +76,12 @@ TxnDisplay txnDisplay(
           : (category?.name ?? 'รายการ');
       final sub =
           '$date${category?.name ?? 'อื่นๆ'}${withTime ? ' · $time' : ''}';
-      return TxnDisplay(CategoryIcons.forKey(category?.iconKey), title, sub,
-          color: categoryColor);
+      return TxnDisplay(
+        AppIcons.receiptText,
+        title,
+        sub,
+        color: categoryColor,
+        emoji: CategoryEmoji.forKey(category?.iconKey),
+      );
   }
 }

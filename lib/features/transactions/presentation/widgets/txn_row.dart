@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/money.dart';
+import '../../../../core/widgets/emoji_chip.dart';
 import '../../../../core/widgets/icon_chip.dart';
 import '../../../../domain/enums/enums.dart';
 
-/// A single transaction list row: tinted icon + title/sub + signed amount.
+/// A single transaction list row: tinted icon/emoji + title/sub + signed amount.
 class TxnRow extends StatelessWidget {
   const TxnRow({
     super.key,
@@ -16,6 +17,7 @@ class TxnRow extends StatelessWidget {
     required this.amountCents,
     required this.type,
     this.iconColor,
+    this.emoji,
     this.onTap,
   });
 
@@ -25,9 +27,12 @@ class TxnRow extends StatelessWidget {
   final int amountCents;
   final TxnType type;
 
-  /// The category colour for the leading icon (matches category management);
+  /// The category colour for the leading chip (matches category management);
   /// null falls back to the default terra tint.
   final Color? iconColor;
+
+  /// The category emoji, shown in place of [icon] when set.
+  final String? emoji;
   final VoidCallback? onTap;
 
   @override
@@ -41,14 +46,25 @@ class TxnRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          IconChip(
-            icon: icon,
-            size: 42,
-            radius: 14,
-            iconSize: 20,
-            background: iconColor ?? AppColors.terraWash,
-            foreground: iconColor == null ? AppColors.terra700 : Colors.white,
-          ),
+          if (emoji != null)
+            EmojiChip(
+              emoji: emoji!,
+              size: 42,
+              radius: 14,
+              emojiSize: 22,
+              background: iconColor == null
+                  ? AppColors.terraWash
+                  : AppColors.soft(iconColor!),
+            )
+          else
+            IconChip(
+              icon: icon,
+              size: 42,
+              radius: 14,
+              iconSize: 20,
+              background: iconColor ?? AppColors.terraWash,
+              foreground: iconColor == null ? AppColors.terra700 : Colors.white,
+            ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

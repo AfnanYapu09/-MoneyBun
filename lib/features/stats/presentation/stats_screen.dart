@@ -9,7 +9,7 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_motion.dart';
-import '../../../core/widgets/category_icons.dart';
+import '../../../core/widgets/category_chip.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/pill.dart';
@@ -490,6 +490,7 @@ class _TransferList extends StatelessWidget {
                 title: d.title,
                 sub: d.sub,
                 iconColor: d.color,
+                emoji: d.emoji,
                 amountCents: t.amountCents,
                 type: t.type,
                 onTap: () => onTap(t.id),
@@ -518,15 +519,12 @@ class _CategoryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        IconChip(
-          icon: CategoryIcons.forKey(category?.iconKey),
+        CategoryChip(
+          iconKey: category?.iconKey,
+          colorHex: category?.colorHex,
           size: 40,
           radius: 13,
-          iconSize: 19,
-          background: category == null
-              ? AppColors.terraWash
-              : AppColors.forHex(category!.colorHex),
-          foreground: category == null ? AppColors.terra700 : Colors.white,
+          glyphSize: 21,
         ),
         const SizedBox(width: 14),
         Expanded(

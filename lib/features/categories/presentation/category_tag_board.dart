@@ -6,7 +6,7 @@ import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/category_icons.dart';
+import '../../../core/widgets/category_chip.dart';
 import '../../../core/widgets/dashed_border.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
@@ -265,15 +265,12 @@ class _CategoryButton extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.forHex(category.colorHex),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(CategoryIcons.forKey(category.iconKey),
-                size: 24, color: Colors.white),
+          CategoryChip(
+            iconKey: category.iconKey,
+            colorHex: category.colorHex,
+            size: 52,
+            glyphSize: 26,
+            circle: true,
           ),
           const SizedBox(height: 7),
           Flexible(

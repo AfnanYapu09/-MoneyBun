@@ -54,4 +54,13 @@ class AppColors {
     final withAlpha = value.length == 6 ? 'FF$value' : value;
     return Color(int.parse(withAlpha, radix: 16));
   }
+
+  /// A soft, translucent wash of a stored `colorHex` — the tinted background
+  /// behind a category emoji chip, so the full-colour emoji stays legible.
+  static Color softHex(String hex, [double alpha = 0.2]) =>
+      forHex(hex).withValues(alpha: alpha);
+
+  /// A soft, translucent wash of an already-parsed [color].
+  static Color soft(Color color, [double alpha = 0.2]) =>
+      color.withValues(alpha: alpha);
 }
