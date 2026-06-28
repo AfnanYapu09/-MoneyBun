@@ -36,6 +36,10 @@ class DatePeriod {
   /// (Comparison, Savings goal) regardless of the active mode.
   DateTime get monthAnchor => AppDate.startOfMonth(anchor);
 
+  /// Number of days spanned by this window (month length, or 7 for a week).
+  /// Drives budget conversion (see `budget_math.dart`).
+  int get windowDays => isMonth ? AppDate.daysInMonth(anchor) : 7;
+
   DatePeriod next() => isMonth
       ? DatePeriod.month(AppDate.addMonths(anchor, 1))
       : DatePeriod.week(AppDate.addWeeks(anchor, 1));

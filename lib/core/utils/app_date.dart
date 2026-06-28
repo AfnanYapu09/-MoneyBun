@@ -22,6 +22,10 @@ class AppDate {
   /// Number of days in the calendar month containing [d].
   static int daysInMonth(DateTime d) => DateTime(d.year, d.month + 1, 0).day;
 
+  /// Number of days in [year] (366 on leap years).
+  static int daysInYear(int year) =>
+      DateTime(year, 12, 31).difference(DateTime(year, 1, 1)).inDays + 1;
+
   // ---- Weeks (Sunday-first, the Thai convention) -------------------------
 
   /// Start of the week (Sunday 00:00) containing [d]. `weekday` is 1..7 with

@@ -133,10 +133,10 @@ class _MonthGrid extends ConsumerWidget {
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 4,
+            crossAxisCount: 3,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.9,
+            childAspectRatio: 2.1,
             children: [
               for (var m = 1; m <= 12; m++)
                 _PickTile(

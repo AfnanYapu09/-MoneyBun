@@ -5,6 +5,7 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/utils/budget_math.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
@@ -25,12 +26,11 @@ class BudgetScreen extends ConsumerWidget {
     final period = ref.watch(selectedPeriodProvider);
     final txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final budgets = (ref.watch(budgetsProvider).value ?? const <BudgetRow>[])
-        .where((b) => b.period == BudgetPeriod.monthly && b.categoryId != null)
+        .where((b) => b.categoryId != null)
         .toList();
-    // In week mode the monthly budget is prorated to the week so weekly
-    // spending compares against a fair share (7 / days-in-month).
-    final factor = period.monthlyProration;
-    int target(int monthlyCents) => (monthlyCents * factor).round();
+    // Each budget (weekly / monthly / yearly) is converted to the viewing
+    // window so its target compares fairly against the period's spending.
+    int target(BudgetRow b) => budgetForWindow(b.amountCents, b.period, period);
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -43,8 +43,7 @@ class BudgetScreen extends ConsumerWidget {
       spentByCat.update(t.categoryId!, (v) => v + t.amountCents,
           ifAbsent: () => t.amountCents);
     }
-    final totalBudget =
-        budgets.fold<int>(0, (s, b) => s + target(b.amountCents));
+    final totalBudget = budgets.fold<int>(0, (s, b) => s + target(b));
     final totalSpent =
         budgets.fold<int>(0, (s, b) => s + (spentByCat[b.categoryId] ?? 0));
     final remaining = totalBudget - totalSpent;
@@ -150,7 +149,9 @@ class BudgetScreen extends ConsumerWidget {
                       child: _BudgetBar(
                         category: categories[budgets[i].categoryId],
                         spent: spentByCat[budgets[i].categoryId] ?? 0,
-                        limit: target(budgets[i].amountCents),
+                        limit: target(budgets[i]),
+                        periodLabel:
+                            budgetPeriodLabel(budgets[i].period, locale),
                       ),
                     ),
                   ],
@@ -170,10 +171,12 @@ class _BudgetBar extends StatelessWidget {
     required this.category,
     required this.spent,
     required this.limit,
+    required this.periodLabel,
   });
   final CategoryRow? category;
   final int spent;
   final int limit;
+  final String periodLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -197,8 +200,30 @@ class _BudgetBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(category?.name ?? 'อื่นๆ',
-                      style: AppTypography.body(size: 14.5)),
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(category?.name ?? 'อื่นๆ',
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.body(size: 14.5)),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.paper2,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(periodLabel,
+                              style: AppTypography.body(
+                                  size: 10.5, color: AppColors.ink3)),
+                        ),
+                      ],
+                    ),
+                  ),
                   RichText(
                     text: TextSpan(
                       text: Money.compact(spent),

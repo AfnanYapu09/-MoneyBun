@@ -10,6 +10,7 @@ import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/budget_math.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_motion.dart';
@@ -67,12 +68,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final income = txns
         .where((t) => t.type == TxnType.income)
         .fold<int>(0, (s, t) => s + t.amountCents);
-    // Sum of monthly budgets, prorated to the week (× 7/days) in week mode so
-    // the spending card compares like-for-like with the period's spending.
-    final monthlyBudget = budgets
-        .where((b) => b.period == BudgetPeriod.monthly)
-        .fold<int>(0, (s, b) => s + b.amountCents);
-    final totalBudget = (monthlyBudget * period.monthlyProration).round();
+    // Every budget (weekly / monthly / yearly) converted to the active window
+    // so the spending card compares like-for-like with the period's spending.
+    final totalBudget = budgets.fold<int>(
+        0, (s, b) => s + budgetForWindow(b.amountCents, b.period, period));
 
     // The home recent list surfaces only the actionable, still-uncategorised
     // slip imports (newest first, capped); everything else lives on
