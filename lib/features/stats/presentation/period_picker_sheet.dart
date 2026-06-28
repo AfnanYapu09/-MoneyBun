@@ -37,29 +37,11 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
     _navYearBlock = period.anchor.year - (period.anchor.year % 12);
   }
 
-  /// Jump back to the current month / week / year (matching the active mode).
-  void _jumpToToday() {
-    final notifier = ref.read(selectedPeriodProvider.notifier);
-    final now = DateTime.now();
-    switch (_mode) {
-      case PeriodMode.month:
-        notifier.setMonth(now);
-      case PeriodMode.week:
-        notifier.setWeek(now);
-      case PeriodMode.year:
-        notifier.setYear(now);
-    }
+  /// Jump back to the current month and close — always "this month", whatever
+  /// the active mode.
+  void _jumpToThisMonth() {
+    ref.read(selectedPeriodProvider.notifier).setMonth(DateTime.now());
     Navigator.of(context).maybePop();
-  }
-
-  /// Label for the jump-to-now shortcut, adapting to the active mode.
-  String _todayLabel(String locale) {
-    final now = switch (_mode) {
-      PeriodMode.month => DatePeriod.month(DateTime.now()),
-      PeriodMode.week => DatePeriod.week(DateTime.now()),
-      PeriodMode.year => DatePeriod.year(DateTime.now()),
-    };
-    return now.periodNoun(locale);
   }
 
   void _pickMonth(DateTime month) {
@@ -83,7 +65,7 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
     return SheetScaffold(
       title: 'เลือกช่วงเวลา',
       maxHeightFactor: 0.72,
-      action: _TodayButton(label: _todayLabel(locale), onTap: _jumpToToday),
+      action: _TodayButton(onTap: _jumpToThisMonth),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
         child: Column(
@@ -92,9 +74,9 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
           children: [
             SegmentedControl<PeriodMode>(
               segments: const [
+                Segment(value: PeriodMode.year, label: 'รายปี'),
                 Segment(value: PeriodMode.month, label: 'รายเดือน'),
                 Segment(value: PeriodMode.week, label: 'รายสัปดาห์'),
-                Segment(value: PeriodMode.year, label: 'รายปี'),
               ],
               value: _mode,
               onChanged: (m) => setState(() => _mode = m),
@@ -401,8 +383,7 @@ class _PickTile extends StatelessWidget {
 /// "วันนี้" shortcut shown in the sheet header — jumps back to the current
 /// month / week.
 class _TodayButton extends StatelessWidget {
-  const _TodayButton({required this.label, required this.onTap});
-  final String label;
+  const _TodayButton({required this.onTap});
   final VoidCallback onTap;
 
   @override
@@ -416,7 +397,7 @@ class _TodayButton extends StatelessWidget {
           color: AppColors.terraWash,
           borderRadius: BorderRadius.circular(99),
         ),
-        child: Text(label,
+        child: Text('เดือนนี้',
             style: AppTypography.heading(
                 size: 13, weight: FontWeight.w500, color: AppColors.terra700)),
       ),

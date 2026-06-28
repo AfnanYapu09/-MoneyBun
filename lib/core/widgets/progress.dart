@@ -147,6 +147,7 @@ class GroupedBarChart extends StatelessWidget {
     this.height = 168,
     this.incomeColor = AppColors.green,
     this.expenseColor = AppColors.terra,
+    this.groupWidth,
   });
 
   final List<BarGroupData> groups;
@@ -154,42 +155,61 @@ class GroupedBarChart extends StatelessWidget {
   final Color incomeColor;
   final Color expenseColor;
 
+  /// When set, each group is a fixed-width column and the chart scrolls
+  /// horizontally — use it when there are too many groups to fit (e.g. 12
+  /// months). When null, groups share the width via [Expanded].
+  final double? groupWidth;
+
   @override
   Widget build(BuildContext context) {
     final max = groups.fold<double>(
         1, (m, g) => math.max(m, math.max(g.income, g.expense)));
+    final bars = [for (final g in groups) _group(g, max)];
+    if (groupWidth == null) {
+      return SizedBox(
+        height: height,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [for (final b in bars) Expanded(child: b)],
+        ),
+      );
+    }
     return SizedBox(
       height: height,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          for (final g in groups)
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        _bar(g.income / max, incomeColor, g.active),
-                        const SizedBox(width: 6),
-                        _bar(g.expense / max, expenseColor, g.active),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(g.label,
-                      style: AppTypography.heading(
-                          size: 12.5,
-                          weight: g.active ? FontWeight.w500 : FontWeight.w400,
-                          color: g.active ? AppColors.ink : AppColors.ink3)),
-                ],
-              ),
-            ),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            for (final b in bars) SizedBox(width: groupWidth, child: b),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _group(BarGroupData g, double max) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _bar(g.income / max, incomeColor, g.active),
+              const SizedBox(width: 6),
+              _bar(g.expense / max, expenseColor, g.active),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(g.label,
+            style: AppTypography.heading(
+                size: 12.5,
+                weight: g.active ? FontWeight.w500 : FontWeight.w400,
+                color: g.active ? AppColors.ink : AppColors.ink3)),
+      ],
     );
   }
 

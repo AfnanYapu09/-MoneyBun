@@ -13,6 +13,31 @@ import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../domain/enums/enums.dart';
 
+/// The spans shown on the comparison chart for the active mode, oldest → newest.
+List<DatePeriod> _comparisonPeriods(DatePeriod p) {
+  switch (p.mode) {
+    case PeriodMode.month:
+      return [
+        for (var m = 1; m <= 12; m++)
+          DatePeriod.month(DateTime(p.anchor.year, m)),
+      ];
+    case PeriodMode.year:
+      return [
+        for (var i = 4; i >= 0; i--)
+          DatePeriod.year(AppDate.addYears(p.anchor, -i)),
+      ];
+    case PeriodMode.week:
+      final monthEnd = AppDate.endOfMonth(p.monthAnchor);
+      final weeks = <DatePeriod>[];
+      var w = AppDate.startOfWeek(p.monthAnchor);
+      while (!w.isAfter(monthEnd)) {
+        weeks.add(DatePeriod.week(w));
+        w = AppDate.addWeeks(w, 1);
+      }
+      return weeks;
+  }
+}
+
 class _PeriodAgg {
   _PeriodAgg(this.period, this.income, this.expense);
   final DatePeriod period;
@@ -35,15 +60,11 @@ class ComparisonScreen extends ConsumerWidget {
     final period = ref.watch(selectedPeriodProvider);
     final allTxns = ref.watch(allTransactionsProvider).value ?? const [];
 
-    // The last 4 periods of the active mode, oldest → selected.
-    final periods = <DatePeriod>[];
-    var p = period;
-    for (var i = 0; i < 4; i++) {
-      periods.add(p);
-      p = p.previous();
-    }
-    final ordered = periods.reversed.toList();
-    final aggs = ordered.map((pp) {
+    // The spans to compare, depending on the active mode:
+    //   month → the 12 months of the selected year
+    //   year  → the last 5 years ending at the selected year
+    //   week  → every week of the selected month
+    final aggs = _comparisonPeriods(period).map((pp) {
       var inc = 0, exp = 0;
       for (final t in allTxns) {
         if (t.occurredAt < pp.start || t.occurredAt > pp.end) continue;
@@ -53,7 +74,8 @@ class ComparisonScreen extends ConsumerWidget {
       return _PeriodAgg(pp, inc, exp);
     }).toList();
 
-    final current = aggs.last;
+    final current =
+        aggs.firstWhere((a) => a.period == period, orElse: () => aggs.last);
     final avgSaved =
         (aggs.fold<int>(0, (s, a) => s + a.saved) / aggs.length).round();
     final unitWord =
@@ -84,7 +106,7 @@ class ComparisonScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _HeroCard(
-                  label: 'เฉลี่ย 4 $unitWord',
+                  label: 'เฉลี่ย ${aggs.length} $unitWord',
                   value: Money.compact(avgSaved),
                   background: AppColors.paper,
                   foreground: AppColors.ink,
@@ -122,6 +144,7 @@ class ComparisonScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 14),
                 GroupedBarChart(
+                  groupWidth: aggs.length > 7 ? 42 : null,
                   groups: [
                     for (final a in aggs)
                       BarGroupData(
