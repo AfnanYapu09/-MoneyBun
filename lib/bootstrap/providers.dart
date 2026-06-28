@@ -179,6 +179,10 @@ class SelectedPeriod extends Notifier<DatePeriod> {
 final selectedPeriodProvider =
     NotifierProvider<SelectedPeriod, DatePeriod>(SelectedPeriod.new);
 
+/// Number of modal bottom sheets currently open. The home FAB hides while > 0
+/// so the floating "+" doesn't peek behind an open popup.
+final openSheetsProvider = StateProvider<int>((ref) => 0);
+
 /// Transactions inside the selected period (month or week).
 final periodTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {
   final period = ref.watch(selectedPeriodProvider);

@@ -346,6 +346,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   Future<void> _pickAccount(List<AccountRow> accounts, bool from) async {
     final id = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => SheetScaffold(
         title: from ? 'เลือกบัญชี' : 'ไปยังบัญชี',
