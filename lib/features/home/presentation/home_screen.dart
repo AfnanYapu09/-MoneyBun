@@ -10,15 +10,17 @@ import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/budget_math.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_motion.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/bun_scanning_block.dart';
-import '../../../core/widgets/pill.dart';
+import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/stat_chip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../transactions/presentation/widgets/account_flow.dart';
 import '../../transactions/presentation/widgets/txn_day_group.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -44,8 +46,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider).languageCode;
-    final month = ref.watch(selectedMonthProvider);
-    final txns = ref.watch(monthTransactionsProvider).value ?? const [];
+    final period = ref.watch(selectedPeriodProvider);
+    final txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -67,9 +69,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final income = txns
         .where((t) => t.type == TxnType.income)
         .fold<int>(0, (s, t) => s + t.amountCents);
-    final totalBudget = budgets
-        .where((b) => b.period == BudgetPeriod.monthly)
-        .fold<int>(0, (s, b) => s + b.amountCents);
+    // Every budget (weekly / monthly / yearly) converted to the active window
+    // so the spending card compares like-for-like with the period's spending.
+    final totalBudget = budgets.fold<int>(
+        0, (s, b) => s + budgetForWindow(b.amountCents, b.period, period));
 
     // The home recent list surfaces only the actionable, still-uncategorised
     // slip imports (newest first, capped); everything else lives on
@@ -106,16 +109,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     const _Header(),
                     if (scan.scanning) const BunScanningBlock(),
-                    MonthChip(
-                      label: AppDate.formatMonth(month, locale: locale),
+                    PeriodChip(
+                      label: period.label(locale),
+                      onTapLabel: () => showPeriodPickerSheet(context),
                       onPrev: () =>
-                          ref.read(selectedMonthProvider.notifier).previous(),
+                          ref.read(selectedPeriodProvider.notifier).previous(),
                       onNext: () =>
-                          ref.read(selectedMonthProvider.notifier).next(),
+                          ref.read(selectedPeriodProvider.notifier).next(),
                     ),
                     _SpendingCard(
                       spentCents: expense,
                       budgetCents: totalBudget,
+                      subtitleNoun: period.periodNoun(locale),
                       scanning: scan.scanning,
                       lastReadAt: settings?.lastSlipReadAt,
                       onRefresh: _scan,
@@ -152,6 +157,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       onTapTxn: (id) =>
                           showAddTransactionSheet(context, editId: id),
                       onCategorize: _categorize,
+                      onShowSlip: _showSlip,
                     ),
                   ],
                 ),
@@ -201,8 +207,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  /// Open the source slip for a row, with a "ลบรายการ" button — used by the
+  /// zero-amount warning so the user can read or delete the failed import.
+  Future<void> _showSlip(TransactionRow txn) async {
+    final slip = txn.slipId == null
+        ? null
+        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    if (!mounted) return;
+    if (slip == null) {
+      showAddTransactionSheet(context, editId: txn.id);
+      return;
+    }
+    showSlipViewer(
+      context,
+      slip,
+      onDelete: () => ref.read(transactionRepositoryProvider).delete(txn.id),
+    );
+  }
+
   Future<void> _categorize(TransactionRow txn) async {
-    final pick = await showCategoryPicker(context);
+    final slip = txn.slipId == null
+        ? null
+        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    if (!mounted) return;
+    final pick = await showCategoryPicker(
+      context,
+      slip: slip,
+      onTransfer: () =>
+          ref.read(transactionRepositoryProvider).reclassifyAsTransfer(txn.id),
+    );
     if (pick != null) {
       await ref
           .read(transactionRepositoryProvider)
@@ -335,6 +368,7 @@ class _SpendingCard extends StatelessWidget {
   const _SpendingCard({
     required this.spentCents,
     required this.budgetCents,
+    required this.subtitleNoun,
     required this.scanning,
     required this.lastReadAt,
     required this.onRefresh,
@@ -342,6 +376,7 @@ class _SpendingCard extends StatelessWidget {
 
   final int spentCents;
   final int budgetCents;
+  final String subtitleNoun;
   final bool scanning;
   final int? lastReadAt;
   final Future<void> Function() onRefresh;
@@ -373,7 +408,7 @@ class _SpendingCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('ใช้จ่ายเดือนนี้',
+              Text('ใช้จ่าย$subtitleNoun',
                   style: AppTypography.body(
                       size: 14,
                       color: AppColors.reverse.withValues(alpha: 0.82))),
@@ -476,6 +511,7 @@ class _RecentList extends StatelessWidget {
     required this.locale,
     required this.onTapTxn,
     required this.onCategorize,
+    required this.onShowSlip,
   });
 
   final List<TransactionRow> uncategorized;
@@ -484,6 +520,7 @@ class _RecentList extends StatelessWidget {
   final String locale;
   final void Function(String id) onTapTxn;
   final void Function(TransactionRow) onCategorize;
+  final void Function(TransactionRow) onShowSlip;
 
   @override
   Widget build(BuildContext context) {
@@ -520,6 +557,7 @@ class _RecentList extends StatelessWidget {
             locale: locale,
             onTapTxn: onTapTxn,
             onCategorize: onCategorize,
+            onShowSlip: onShowSlip,
           ),
       ],
     );

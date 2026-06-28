@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../bootstrap/providers.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/colors.dart';
@@ -19,30 +20,34 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    // Hide the floating "+" while any popup sheet is open.
+    final sheetsOpen = ref.watch(openSheetsProvider) > 0;
     return Scaffold(
       body: shell,
-      floatingActionButton: Container(
-        width: 58,
-        height: 58,
-        decoration: BoxDecoration(
-          color: AppColors.terra,
-          borderRadius: BorderRadius.circular(Tokens.rFab),
-          boxShadow: Tokens.fabShadow,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(Tokens.rFab),
-            onTap: () {
-              // FAB always adds on the Home tab.
-              if (shell.currentIndex != 0) shell.goBranch(0);
-              showAddTransactionSheet(context);
-            },
-            child:
-                const Icon(AppIcons.plus, color: AppColors.reverse, size: 28),
-          ),
-        ),
-      ),
+      floatingActionButton: sheetsOpen
+          ? null
+          : Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: AppColors.terra,
+                borderRadius: BorderRadius.circular(Tokens.rFab),
+                boxShadow: Tokens.fabShadow,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(Tokens.rFab),
+                  onTap: () {
+                    // FAB always adds on the Home tab.
+                    if (shell.currentIndex != 0) shell.goBranch(0);
+                    showAddTransactionSheet(context);
+                  },
+                  child: const Icon(AppIcons.plus,
+                      color: AppColors.reverse, size: 28),
+                ),
+              ),
+            ),
       bottomNavigationBar: Container(
         height: 72 + MediaQuery.of(context).padding.bottom,
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),

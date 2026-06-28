@@ -9,9 +9,10 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/pill.dart';
+import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
+import 'widgets/account_flow.dart';
 import 'widgets/txn_day_group.dart';
 
 /// Full-screen list of all transactions for the selected month, grouped by day.
@@ -21,8 +22,8 @@ class AllTransactionsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider).languageCode;
-    final month = ref.watch(selectedMonthProvider);
-    final txns = ref.watch(monthTransactionsProvider).value ?? const [];
+    final period = ref.watch(selectedPeriodProvider);
+    final txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -48,17 +49,18 @@ class AllTransactionsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 28),
         children: [
-          MonthChip(
-            label: AppDate.formatMonth(month, locale: locale),
-            onPrev: () => ref.read(selectedMonthProvider.notifier).previous(),
-            onNext: () => ref.read(selectedMonthProvider.notifier).next(),
+          PeriodChip(
+            label: period.label(locale),
+            onTapLabel: () => showPeriodPickerSheet(context),
+            onPrev: () => ref.read(selectedPeriodProvider.notifier).previous(),
+            onNext: () => ref.read(selectedPeriodProvider.notifier).next(),
           ),
           const SizedBox(height: 6),
           if (days.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 60),
               child: Center(
-                child: Text('ยังไม่มีรายการเดือนนี้',
+                child: Text('ยังไม่มีรายการ${period.periodNoun(locale)}',
                     style: AppTypography.body(size: 14, color: AppColors.ink3)),
               ),
             ),
@@ -70,18 +72,48 @@ class AllTransactionsScreen extends ConsumerWidget {
               accounts: accounts,
               locale: locale,
               onTapTxn: (id) => showAddTransactionSheet(context, editId: id),
-              onCategorize: (t) => _categorize(context, ref, t.id),
+              onCategorize: (t) => _categorize(context, ref, t),
+              onShowSlip: (t) => _showSlip(context, ref, t),
             ),
         ],
       ),
     );
   }
 
-  Future<void> _categorize(
-      BuildContext context, WidgetRef ref, String id) async {
-    final existing = await ref.read(transactionRepositoryProvider).tagIds(id);
+  /// Open the source slip for a row, with a "ลบรายการ" button — used by the
+  /// zero-amount warning so the user can read or delete the failed import.
+  Future<void> _showSlip(
+      BuildContext context, WidgetRef ref, TransactionRow txn) async {
+    final slip = txn.slipId == null
+        ? null
+        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
     if (!context.mounted) return;
-    final pick = await showCategoryPicker(context, initialTagIds: existing);
+    if (slip == null) {
+      showAddTransactionSheet(context, editId: txn.id);
+      return;
+    }
+    showSlipViewer(
+      context,
+      slip,
+      onDelete: () => ref.read(transactionRepositoryProvider).delete(txn.id),
+    );
+  }
+
+  Future<void> _categorize(
+      BuildContext context, WidgetRef ref, TransactionRow txn) async {
+    final id = txn.id;
+    final existing = await ref.read(transactionRepositoryProvider).tagIds(id);
+    final slip = txn.slipId == null
+        ? null
+        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    if (!context.mounted) return;
+    final pick = await showCategoryPicker(
+      context,
+      initialTagIds: existing,
+      slip: slip,
+      onTransfer: () =>
+          ref.read(transactionRepositoryProvider).reclassifyAsTransfer(id),
+    );
     if (pick != null) {
       await ref
           .read(transactionRepositoryProvider)

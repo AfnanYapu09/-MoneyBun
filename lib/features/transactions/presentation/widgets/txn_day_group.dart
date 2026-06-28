@@ -24,6 +24,7 @@ class TxnDayGroup extends StatelessWidget {
     required this.locale,
     required this.onTapTxn,
     required this.onCategorize,
+    this.onShowSlip,
   });
 
   final DateTime day;
@@ -33,6 +34,9 @@ class TxnDayGroup extends StatelessWidget {
   final String locale;
   final void Function(String id) onTapTxn;
   final void Function(TransactionRow txn) onCategorize;
+
+  /// View the source slip of a row (used by the zero-amount warning).
+  final void Function(TransactionRow txn)? onShowSlip;
 
   static bool isUncategorized(TransactionRow t) =>
       t.type == TxnType.expense && t.categoryId == null;
@@ -99,6 +103,7 @@ class TxnDayGroup extends StatelessWidget {
             locale: locale),
         onTap: () => onTapTxn(t.id),
         onCategorize: () => onCategorize(t),
+        onShowSlip: onShowSlip == null ? null : () => onShowSlip!(t),
       );
     }
     final d = txnDisplay(t,
@@ -107,6 +112,7 @@ class TxnDayGroup extends StatelessWidget {
       icon: d.icon,
       title: d.title,
       sub: d.sub,
+      iconColor: d.color,
       amountCents: t.amountCents,
       type: t.type,
       onTap: () => onTapTxn(t.id),

@@ -157,11 +157,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             final d = txnDisplay(t,
                                 categories: categories,
                                 accounts: accounts,
-                                locale: locale);
+                                locale: locale,
+                                withDate: true);
                             return TxnRow(
                               icon: d.icon,
                               title: d.title,
                               sub: d.sub,
+                              iconColor: d.color,
                               amountCents: t.amountCents,
                               type: t.type,
                               onTap: () => showAddTransactionSheet(context,

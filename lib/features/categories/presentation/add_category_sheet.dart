@@ -6,6 +6,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
 import '../../../domain/enums/enums.dart';
 
@@ -20,33 +21,27 @@ class AddCategorySheet extends ConsumerStatefulWidget {
 
 class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   static const _iconKeys = [
-    'food',
-    'transport',
-    'shopping',
-    'home',
-    'entertainment',
-    'health',
-    'education',
-    'work',
-    'travel',
-    'family',
-    'gift',
-    'package',
+    'food', 'coffee', 'groceries', 'shopping', 'clothing', 'entertainment',
+    'games', 'music', 'movie', 'book', 'ticket', 'transport', //
+    'car', 'fuel', 'bike', 'travel', 'home', 'rent', //
+    'electricity', 'water', 'gas', 'phone_bill', 'phone', 'electronics', //
+    'health', 'pharmacy', 'clinic', 'health_fitness', 'beauty', 'cosmetics', //
+    'family', 'baby', 'dog', 'cat', 'education', 'work', //
+    'gift', 'donate', 'insurance', 'debt', 'subscription', 'tax', //
+    'money', 'savings', 'invest', 'sale', 'package', 'other',
   ];
   static const _colors = [
-    'FFC4694A',
-    'FFD9476B',
-    'FF3D7DCA',
-    'FF4FA36B',
-    'FF8A6DBF',
-    'FFB5531A',
-    'FF3FA9A0',
-    'FF6E635A',
+    'FFC4694A', 'FFE8732C', 'FFD9476B', 'FFD86592', 'FF3D7DCA', 'FF566AC2', //
+    'FF4FA36B', 'FF6E8B6F', 'FF8A6DBF', 'FFB5739E', 'FFB5531A', 'FFA9744F', //
+    'FF3FA9A0', 'FF4E8C8A', 'FF2FA8C4', 'FFD9A441', 'FFC0533F', 'FF7A736B',
   ];
 
   final _name = TextEditingController();
   String _iconKey = 'food';
   String _colorHex = 'FFC4694A';
+
+  /// false → icon grid, true → colour grid (icons shown first).
+  bool _showColors = false;
 
   @override
   void dispose() {
@@ -58,6 +53,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   Widget build(BuildContext context) {
     return SheetScaffold(
       title: 'หมวดใหม่',
+      fullHeight: true,
       footer: PrimaryButton(label: 'บันทึก', onPressed: _save),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -103,65 +99,72 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
               ),
             ),
             const SizedBox(height: 18),
-            Text('ไอคอน',
-                style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final k in _iconKeys)
-                  InkWell(
-                    onTap: () => setState(() => _iconKey = k),
-                    customBorder: const CircleBorder(),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: _iconKey == k
-                            ? AppColors.terraWash
-                            : AppColors.paper,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: _iconKey == k
-                                ? AppColors.terra
-                                : AppColors.line,
-                            width: _iconKey == k ? 1.5 : 1),
-                      ),
-                      child: Icon(CategoryIcons.forKey(k),
-                          size: 20, color: AppColors.terra700),
-                    ),
-                  ),
+            // Toggle between the icon grid and the colour grid (icons first).
+            SegmentedControl<bool>(
+              value: _showColors,
+              onChanged: (v) => setState(() => _showColors = v),
+              segments: const [
+                Segment(value: false, label: 'ไอคอน'),
+                Segment(value: true, label: 'สี'),
               ],
             ),
-            const SizedBox(height: 18),
-            Text('สี',
-                style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                for (final c in _colors) ...[
-                  InkWell(
-                    onTap: () => setState(() => _colorHex = c),
-                    customBorder: const CircleBorder(),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: AppColors.forHex(c),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: _colorHex == c
-                                ? AppColors.ink
-                                : Colors.transparent,
-                            width: 2),
+            const SizedBox(height: 14),
+            if (!_showColors)
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 6,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                children: [
+                  for (final k in _iconKeys)
+                    InkWell(
+                      onTap: () => setState(() => _iconKey = k),
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _iconKey == k
+                              ? AppColors.terraWash
+                              : AppColors.paper,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: _iconKey == k
+                                  ? AppColors.terra
+                                  : AppColors.line,
+                              width: _iconKey == k ? 1.5 : 1),
+                        ),
+                        child: Icon(CategoryIcons.forKey(k),
+                            size: 20, color: AppColors.terra700),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
                 ],
-              ],
-            ),
+              )
+            else
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 6,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                children: [
+                  for (final c in _colors)
+                    InkWell(
+                      onTap: () => setState(() => _colorHex = c),
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.forHex(c),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: _colorHex == c
+                                  ? AppColors.ink
+                                  : Colors.transparent,
+                              width: 3),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
           ],
         ),
       ),

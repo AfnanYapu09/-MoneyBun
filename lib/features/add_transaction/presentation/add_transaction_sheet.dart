@@ -90,8 +90,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     super.dispose();
   }
 
-  Color get _accent =>
-      _type == TxnType.income ? AppColors.green : AppColors.terra;
+  Color get _accent => switch (_type) {
+        TxnType.income => AppColors.green,
+        TxnType.transfer => AppColors.amber,
+        TxnType.expense => AppColors.terra,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +111,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         iconOverLabel: true,
         value: _type,
         onChanged: (t) {
-          setState(() => _type = t);
+          // Category sets differ by type, so clear the held category on switch.
+          setState(() {
+            _type = t;
+            _categoryId = null;
+          });
           _persistLive();
         },
         segments: const [
@@ -126,13 +133,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               value: TxnType.transfer,
               label: 'ย้ายเงิน',
               icon: AppIcons.arrowLeftRight,
-              color: AppColors.terra),
+              color: AppColors.amber),
         ],
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a
       // commit button.
       footer: _footer(),
       child: ListView(
+        shrinkWrap: true,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
         children: [
           // Date chip
@@ -323,7 +331,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => CategoryPickerSheet(initialTagIds: _tagIds),
+      builder: (_) => CategoryPickerSheet(
+        initialTagIds: _tagIds,
+        categoryType: _type == TxnType.income
+            ? CategoryType.income
+            : CategoryType.expense,
+      ),
     );
     if (pick != null) {
       setState(() {
@@ -337,6 +350,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   Future<void> _pickAccount(List<AccountRow> accounts, bool from) async {
     final id = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => SheetScaffold(
         title: from ? 'เลือกบัญชี' : 'ไปยังบัญชี',

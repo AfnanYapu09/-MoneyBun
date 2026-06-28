@@ -66,6 +66,8 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
 
     return SheetScaffold(
       title: widget.budget == null ? 'ตั้งงบประมาณ' : 'แก้ไขงบประมาณ',
+      sizeToContent: true,
+      maxHeightFactor: 0.9,
       footer: PrimaryButton(label: 'บันทึกงบ', onPressed: _save),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -92,7 +94,12 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                             : CategoryIcons.forKey(cat.iconKey),
                         size: 38,
                         radius: 12,
-                        iconSize: 19),
+                        iconSize: 19,
+                        background: cat == null
+                            ? AppColors.terraWash
+                            : AppColors.forHex(cat.colorHex),
+                        foreground:
+                            cat == null ? AppColors.terra700 : Colors.white),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(

@@ -211,8 +211,10 @@ class SlipChip extends StatelessWidget {
   }
 }
 
-/// Full-screen viewer for the stored slip image.
-void showSlipViewer(BuildContext context, SlipRow slip) {
+/// Full-screen viewer for the stored slip image. Pass [onDelete] to show a
+/// "ลบรายการ" button (e.g. for a slip whose amount couldn't be read).
+void showSlipViewer(BuildContext context, SlipRow slip,
+    {VoidCallback? onDelete}) {
   showDialog<void>(
     context: context,
     barrierColor: const Color(0xE6211C18),
@@ -237,6 +239,42 @@ void showSlipViewer(BuildContext context, SlipRow slip) {
               icon: const Icon(AppIcons.x, color: AppColors.reverse, size: 26),
             ),
           ),
+          if (onDelete != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 10,
+              child: Center(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(99),
+                  onTap: () {
+                    Navigator.pop(c);
+                    onDelete();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: AppColors.danger,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(AppIcons.trash2,
+                            size: 18, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text('ลบรายการ',
+                            style: AppTypography.heading(
+                                size: 14,
+                                weight: FontWeight.w500,
+                                color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     ),

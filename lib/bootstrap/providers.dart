@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/utils/app_date.dart';
+import '../core/utils/date_period.dart';
 import '../data/local/database.dart';
 import '../data/remote/auth_service.dart';
 import '../data/remote/sync_engine.dart';
@@ -162,21 +162,47 @@ final categoriesProvider = StreamProvider<List<CategoryRow>>(
   (ref) => ref.watch(categoryRepositoryProvider).watchCategories(),
 );
 
-/// The month currently shown on Home / Stats.
-class SelectedMonth extends Notifier<DateTime> {
+/// The time window (month or week) shown across Home / Stats / Budget /
+/// All-transactions. A single global filter so switching it on one screen
+/// reflects on every other.
+class SelectedPeriod extends Notifier<DatePeriod> {
   @override
-  DateTime build() => AppDate.startOfMonth(DateTime.now());
+  DatePeriod build() => DatePeriod.month(DateTime.now());
 
-  void set(DateTime month) => state = AppDate.startOfMonth(month);
-  void next() => state = AppDate.addMonths(state, 1);
-  void previous() => state = AppDate.addMonths(state, -1);
+  void setMonth(DateTime month) => state = DatePeriod.month(month);
+  void setWeek(DateTime dayInWeek) => state = DatePeriod.week(dayInWeek);
+  void setYear(DateTime yearIn) => state = DatePeriod.year(yearIn);
+  void next() => state = state.next();
+  void previous() => state = state.previous();
 }
 
-final selectedMonthProvider =
-    NotifierProvider<SelectedMonth, DateTime>(SelectedMonth.new);
+final selectedPeriodProvider =
+    NotifierProvider<SelectedPeriod, DatePeriod>(SelectedPeriod.new);
 
+/// Number of modal bottom sheets currently open. The home FAB hides while > 0
+/// so the floating "+" doesn't peek behind an open popup.
+class OpenSheets extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void increment() => state++;
+  void decrement() => state = state > 0 ? state - 1 : 0;
+}
+
+final openSheetsProvider = NotifierProvider<OpenSheets, int>(OpenSheets.new);
+
+/// Transactions inside the selected period (month or week).
+final periodTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {
+  final period = ref.watch(selectedPeriodProvider);
+  return ref
+      .watch(transactionRepositoryProvider)
+      .watchBetween(period.start, period.end);
+});
+
+/// Transactions for the calendar month the period sits in — for month-only
+/// views (Savings goal) that ignore week mode.
 final monthTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {
-  final month = ref.watch(selectedMonthProvider);
+  final month = ref.watch(selectedPeriodProvider).monthAnchor;
   return ref.watch(transactionRepositoryProvider).watchMonth(month);
 });
 
