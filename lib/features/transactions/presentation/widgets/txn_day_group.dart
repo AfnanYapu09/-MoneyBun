@@ -113,7 +113,7 @@ class TxnDayGroup extends StatelessWidget {
       title: d.title,
       sub: d.sub,
       iconColor: d.color,
-      emoji: d.emoji,
+      iconKey: d.iconKey,
       amountCents: t.amountCents,
       type: t.type,
       onTap: () => onTapTxn(t.id),

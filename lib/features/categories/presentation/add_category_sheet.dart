@@ -5,7 +5,8 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/category_chip.dart';
-import '../../../core/widgets/category_emoji.dart';
+import '../../../core/widgets/category_pixel.dart';
+import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
@@ -102,7 +103,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
               value: _showColors,
               onChanged: (v) => setState(() => _showColors = v),
               segments: const [
-                Segment(value: false, label: 'อีโมจิ'),
+                Segment(value: false, label: 'ไอคอน'),
                 Segment(value: true, label: 'สี'),
               ],
             ),
@@ -132,8 +133,11 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
                                   : AppColors.line,
                               width: _iconKey == k ? 1.5 : 1),
                         ),
-                        child: Text(CategoryEmoji.forKey(k),
-                            style: const TextStyle(fontSize: 20)),
+                        child: PixelIcon(
+                          grid: CategoryPixel.forKey(k),
+                          color: AppColors.terra700,
+                          size: 24,
+                        ),
                       ),
                     ),
                 ],

@@ -2,16 +2,16 @@ import 'package:flutter/widgets.dart';
 
 import '../theme/colors.dart';
 import 'app_icons.dart';
-import 'category_emoji.dart';
-import 'emoji_chip.dart';
+import 'category_pixel.dart';
 import 'icon_chip.dart';
+import 'pixel_icon.dart';
 
-/// A category's leading chip: its emoji on a soft wash of its colour.
+/// A category's leading chip: its pixel-art sprite on a soft wash of its colour.
 ///
 /// Pass a category's [iconKey] + [colorHex] (use `category?.iconKey` /
 /// `category?.colorHex` so a null category falls through). When either is null
 /// — e.g. the stats "อื่นๆ" bucket or an "all categories" budget — it shows
-/// [fallbackIcon] in a neutral terra chip instead, matching the pre-emoji look.
+/// [fallbackIcon] in a neutral terra chip instead.
 class CategoryChip extends StatelessWidget {
   const CategoryChip({
     super.key,
@@ -28,6 +28,9 @@ class CategoryChip extends StatelessWidget {
   final String? colorHex;
   final double size;
   final double radius;
+
+  /// Icon size for the [fallbackIcon] (no category). The pixel sprite scales
+  /// to the chip [size] so it always sits proportionally inside the tile.
   final double glyphSize;
   final bool circle;
   final IconData fallbackIcon;
@@ -43,11 +46,12 @@ class CategoryChip extends StatelessWidget {
         circle: circle,
       );
     }
-    return EmojiChip(
-      emoji: CategoryEmoji.forKey(iconKey),
+    return PixelIconChip(
+      grid: CategoryPixel.forKey(iconKey),
+      color: AppColors.forHex(colorHex!),
       size: size,
       radius: radius,
-      emojiSize: glyphSize,
+      pixelSize: size * 0.66,
       circle: circle,
       background: AppColors.softHex(colorHex!),
     );

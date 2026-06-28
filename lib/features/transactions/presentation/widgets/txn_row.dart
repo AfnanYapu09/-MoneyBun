@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/money.dart';
-import '../../../../core/widgets/emoji_chip.dart';
+import '../../../../core/widgets/category_pixel.dart';
 import '../../../../core/widgets/icon_chip.dart';
+import '../../../../core/widgets/pixel_icon.dart';
 import '../../../../domain/enums/enums.dart';
 
-/// A single transaction list row: tinted icon/emoji + title/sub + signed amount.
+/// A single transaction list row: tinted icon/sprite + title/sub + signed amount.
 class TxnRow extends StatelessWidget {
   const TxnRow({
     super.key,
@@ -17,7 +18,7 @@ class TxnRow extends StatelessWidget {
     required this.amountCents,
     required this.type,
     this.iconColor,
-    this.emoji,
+    this.iconKey,
     this.onTap,
   });
 
@@ -31,8 +32,9 @@ class TxnRow extends StatelessWidget {
   /// null falls back to the default terra tint.
   final Color? iconColor;
 
-  /// The category emoji, shown in place of [icon] when set.
-  final String? emoji;
+  /// The category's stored icon key; when set, its pixel sprite is shown in
+  /// place of [icon].
+  final String? iconKey;
   final VoidCallback? onTap;
 
   @override
@@ -46,12 +48,13 @@ class TxnRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          if (emoji != null)
-            EmojiChip(
-              emoji: emoji!,
+          if (iconKey != null)
+            PixelIconChip(
+              grid: CategoryPixel.forKey(iconKey),
+              color: iconColor ?? AppColors.terra700,
               size: 42,
               radius: 14,
-              emojiSize: 22,
+              pixelSize: 27,
               background: iconColor == null
                   ? AppColors.terraWash
                   : AppColors.soft(iconColor!),

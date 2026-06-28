@@ -3,27 +3,27 @@ import 'package:flutter/widgets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/category_emoji.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 
 /// Derived display fields for a transaction row.
 class TxnDisplay {
-  const TxnDisplay(this.icon, this.title, this.sub, {this.color, this.emoji});
+  const TxnDisplay(this.icon, this.title, this.sub, {this.color, this.iconKey});
 
-  /// Fallback Lucide icon, used when [emoji] is null (transfers, uncategorised
-  /// rows, plain income).
+  /// Fallback Lucide icon, used when [iconKey] is null (transfers,
+  /// uncategorised rows, plain income).
   final IconData icon;
   final String title;
   final String sub;
 
-  /// The category's colour, so the row icon matches the look in
+  /// The category's colour, so the row chip matches the look in
   /// category management. Null for transfers / uncategorised rows, which keep
   /// the default terra tint.
   final Color? color;
 
-  /// The category emoji, shown in place of [icon] when set.
-  final String? emoji;
+  /// The category's stored icon key; its pixel sprite is shown in place of
+  /// [icon] when set.
+  final String? iconKey;
 }
 
 TxnDisplay txnDisplay(
@@ -57,14 +57,12 @@ TxnDisplay txnDisplay(
       final sub = category != null
           ? '$date${category.name}${withTime ? ' · $time' : ''}'
           : '$dateรายรับ${withTime ? ' · $time' : ''}';
-      final emoji =
-          category != null ? CategoryEmoji.forKey(category.iconKey) : null;
       return TxnDisplay(
         AppIcons.banknote,
         title,
         sub,
         color: categoryColor,
-        emoji: emoji,
+        iconKey: category?.iconKey,
       );
     case TxnType.expense:
       if (t.categoryId == null) {
@@ -81,7 +79,7 @@ TxnDisplay txnDisplay(
         title,
         sub,
         color: categoryColor,
-        emoji: CategoryEmoji.forKey(category?.iconKey),
+        iconKey: category?.iconKey,
       );
   }
 }

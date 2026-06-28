@@ -56,7 +56,7 @@ class AppColors {
   }
 
   /// A soft, translucent wash of a stored `colorHex` — the tinted background
-  /// behind a category emoji chip, so the full-colour emoji stays legible.
+  /// behind a category pixel-icon chip, so the sprite reads clearly.
   static Color softHex(String hex, [double alpha = 0.2]) =>
       forHex(hex).withValues(alpha: alpha);
 
