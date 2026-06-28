@@ -50,7 +50,7 @@ TxnDisplay txnDisplay(
           : (category?.name ?? 'รายรับ');
       final sub = category != null
           ? '$date${category.name}${withTime ? ' · $time' : ''}'
-          : '${date}รายรับ${withTime ? ' · $time' : ''}';
+          : '$dateรายรับ${withTime ? ' · $time' : ''}';
       final icon = category != null
           ? CategoryIcons.forKey(category.iconKey)
           : AppIcons.banknote;
@@ -58,7 +58,7 @@ TxnDisplay txnDisplay(
     case TxnType.expense:
       if (t.categoryId == null) {
         return TxnDisplay(AppIcons.receiptText, 'รายการใหม่จากสลิป',
-            '${date}ยังไม่จัดหมวด · $time');
+            '$dateยังไม่จัดหมวด · $time');
       }
       final title = (t.note != null && t.note!.isNotEmpty)
           ? t.note!
