@@ -64,6 +64,7 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
     final locale = ref.watch(localeProvider).languageCode;
     return SheetScaffold(
       title: 'เลือกช่วงเวลา',
+      sizeToContent: true,
       action: _TodayButton(onTap: _jumpToThisMonth),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -209,8 +210,10 @@ class _WeekList extends ConsumerWidget {
             itemCount: weeks.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (_, i) => _PickTile(
-              label: 'สัปดาห์ ${i + 1}',
-              subtitle: AppDate.formatWeekRange(weeks[i], locale: locale),
+              // Single compact line: "สัปดาห์ 1 · 9–15 มิ.ย." keeps the week
+              // list close to the month/year grids in height.
+              label: 'สัปดาห์ ${i + 1}  ·  '
+                  '${AppDate.formatWeekRange(weeks[i], locale: locale)}',
               selected: AppDate.startOfWeek(
                       period.isWeek ? period.anchor : DateTime.now()) ==
                   weeks[i],
@@ -358,6 +361,8 @@ class _PickTile extends StatelessWidget {
           children: [
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.heading(
                   size: 14, weight: FontWeight.w500, color: fg),
             ),

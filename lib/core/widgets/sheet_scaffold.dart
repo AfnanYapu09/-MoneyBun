@@ -14,8 +14,9 @@ class SheetScaffold extends StatelessWidget {
     required this.child,
     this.footer,
     this.action,
-    this.maxHeightFactor = 0.85,
+    this.maxHeightFactor = 0.6,
     this.fullHeight = false,
+    this.sizeToContent = false,
   });
 
   final String title;
@@ -25,9 +26,13 @@ class SheetScaffold extends StatelessWidget {
   /// Optional trailing action shown before the close (X) button.
   final Widget? action;
 
-  /// Max height as a fraction of the screen; the sheet sizes to its content and
-  /// only scrolls past this cap.
+  /// Height as a fraction of the screen. A fixed height by default; a maximum
+  /// cap when [sizeToContent] is set.
   final double maxHeightFactor;
+
+  /// When true the sheet sizes to its content (capped at [maxHeightFactor]) so
+  /// short content leaves no empty gap. Default false → fixed height.
+  final bool sizeToContent;
 
   /// When true the sheet fills its parent (e.g. a `FractionallySizedBox` form
   /// sheet) instead of sizing to content — for tall forms that should fill a
@@ -81,18 +86,35 @@ class SheetScaffold extends StatelessWidget {
       );
     }
 
-    // Otherwise size to content, capped at maxHeightFactor (scroll if taller),
-    // so short sheets don't leave an empty gap below.
-    final maxH = MediaQuery.of(context).size.height * maxHeightFactor;
+    final h = MediaQuery.of(context).size.height * maxHeightFactor;
+
+    // sizeToContent: size to content, capped at maxHeightFactor (scroll if
+    // taller), so short sheets don't leave an empty gap below.
+    if (sizeToContent) {
+      return Container(
+        constraints: BoxConstraints(maxHeight: h),
+        decoration: decoration,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const _DragHandle(),
+            header,
+            Flexible(child: child),
+            if (footerWidget != null) footerWidget,
+          ],
+        ),
+      );
+    }
+
+    // Default: a fixed height of maxHeightFactor.
     return Container(
-      constraints: BoxConstraints(maxHeight: maxH),
+      height: h,
       decoration: decoration,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           const _DragHandle(),
           header,
-          Flexible(child: child),
+          Expanded(child: child),
           if (footerWidget != null) footerWidget,
         ],
       ),
