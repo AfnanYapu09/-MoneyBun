@@ -269,12 +269,11 @@ class _CategoryButton extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.paper,
+              color: AppColors.forHex(category.colorHex),
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.line),
             ),
             child: Icon(CategoryIcons.forKey(category.iconKey),
-                size: 22, color: AppColors.terra700),
+                size: 24, color: Colors.white),
           ),
           const SizedBox(height: 7),
           Flexible(

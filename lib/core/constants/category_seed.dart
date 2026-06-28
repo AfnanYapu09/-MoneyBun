@@ -8,6 +8,7 @@ class CategorySeed {
     required this.nameEn,
     required this.iconKey,
     required this.colorHex,
+    this.type = CategoryType.expense,
   });
 
   final String id;
@@ -18,8 +19,8 @@ class CategorySeed {
   final String iconKey;
   final String colorHex;
 
-  /// Every slip is money out, so categories are all "expense" kind.
-  CategoryType get type => CategoryType.expense;
+  /// Income or expense. Defaults to expense (slip imports are money out).
+  final CategoryType type;
 }
 
 class SeedData {
@@ -104,10 +105,100 @@ class SeedData {
         iconKey: 'work',
         colorHex: 'FF8A6D52'),
     CategorySeed(
+        id: 'sys_coffee',
+        nameTh: 'คาเฟ่, กาแฟ',
+        nameEn: 'Cafe',
+        iconKey: 'coffee',
+        colorHex: 'FFA9744F'),
+    CategorySeed(
+        id: 'sys_subscription',
+        nameTh: 'ค่าบริการรายเดือน',
+        nameEn: 'Subscriptions',
+        iconKey: 'subscription',
+        colorHex: 'FF566AC2'),
+    CategorySeed(
+        id: 'sys_beauty',
+        nameTh: 'ความงาม',
+        nameEn: 'Beauty',
+        iconKey: 'beauty',
+        colorHex: 'FFD86592'),
+    CategorySeed(
+        id: 'sys_insurance',
+        nameTh: 'ประกัน',
+        nameEn: 'Insurance',
+        iconKey: 'insurance',
+        colorHex: 'FF4E8C8A'),
+    CategorySeed(
+        id: 'sys_debt',
+        nameTh: 'ผ่อน, หนี้',
+        nameEn: 'Debt',
+        iconKey: 'debt',
+        colorHex: 'FFC0533F'),
+    CategorySeed(
+        id: 'sys_donate',
+        nameTh: 'บริจาค, ทำบุญ',
+        nameEn: 'Donate',
+        iconKey: 'donate',
+        colorHex: 'FFCB5A75'),
+    CategorySeed(
         id: 'sys_other',
         nameTh: 'อื่นๆ',
         nameEn: 'Other',
         iconKey: 'other',
         colorHex: 'FF7A736B'),
+  ];
+
+  /// Income categories — the basics for everyday money in. `type: income`.
+  /// Stable `sys_inc_` ids keep re-seeding/sync idempotent.
+  static const List<CategorySeed> incomeCategories = [
+    CategorySeed(
+        id: 'sys_inc_salary',
+        nameTh: 'เงินเดือน',
+        nameEn: 'Salary',
+        iconKey: 'salary',
+        colorHex: 'FF4FA36B',
+        type: CategoryType.income),
+    CategorySeed(
+        id: 'sys_inc_bonus',
+        nameTh: 'โบนัส',
+        nameEn: 'Bonus',
+        iconKey: 'bonus',
+        colorHex: 'FFD9A441',
+        type: CategoryType.income),
+    CategorySeed(
+        id: 'sys_inc_freelance',
+        nameTh: 'รายได้เสริม, ฟรีแลนซ์',
+        nameEn: 'Freelance',
+        iconKey: 'work',
+        colorHex: 'FF3FA9A0',
+        type: CategoryType.income),
+    CategorySeed(
+        id: 'sys_inc_invest',
+        nameTh: 'ดอกเบี้ย, เงินปันผล',
+        nameEn: 'Investment',
+        iconKey: 'invest',
+        colorHex: 'FF3D7DCA',
+        type: CategoryType.income),
+    CategorySeed(
+        id: 'sys_inc_sale',
+        nameTh: 'ขายของ',
+        nameEn: 'Sales',
+        iconKey: 'sale',
+        colorHex: 'FFB5531A',
+        type: CategoryType.income),
+    CategorySeed(
+        id: 'sys_inc_gift',
+        nameTh: 'ได้รับ, ของขวัญ',
+        nameEn: 'Gifts',
+        iconKey: 'gift',
+        colorHex: 'FFB5739E',
+        type: CategoryType.income),
+    CategorySeed(
+        id: 'sys_inc_refund',
+        nameTh: 'เงินคืน',
+        nameEn: 'Refund',
+        iconKey: 'refund',
+        colorHex: 'FF6E8B6F',
+        type: CategoryType.income),
   ];
 }

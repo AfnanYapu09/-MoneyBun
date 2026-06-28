@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -50,10 +50,16 @@ class AppDatabase extends _$AppDatabase {
             await setSetting('onboardingSeen', 'true');
             await setSetting('authMode', 'guest');
           }
+          // v4: income categories + extra expense defaults (idempotent re-seed).
+          if (from < 4) {
+            await _seedCategories();
+          }
         },
       );
 
-  /// Seed the flat category list on first run.
+  /// Seed the expense + income category lists. Idempotent (insertOrIgnore on the
+  /// stable `sys_` ids), so it is safe to re-run on upgrade to add new defaults
+  /// without touching existing or user-renamed rows. Each list is ordered from 0.
   Future<void> _seedCategories() async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await batch((b) {
@@ -62,7 +68,10 @@ class AppDatabase extends _$AppDatabase {
         [
           for (var i = 0; i < SeedData.categories.length; i++)
             _categoryFromSeed(SeedData.categories[i], i, now),
+          for (var i = 0; i < SeedData.incomeCategories.length; i++)
+            _categoryFromSeed(SeedData.incomeCategories[i], i, now),
         ],
+        mode: InsertMode.insertOrIgnore,
       );
     });
   }

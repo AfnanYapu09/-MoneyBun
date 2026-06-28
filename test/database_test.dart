@@ -10,11 +10,14 @@ void main() {
   setUp(() => db = AppDatabase.forTesting(NativeDatabase.memory()));
   tearDown(() => db.close());
 
-  test('onCreate seeds categories and accounts (schema v3)', () async {
+  test('onCreate seeds categories and accounts (schema v4)', () async {
     final categories = await db.getCategories();
     final accounts = await db.getAccounts();
     expect(categories, isNotEmpty);
     expect(accounts, isNotEmpty);
+    // Both expense and income defaults are seeded.
+    expect(categories.any((c) => c.type == CategoryType.expense), isTrue);
+    expect(categories.any((c) => c.type == CategoryType.income), isTrue);
     // Default accounts are watched for slips by default.
     expect(accounts.every((a) => a.watchedForSlips), isTrue);
   });

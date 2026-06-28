@@ -74,6 +74,44 @@ class AppIcons {
   static const IconData briefcase = LucideIcons.briefcase;
   static const IconData dumbbell = LucideIcons.dumbbell;
   static const IconData plane = LucideIcons.plane;
+  // Extra category icons (variety for the category picker).
+  static const IconData shoppingCart = LucideIcons.shoppingCart;
+  static const IconData shirt = LucideIcons.shirt;
+  static const IconData smartphone = LucideIcons.smartphone;
+  static const IconData laptop = LucideIcons.laptop;
+  static const IconData gamepad2 = LucideIcons.gamepad2;
+  static const IconData music = LucideIcons.music;
+  static const IconData film = LucideIcons.film;
+  static const IconData book = LucideIcons.book;
+  static const IconData pill = LucideIcons.pill;
+  static const IconData stethoscope = LucideIcons.stethoscope;
+  static const IconData baby = LucideIcons.baby;
+  static const IconData dog = LucideIcons.dog;
+  static const IconData cat = LucideIcons.cat;
+  static const IconData car = LucideIcons.car;
+  static const IconData fuel = LucideIcons.fuel;
+  static const IconData bike = LucideIcons.bike;
+  static const IconData bed = LucideIcons.bed;
+  static const IconData sofa = LucideIcons.sofa;
+  static const IconData lightbulb = LucideIcons.lightbulb;
+  static const IconData droplets = LucideIcons.droplets;
+  static const IconData flame = LucideIcons.flame;
+  static const IconData phone = LucideIcons.phone;
+  static const IconData umbrella = LucideIcons.umbrella;
+  static const IconData wrench = LucideIcons.wrench;
+  static const IconData scissors = LucideIcons.scissors;
+  static const IconData sparkles = LucideIcons.sparkles;
+  static const IconData leaf = LucideIcons.leaf;
+  static const IconData ticket = LucideIcons.ticket;
+  static const IconData heart = LucideIcons.heart;
+  static const IconData plug = LucideIcons.plug;
+  // Income / money category icons.
+  static const IconData coins = LucideIcons.coins;
+  static const IconData piggyBank = LucideIcons.piggyBank;
+  static const IconData dollarSign = LucideIcons.dollarSign;
+  static const IconData trendingUp = LucideIcons.trendingUp;
+  static const IconData handCoins = LucideIcons.handCoins;
+  static const IconData percent = LucideIcons.percent;
 
   // Accounts / banks (generic placeholders for bank logos)
   static const IconData landmark = LucideIcons.landmark;

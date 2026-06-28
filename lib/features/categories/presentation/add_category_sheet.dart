@@ -20,28 +20,19 @@ class AddCategorySheet extends ConsumerStatefulWidget {
 
 class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   static const _iconKeys = [
-    'food',
-    'transport',
-    'shopping',
-    'home',
-    'entertainment',
-    'health',
-    'education',
-    'work',
-    'travel',
-    'family',
-    'gift',
-    'package',
+    'food', 'coffee', 'groceries', 'shopping', 'clothing', 'entertainment',
+    'games', 'music', 'movie', 'book', 'ticket', 'transport', //
+    'car', 'fuel', 'bike', 'travel', 'home', 'rent', //
+    'electricity', 'water', 'gas', 'phone_bill', 'phone', 'electronics', //
+    'health', 'pharmacy', 'clinic', 'health_fitness', 'beauty', 'cosmetics', //
+    'family', 'baby', 'dog', 'cat', 'education', 'work', //
+    'gift', 'donate', 'insurance', 'debt', 'subscription', 'tax', //
+    'money', 'savings', 'invest', 'sale', 'package', 'other',
   ];
   static const _colors = [
-    'FFC4694A',
-    'FFD9476B',
-    'FF3D7DCA',
-    'FF4FA36B',
-    'FF8A6DBF',
-    'FFB5531A',
-    'FF3FA9A0',
-    'FF6E635A',
+    'FFC4694A', 'FFE8732C', 'FFD9476B', 'FFD86592', 'FF3D7DCA', 'FF566AC2', //
+    'FF4FA36B', 'FF6E8B6F', 'FF8A6DBF', 'FFB5739E', 'FFB5531A', 'FFA9744F', //
+    'FF3FA9A0', 'FF4E8C8A', 'FF2FA8C4', 'FFD9A441', 'FFC0533F', 'FF7A736B',
   ];
 
   final _name = TextEditingController();
@@ -103,64 +94,72 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
               ),
             ),
             const SizedBox(height: 18),
-            Text('ไอคอน',
+            Text('ไอคอน (เลื่อนดูเพิ่ม)',
                 style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final k in _iconKeys)
-                  InkWell(
-                    onTap: () => setState(() => _iconKey = k),
-                    customBorder: const CircleBorder(),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: _iconKey == k
-                            ? AppColors.terraWash
-                            : AppColors.paper,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: _iconKey == k
-                                ? AppColors.terra
-                                : AppColors.line,
-                            width: _iconKey == k ? 1.5 : 1),
+            // ~3 rows visible, scroll for the rest.
+            SizedBox(
+              height: 180,
+              child: GridView.count(
+                padding: EdgeInsets.zero,
+                crossAxisCount: 6,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                children: [
+                  for (final k in _iconKeys)
+                    InkWell(
+                      onTap: () => setState(() => _iconKey = k),
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _iconKey == k
+                              ? AppColors.terraWash
+                              : AppColors.paper,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: _iconKey == k
+                                  ? AppColors.terra
+                                  : AppColors.line,
+                              width: _iconKey == k ? 1.5 : 1),
+                        ),
+                        child: Icon(CategoryIcons.forKey(k),
+                            size: 20, color: AppColors.terra700),
                       ),
-                      child: Icon(CategoryIcons.forKey(k),
-                          size: 20, color: AppColors.terra700),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 18),
-            Text('สี',
+            Text('สี (เลื่อนดูเพิ่ม)',
                 style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                for (final c in _colors) ...[
-                  InkWell(
-                    onTap: () => setState(() => _colorHex = c),
-                    customBorder: const CircleBorder(),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: AppColors.forHex(c),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: _colorHex == c
-                                ? AppColors.ink
-                                : Colors.transparent,
-                            width: 2),
+            // ~2 rows visible, scroll for the rest.
+            SizedBox(
+              height: 96,
+              child: GridView.count(
+                padding: EdgeInsets.zero,
+                crossAxisCount: 6,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                children: [
+                  for (final c in _colors)
+                    InkWell(
+                      onTap: () => setState(() => _colorHex = c),
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.forHex(c),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: _colorHex == c
+                                  ? AppColors.ink
+                                  : Colors.transparent,
+                              width: 2.5),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
                 ],
-              ],
+              ),
             ),
           ],
         ),
