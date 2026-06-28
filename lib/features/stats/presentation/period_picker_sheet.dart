@@ -212,7 +212,9 @@ class _WeekList extends ConsumerWidget {
             itemBuilder: (_, i) => _PickTile(
               label: 'สัปดาห์ ${i + 1}',
               subtitle: AppDate.formatWeekRange(weeks[i], locale: locale),
-              selected: AppDate.startOfWeek(period.anchor) == weeks[i],
+              selected: AppDate.startOfWeek(
+                      period.isWeek ? period.anchor : DateTime.now()) ==
+                  weeks[i],
               onTap: () => onPick(weeks[i]),
               alignStart: true,
             ),

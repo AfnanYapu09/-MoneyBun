@@ -15,9 +15,14 @@ class CategoryPick {
 /// a category grid. Tapping a category returns the chosen category plus the
 /// currently selected tags.
 class CategoryPickerSheet extends StatelessWidget {
-  const CategoryPickerSheet({super.key, this.initialTagIds = const []});
+  const CategoryPickerSheet({
+    super.key,
+    this.initialTagIds = const [],
+    this.categoryType = CategoryType.expense,
+  });
 
   final List<String> initialTagIds;
+  final CategoryType categoryType;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +31,7 @@ class CategoryPickerSheet extends StatelessWidget {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: CategoryTagBoard(
-          categoryType: CategoryType.expense,
+          categoryType: categoryType,
           initialTagIds: initialTagIds,
           onPick: (categoryId, tagIds) =>
               Navigator.of(context).pop(CategoryPick(categoryId, tagIds)),
