@@ -100,12 +100,12 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
         ? 'สัปดาห์ ${i + 1}'
         : _rowLabel(aggs[i].period, locale);
 
-    // Bottom list: month shows the last 4 (newest first); week ascends 1..N;
-    // year is newest first.
+    // Bottom list: month runs Jan→focused month (newest first) so tapping a bar
+    // trims it; week ascends 1..N; year is newest first.
     final List<int> listOrder;
     if (period.isMonth) {
-      final from = (aggs.length - 4).clamp(0, aggs.length);
-      listOrder = [for (var i = aggs.length - 1; i >= from; i--) i];
+      final focusedIdx = aggs.indexOf(focused);
+      listOrder = [for (var i = focusedIdx; i >= 0; i--) i];
     } else if (period.isWeek) {
       listOrder = [for (var i = 0; i < aggs.length; i++) i];
     } else {
@@ -214,7 +214,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                   _PeriodRow(
                     label: rowLabelAt(listOrder[j]),
                     agg: aggs[listOrder[j]],
-                    active: aggs[listOrder[j]].period == current.period,
+                    active: aggs[listOrder[j]].period == focused.period,
                   ),
                 ],
               ],
