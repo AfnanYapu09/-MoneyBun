@@ -64,7 +64,6 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
     final locale = ref.watch(localeProvider).languageCode;
     return SheetScaffold(
       title: 'เลือกช่วงเวลา',
-      maxHeightFactor: 0.72,
       action: _TodayButton(onTap: _jumpToThisMonth),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),

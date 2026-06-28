@@ -14,7 +14,7 @@ class SheetScaffold extends StatelessWidget {
     required this.child,
     this.footer,
     this.action,
-    this.maxHeightFactor = 0.85,
+    this.maxHeightFactor = 0.6,
   });
 
   final String title;
