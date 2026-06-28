@@ -135,8 +135,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
     final breakdownTitle =
         _type == TxnType.income ? 'เงินมาจากไหน' : 'เงินหมดไปกับอะไร';
-    final donutCenter =
-        _type == TxnType.income ? 'รายรับรวม' : 'ใช้จ่ายรวม';
+    final donutCenter = _type == TxnType.income ? 'รายรับรวม' : 'ใช้จ่ายรวม';
 
     return Scaffold(
       body: SafeArea(

@@ -213,7 +213,8 @@ class SlipChip extends StatelessWidget {
 
 /// Full-screen viewer for the stored slip image. Pass [onDelete] to show a
 /// "ลบรายการ" button (e.g. for a slip whose amount couldn't be read).
-void showSlipViewer(BuildContext context, SlipRow slip, {VoidCallback? onDelete}) {
+void showSlipViewer(BuildContext context, SlipRow slip,
+    {VoidCallback? onDelete}) {
   showDialog<void>(
     context: context,
     barrierColor: const Color(0xE6211C18),
