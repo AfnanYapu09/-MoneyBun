@@ -17,7 +17,7 @@ import '../widgets/primary_button.dart';
 
 const _barrier = Color(0x61211C18); // rgba(33,28,24,.38)
 
-/// A form sheet that shows at 60% of the screen and grows to 90% while the
+/// A form sheet that shows at 70% of the screen and grows to 90% while the
 /// keyboard is up (so the focused field stays visible). Anchored to the bottom.
 class _FormSheetSize extends StatelessWidget {
   const _FormSheetSize({required this.child});
@@ -30,7 +30,7 @@ class _FormSheetSize extends StatelessWidget {
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOut,
       alignment: Alignment.bottomCenter,
-      heightFactor: typing ? 0.9 : 0.6,
+      heightFactor: typing ? 0.9 : 0.7,
       child: child,
     );
   }
