@@ -22,7 +22,7 @@ class CategoryPick {
 ///
 /// When categorising a slip-backed entry, pass [slip] to show a "ดูสลิป" button
 /// and [onTransfer] to show a "ย้ายเงิน" button (reclassify as a transfer).
-class CategoryPickerSheet extends StatelessWidget {
+class CategoryPickerSheet extends StatefulWidget {
   const CategoryPickerSheet({
     super.key,
     this.initialTagIds = const [],
@@ -41,50 +41,71 @@ class CategoryPickerSheet extends StatelessWidget {
   final VoidCallback? onTransfer;
 
   @override
+  State<CategoryPickerSheet> createState() => _CategoryPickerSheetState();
+}
+
+class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
+  // Height of the hidden actions header (button 48 + 16 gap), so the sheet
+  // opens scrolled past it — the actions sit above the tags and are revealed by
+  // dragging down.
+  static const _actionsExtent = 64.0;
+
+  late final bool _hasActions =
+      widget.slip != null || widget.onTransfer != null;
+  late final ScrollController _controller =
+      ScrollController(initialScrollOffset: _hasActions ? _actionsExtent : 0.0);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hasActions = slip != null || onTransfer != null;
     return SheetScaffold(
       title: 'เลือกหมวดหมู่ / แท็ก',
       child: SingleChildScrollView(
+        controller: _controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CategoryTagBoard(
-              categoryType: categoryType,
-              initialTagIds: initialTagIds,
-              onPick: (categoryId, tagIds) =>
-                  Navigator.of(context).pop(CategoryPick(categoryId, tagIds)),
-            ),
-            // Secondary actions live below the grid — revealed on scroll.
-            if (hasActions) ...[
-              const SizedBox(height: 20),
+            // Hidden above the fold — pull down to reveal these actions.
+            if (_hasActions) ...[
               Row(
                 children: [
-                  if (slip != null)
+                  if (widget.slip != null)
                     Expanded(
                       child: _ActionButton(
                         icon: AppIcons.receiptText,
                         label: 'ดูสลิป',
-                        onTap: () => showSlipViewer(context, slip!),
+                        onTap: () => showSlipViewer(context, widget.slip!),
                       ),
                     ),
-                  if (slip != null && onTransfer != null)
+                  if (widget.slip != null && widget.onTransfer != null)
                     const SizedBox(width: 10),
-                  if (onTransfer != null)
+                  if (widget.onTransfer != null)
                     Expanded(
                       child: _ActionButton(
                         icon: AppIcons.arrowLeftRight,
                         label: 'ย้ายเงิน',
                         onTap: () {
-                          onTransfer!();
+                          widget.onTransfer!();
                           Navigator.of(context).maybePop();
                         },
                       ),
                     ),
                 ],
               ),
+              const SizedBox(height: 16),
             ],
+            CategoryTagBoard(
+              categoryType: widget.categoryType,
+              initialTagIds: widget.initialTagIds,
+              onPick: (categoryId, tagIds) =>
+                  Navigator.of(context).pop(CategoryPick(categoryId, tagIds)),
+            ),
           ],
         ),
       ),
