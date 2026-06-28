@@ -8,6 +8,7 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/segmented_control.dart';
@@ -100,6 +101,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
         c.id: c
     };
+    final accounts = ref.watch(accountsProvider).value ?? const <AccountRow>[];
 
     return FullSheetScaffold(
       header: SegmentedControl<TxnType>(
@@ -124,6 +126,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               label: 'รายรับ',
               icon: AppIcons.arrowDownLeft,
               color: AppColors.green),
+          Segment(
+              value: TxnType.transfer,
+              label: 'ย้ายเงิน',
+              icon: AppIcons.arrowLeftRight,
+              color: AppColors.terra),
         ],
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a
@@ -212,9 +219,33 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             ),
             const SizedBox(height: 14),
           ],
-          // Slip-backed entries show a link to the original slip.
+          // Account: slip-backed entries only show a link to the original slip
+          // (no account/name flow); manual entries keep the account picker.
           if (_slip != null) ...[
             SlipChip(onTap: () => showSlipViewer(context, _slip!)),
+            const SizedBox(height: 14),
+          ] else if (_type == TxnType.transfer) ...[
+            _Row(
+              icon: AppIcons.wallet,
+              label: 'จากบัญชี',
+              value: _accountName(accounts, _fromAccountId),
+              onTap: () => _pickAccount(accounts, true),
+            ),
+            const SizedBox(height: 14),
+            _Row(
+              icon: AppIcons.arrowDown,
+              label: 'ไปยังบัญชี',
+              value: _accountName(accounts, _toAccountId),
+              onTap: () => _pickAccount(accounts, false),
+            ),
+            const SizedBox(height: 14),
+          ] else ...[
+            _Row(
+              icon: AppIcons.wallet,
+              label: 'บัญชี',
+              value: _accountName(accounts, _fromAccountId),
+              onTap: () => _pickAccount(accounts, true),
+            ),
             const SizedBox(height: 14),
           ],
           // Note
@@ -283,6 +314,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     return c == null ? null : '${c.name}$tagSuffix';
   }
 
+  String? _accountName(List<AccountRow> accounts, String? id) {
+    if (id == null) return null;
+    for (final a in accounts) {
+      if (a.id == id) return a.name;
+    }
+    return null;
+  }
+
   Future<void> _pickCategory() async {
     final pick = await showModalBottomSheet<CategoryPick>(
       context: context,
@@ -300,6 +339,42 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         _categoryId = pick.categoryId;
         _tagIds = pick.tagIds;
       });
+      _persistLive();
+    }
+  }
+
+  Future<void> _pickAccount(List<AccountRow> accounts, bool from) async {
+    final id = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SheetScaffold(
+        title: from ? 'เลือกบัญชี' : 'ไปยังบัญชี',
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          children: [
+            for (final a in accounts)
+              ListTile(
+                leading: IconChip(
+                  icon: CategoryIcons.forKey(a.iconKey),
+                  size: 38,
+                  iconSize: 18,
+                  background: a.colorHex == null
+                      ? AppColors.terraWash
+                      : AppColors.forHex(a.colorHex!),
+                  foreground:
+                      a.colorHex == null ? AppColors.terra700 : Colors.white,
+                  circle: true,
+                ),
+                title: Text(a.name, style: AppTypography.body(size: 15)),
+                onTap: () => Navigator.pop(context, a.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (id != null) {
+      setState(() => from ? _fromAccountId = id : _toAccountId = id);
       _persistLive();
     }
   }
