@@ -15,6 +15,7 @@ class SheetScaffold extends StatelessWidget {
     this.footer,
     this.action,
     this.maxHeightFactor = 0.6,
+    this.fullHeight = false,
   });
 
   final String title;
@@ -25,10 +26,18 @@ class SheetScaffold extends StatelessWidget {
   final Widget? action;
   final double maxHeightFactor;
 
+  /// When true the sheet fills its parent (e.g. a `FractionallySizedBox`)
+  /// instead of using the fixed [maxHeightFactor] — for tall form sheets that
+  /// should match the add-transaction sheet's height.
+  final bool fullHeight;
+
   @override
   Widget build(BuildContext context) {
-    // Fixed height so every popup sheet is the same size (not just capped).
-    final height = MediaQuery.of(context).size.height * maxHeightFactor;
+    // Fixed height so every popup sheet is the same size (not just capped),
+    // unless fullHeight lets a parent FractionallySizedBox drive it.
+    final height = fullHeight
+        ? null
+        : MediaQuery.of(context).size.height * maxHeightFactor;
     return Container(
       height: height,
       decoration: const BoxDecoration(

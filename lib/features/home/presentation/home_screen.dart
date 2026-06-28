@@ -206,7 +206,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _categorize(TransactionRow txn) async {
-    final pick = await showCategoryPicker(context);
+    final slip = txn.slipId == null
+        ? null
+        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    if (!mounted) return;
+    final pick = await showCategoryPicker(
+      context,
+      slip: slip,
+      onTransfer: () =>
+          ref.read(transactionRepositoryProvider).reclassifyAsTransfer(txn.id),
+    );
     if (pick != null) {
       await ref
           .read(transactionRepositoryProvider)

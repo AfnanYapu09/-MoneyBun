@@ -49,6 +49,7 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
   Widget build(BuildContext context) {
     return SheetScaffold(
       title: 'หมวดใหม่',
+      fullHeight: true,
       footer: PrimaryButton(label: 'บันทึก', onPressed: _save),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),

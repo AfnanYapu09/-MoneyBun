@@ -52,10 +52,13 @@ Future<bool?> showAddTransactionSheet(BuildContext context, {String? editId}) {
   );
 }
 
-/// Category + tag picker. Returns the chosen category and tags.
+/// Category + tag picker. Returns the chosen category and tags. Pass [slip] to
+/// show a "ดูสลิป" button and [onTransfer] to show a "ย้ายเงิน" button.
 Future<CategoryPick?> showCategoryPicker(
   BuildContext context, {
   List<String> initialTagIds = const [],
+  SlipRow? slip,
+  VoidCallback? onTransfer,
 }) {
   return _tracked(
     context,
@@ -64,7 +67,11 @@ Future<CategoryPick?> showCategoryPicker(
       isScrollControlled: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => CategoryPickerSheet(initialTagIds: initialTagIds),
+      builder: (_) => CategoryPickerSheet(
+        initialTagIds: initialTagIds,
+        slip: slip,
+        onTransfer: onTransfer,
+      ),
     ),
   );
 }
@@ -104,9 +111,13 @@ Future<bool?> showBudgetSheet(BuildContext context, {BudgetRow? budget}) {
     () => showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => BudgetSheet(budget: budget),
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.94,
+        child: BudgetSheet(budget: budget),
+      ),
     ),
   );
 }
@@ -121,9 +132,13 @@ Future<bool?> showAddCategorySheet(
     () => showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => AddCategorySheet(type: type),
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.94,
+        child: AddCategorySheet(type: type),
+      ),
     ),
   );
 }

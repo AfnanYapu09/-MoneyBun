@@ -71,7 +71,7 @@ class AllTransactionsScreen extends ConsumerWidget {
               accounts: accounts,
               locale: locale,
               onTapTxn: (id) => showAddTransactionSheet(context, editId: id),
-              onCategorize: (t) => _categorize(context, ref, t.id),
+              onCategorize: (t) => _categorize(context, ref, t),
             ),
         ],
       ),
@@ -79,10 +79,20 @@ class AllTransactionsScreen extends ConsumerWidget {
   }
 
   Future<void> _categorize(
-      BuildContext context, WidgetRef ref, String id) async {
+      BuildContext context, WidgetRef ref, TransactionRow txn) async {
+    final id = txn.id;
     final existing = await ref.read(transactionRepositoryProvider).tagIds(id);
+    final slip = txn.slipId == null
+        ? null
+        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
     if (!context.mounted) return;
-    final pick = await showCategoryPicker(context, initialTagIds: existing);
+    final pick = await showCategoryPicker(
+      context,
+      initialTagIds: existing,
+      slip: slip,
+      onTransfer: () =>
+          ref.read(transactionRepositoryProvider).reclassifyAsTransfer(id),
+    );
     if (pick != null) {
       await ref
           .read(transactionRepositoryProvider)
