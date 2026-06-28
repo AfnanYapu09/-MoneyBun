@@ -56,6 +56,27 @@ class StatsScreen extends ConsumerWidget {
     final ranked = byCategory.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    // Spending split by tag. A transaction can carry several tags, so its
+    // amount counts toward each tag it has.
+    final tags = {
+      for (final t in ref.watch(tagsProvider).value ?? const <TagRow>[])
+        t.id: t
+    };
+    final expenseById = {for (final t in expenses) t.id: t.amountCents};
+    final byTag = <String, int>{};
+    for (final link
+        in ref.watch(allTransactionTagsProvider).value ??
+            const <TransactionTagRow>[]) {
+      final cents = expenseById[link.transactionId];
+      if (cents == null) continue;
+      byTag.update(link.tagId, (v) => v + cents, ifAbsent: () => cents);
+    }
+    final rankedTags = byTag.entries
+        .where((e) => tags.containsKey(e.key))
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final tagTotal = rankedTags.fold<int>(0, (s, e) => s + e.value);
+
     // Previous-period comparison badge (previous month, or previous week).
     final prev = period.previous();
     final prevTotal = allTxns
@@ -66,7 +87,7 @@ class StatsScreen extends ConsumerWidget {
         .fold<int>(0, (s, t) => s + t.amountCents);
     final pctChange =
         prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100).round() : null;
-    final prevNoun = period.isWeek ? 'สัปดาห์ก่อน' : 'เดือนก่อน';
+    final prevNoun = period.previousNoun(locale);
 
     return Scaffold(
       body: SafeArea(
@@ -165,6 +186,33 @@ class StatsScreen extends ConsumerWidget {
                             category: categories[ranked[i].key],
                             cents: ranked[i].value,
                             fraction: total == 0 ? 0 : ranked[i].value / total,
+                            color: _palette[i % _palette.length],
+                          ),
+                        ),
+                    ],
+                  ),
+                Text('แยกตามแท็ก',
+                    style: AppTypography.heading(
+                        size: 16, weight: FontWeight.w500)),
+                if (rankedTags.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Text('ยังไม่มีรายการที่ติดแท็ก',
+                        style: AppTypography.body(
+                            size: 14, color: AppColors.ink3)),
+                  )
+                else
+                  Column(
+                    children: [
+                      for (var i = 0; i < rankedTags.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _TagBar(
+                            tag: tags[rankedTags[i].key],
+                            cents: rankedTags[i].value,
+                            fraction: tagTotal == 0
+                                ? 0
+                                : rankedTags[i].value / tagTotal,
                             color: _palette[i % _palette.length],
                           ),
                         ),
@@ -305,6 +353,47 @@ class _CategoryBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(category?.name ?? 'อื่นๆ',
+                      style: AppTypography.body(size: 14)),
+                  Text(Money.compact(cents),
+                      style: AppTypography.heading(
+                          size: 14, weight: FontWeight.w500)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ProgressBar(value: fraction, color: color, height: 7),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TagBar extends StatelessWidget {
+  const _TagBar({
+    required this.tag,
+    required this.cents,
+    required this.fraction,
+    required this.color,
+  });
+  final TagRow? tag;
+  final int cents;
+  final double fraction;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconChip(icon: AppIcons.hash, size: 40, radius: 13, iconSize: 19),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(tag?.name ?? '—',
                       style: AppTypography.body(size: 14)),
                   Text(Money.compact(cents),
                       style: AppTypography.heading(

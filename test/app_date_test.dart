@@ -49,6 +49,19 @@ void main() {
       expect(AppDate.addWeeks(DateTime(2026, 6, 14), -1), DateTime(2026, 6, 7));
     });
 
+    test('startOfYear / endOfYear bound the year', () {
+      expect(AppDate.startOfYear(DateTime(2026, 6, 17)), DateTime(2026));
+      final end = AppDate.endOfYear(DateTime(2026, 3));
+      expect(end.year, 2026);
+      expect(end.month, 12);
+      expect(end.day, 31);
+    });
+
+    test('daysInYear counts leap years', () {
+      expect(AppDate.daysInYear(2026), 365);
+      expect(AppDate.daysInYear(2024), 366);
+    });
+
     test('daysInMonth handles month lengths', () {
       expect(AppDate.daysInMonth(DateTime(2026, 6)), 30);
       expect(AppDate.daysInMonth(DateTime(2026, 2)), 28);

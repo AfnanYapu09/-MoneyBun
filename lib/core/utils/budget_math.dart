@@ -3,24 +3,29 @@ import 'app_date.dart';
 import 'date_period.dart';
 
 /// Convert a budget of [period] worth [amountCents] into the equivalent amount
-/// for the viewing [window] (a month or a week), via a per-day rate.
+/// for the viewing [window] (month / week / year).
 ///
-/// This is what makes weekly / monthly / yearly budgets all comparable against
-/// whatever range the user is looking at:
-///   perDay = amount / (days in the budget's own period)
-///   result = perDay × (days in the viewing window)
-///
-/// So a monthly budget viewed by month is unchanged, a weekly budget viewed by
-/// week is unchanged, and everything else scales proportionally.
+/// We scale by how many of the budget's own period fit inside the window, which
+/// keeps the identity cases exact (a monthly budget viewed by month, a weekly
+/// budget viewed by week, a yearly budget viewed by year are all unchanged) and
+/// scales the rest proportionally — e.g. a monthly budget viewed by year = ×12.
 int budgetForWindow(int amountCents, BudgetPeriod period, DatePeriod window) {
-  final periodDays = switch (period) {
-    BudgetPeriod.weekly => 7.0,
-    BudgetPeriod.monthly => AppDate.daysInMonth(window.anchor).toDouble(),
-    BudgetPeriod.yearly => AppDate.daysInYear(window.anchor.year).toDouble(),
+  final units = switch (period) {
+    BudgetPeriod.weekly => window.windowDays / 7,
+    BudgetPeriod.monthly => _monthsInWindow(window),
+    BudgetPeriod.yearly =>
+      window.windowDays / AppDate.daysInYear(window.anchor.year),
   };
-  final perDay = amountCents / periodDays;
-  return (perDay * window.windowDays).round();
+  return (amountCents * units).round();
 }
+
+/// How many calendar months the [window] represents (exact for month/year,
+/// prorated by day for a week).
+double _monthsInWindow(DatePeriod window) => switch (window.mode) {
+      PeriodMode.month => 1,
+      PeriodMode.week => 7 / AppDate.daysInMonth(window.anchor),
+      PeriodMode.year => 12,
+    };
 
 /// Thai label for a budget period: `รายสัปดาห์` / `รายเดือน` / `รายปี`.
 String budgetPeriodLabel(BudgetPeriod period, String locale) {

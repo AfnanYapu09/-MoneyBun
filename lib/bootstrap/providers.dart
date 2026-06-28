@@ -171,6 +171,7 @@ class SelectedPeriod extends Notifier<DatePeriod> {
 
   void setMonth(DateTime month) => state = DatePeriod.month(month);
   void setWeek(DateTime dayInWeek) => state = DatePeriod.week(dayInWeek);
+  void setYear(DateTime yearIn) => state = DatePeriod.year(yearIn);
   void next() => state = state.next();
   void previous() => state = state.previous();
 }

@@ -10,7 +10,7 @@ void main() {
       expect(p.anchor, DateTime(2026, 6));
       expect(p.start, AppDate.toMillis(DateTime(2026, 6)));
       expect(p.end, AppDate.toMillis(AppDate.endOfMonth(DateTime(2026, 6))));
-      expect(p.monthlyProration, 1.0);
+      expect(p.windowDays, 30);
     });
 
     test('week period snaps to Sunday and spans seven days', () {
@@ -26,6 +26,15 @@ void main() {
       expect(p.monthAnchor, DateTime(2026, 6));
     });
 
+    test('year period spans the whole year', () {
+      final p = DatePeriod.year(DateTime(2026, 6, 17));
+      expect(p.isYear, isTrue);
+      expect(p.anchor, DateTime(2026));
+      expect(p.start, AppDate.toMillis(DateTime(2026)));
+      expect(p.end, AppDate.toMillis(AppDate.endOfYear(DateTime(2026))));
+      expect(p.windowDays, 365); // 2026 is not a leap year
+    });
+
     test('next / previous step by the active unit', () {
       final month = DatePeriod.month(DateTime(2026, 6));
       expect(month.next().anchor, DateTime(2026, 7));
@@ -34,11 +43,10 @@ void main() {
       final week = DatePeriod.week(DateTime(2026, 6, 14));
       expect(week.next().anchor, DateTime(2026, 6, 21));
       expect(week.previous().anchor, DateTime(2026, 6, 7));
-    });
 
-    test('weekly proration is 7 / days-in-month', () {
-      final p = DatePeriod.week(DateTime(2026, 6, 14)); // June has 30 days
-      expect(p.monthlyProration, closeTo(7 / 30, 1e-9));
+      final year = DatePeriod.year(DateTime(2026));
+      expect(year.next().anchor, DateTime(2027));
+      expect(year.previous().anchor, DateTime(2025));
     });
 
     test('value equality by mode + anchor', () {

@@ -7,6 +7,7 @@ void main() {
   // June 2026 has 30 days; 2026 is not a leap year (365 days).
   final monthView = DatePeriod.month(DateTime(2026, 6));
   final weekView = DatePeriod.week(DateTime(2026, 6, 14));
+  final yearView = DatePeriod.year(DateTime(2026));
 
   group('budgetForWindow', () {
     test('a budget viewed in its own period is unchanged', () {
@@ -29,6 +30,13 @@ void main() {
       // 365000 / 365 = 1000/day.
       expect(budgetForWindow(365000, BudgetPeriod.yearly, monthView), 30000);
       expect(budgetForWindow(365000, BudgetPeriod.yearly, weekView), 7000);
+    });
+
+    test('a yearly view aggregates the smaller budgets', () {
+      // Identity for yearly; monthly × 12; weekly × (365/7).
+      expect(budgetForWindow(365000, BudgetPeriod.yearly, yearView), 365000);
+      expect(budgetForWindow(30000, BudgetPeriod.monthly, yearView), 360000);
+      expect(budgetForWindow(7000, BudgetPeriod.weekly, yearView), 365000);
     });
   });
 

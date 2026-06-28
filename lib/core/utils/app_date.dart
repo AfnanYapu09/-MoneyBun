@@ -19,6 +19,11 @@ class AppDate {
   static DateTime addYears(DateTime d, int years) =>
       DateTime(d.year + years, d.month, d.day);
 
+  static DateTime startOfYear(DateTime d) => DateTime(d.year);
+
+  static DateTime endOfYear(DateTime d) =>
+      DateTime(d.year + 1).subtract(const Duration(milliseconds: 1));
+
   /// Number of days in the calendar month containing [d].
   static int daysInMonth(DateTime d) => DateTime(d.year, d.month + 1, 0).day;
 
@@ -56,6 +61,12 @@ class AppDate {
   static String formatDayHeader(DateTime d, {required String locale}) {
     final isThai = locale.startsWith('th');
     return DateFormat('EEEE d MMM', isThai ? 'th_TH' : 'en_US').format(d);
+  }
+
+  /// Year only, in the right era: `2569` (พ.ศ.) / `2026`.
+  static String formatYear(DateTime d, {required String locale}) {
+    final isThai = locale.startsWith('th');
+    return '${isThai ? d.year + buddhistOffset : d.year}';
   }
 
   static String formatMonth(DateTime d, {required String locale}) {

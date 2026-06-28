@@ -25,6 +25,7 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
   late PeriodMode _mode;
   late int _navYear; // month grid: year being browsed
   late DateTime _navMonth; // week list: month being browsed (start-of-month)
+  late int _navYearBlock; // year grid: first year of the 12-year block
 
   @override
   void initState() {
@@ -33,16 +34,46 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
     _mode = period.mode;
     _navYear = period.anchor.year;
     _navMonth = period.monthAnchor;
+    _navYearBlock = period.anchor.year - (period.anchor.year % 12);
   }
 
-  /// Jump back to the current month / week (matching the active mode) and close.
+  /// Jump back to the current month / week / year (matching the active mode).
   void _jumpToToday() {
     final notifier = ref.read(selectedPeriodProvider.notifier);
-    if (_mode == PeriodMode.month) {
-      notifier.setMonth(DateTime.now());
-    } else {
-      notifier.setWeek(DateTime.now());
+    final now = DateTime.now();
+    switch (_mode) {
+      case PeriodMode.month:
+        notifier.setMonth(now);
+      case PeriodMode.week:
+        notifier.setWeek(now);
+      case PeriodMode.year:
+        notifier.setYear(now);
     }
+    Navigator.of(context).maybePop();
+  }
+
+  /// Label for the jump-to-now shortcut, adapting to the active mode.
+  String _todayLabel(String locale) {
+    final now = switch (_mode) {
+      PeriodMode.month => DatePeriod.month(DateTime.now()),
+      PeriodMode.week => DatePeriod.week(DateTime.now()),
+      PeriodMode.year => DatePeriod.year(DateTime.now()),
+    };
+    return now.periodNoun(locale);
+  }
+
+  void _pickMonth(DateTime month) {
+    ref.read(selectedPeriodProvider.notifier).setMonth(month);
+    Navigator.of(context).maybePop();
+  }
+
+  void _pickWeek(DateTime weekStart) {
+    ref.read(selectedPeriodProvider.notifier).setWeek(weekStart);
+    Navigator.of(context).maybePop();
+  }
+
+  void _pickYear(int year) {
+    ref.read(selectedPeriodProvider.notifier).setYear(DateTime(year));
     Navigator.of(context).maybePop();
   }
 
@@ -52,7 +83,7 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
     return SheetScaffold(
       title: 'เลือกช่วงเวลา',
       maxHeightFactor: 0.72,
-      action: _TodayButton(onTap: _jumpToToday),
+      action: _TodayButton(label: _todayLabel(locale), onTap: _jumpToToday),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
         child: Column(
@@ -63,41 +94,44 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
               segments: const [
                 Segment(value: PeriodMode.month, label: 'รายเดือน'),
                 Segment(value: PeriodMode.week, label: 'รายสัปดาห์'),
+                Segment(value: PeriodMode.year, label: 'รายปี'),
               ],
               value: _mode,
               onChanged: (m) => setState(() => _mode = m),
             ),
             const SizedBox(height: 16),
-            Flexible(
-              child: _mode == PeriodMode.month
-                  ? _MonthGrid(
-                      year: _navYear,
-                      locale: locale,
-                      onStepYear: (d) => setState(() => _navYear += d),
-                      onPick: (month) {
-                        ref
-                            .read(selectedPeriodProvider.notifier)
-                            .setMonth(month);
-                        Navigator.of(context).maybePop();
-                      },
-                    )
-                  : _WeekList(
-                      navMonth: _navMonth,
-                      locale: locale,
-                      onStepMonth: (d) => setState(
-                          () => _navMonth = AppDate.addMonths(_navMonth, d)),
-                      onPick: (weekStart) {
-                        ref
-                            .read(selectedPeriodProvider.notifier)
-                            .setWeek(weekStart);
-                        Navigator.of(context).maybePop();
-                      },
-                    ),
-            ),
+            Flexible(child: _buildBody(locale)),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildBody(String locale) {
+    switch (_mode) {
+      case PeriodMode.month:
+        return _MonthGrid(
+          year: _navYear,
+          locale: locale,
+          onStepYear: (d) => setState(() => _navYear += d),
+          onPick: _pickMonth,
+        );
+      case PeriodMode.week:
+        return _WeekList(
+          navMonth: _navMonth,
+          locale: locale,
+          onStepMonth: (d) =>
+              setState(() => _navMonth = AppDate.addMonths(_navMonth, d)),
+          onPick: _pickWeek,
+        );
+      case PeriodMode.year:
+        return _YearGrid(
+          blockStart: _navYearBlock,
+          locale: locale,
+          onStepBlock: (d) => setState(() => _navYearBlock += d * 12),
+          onPick: _pickYear,
+        );
+    }
   }
 }
 
@@ -204,6 +238,57 @@ class _WeekList extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// ‹ year-block › stepper above a 3×4 grid of years.
+class _YearGrid extends ConsumerWidget {
+  const _YearGrid({
+    required this.blockStart,
+    required this.locale,
+    required this.onStepBlock,
+    required this.onPick,
+  });
+
+  final int blockStart;
+  final String locale;
+  final void Function(int delta) onStepBlock;
+  final void Function(int year) onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final period = ref.watch(selectedPeriodProvider);
+    final isThai = locale.startsWith('th');
+    final offset = isThai ? AppDate.buddhistOffset : 0;
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Stepper(
+            label: '${blockStart + offset}–${blockStart + 11 + offset}',
+            onPrev: () => onStepBlock(-1),
+            onNext: () => onStepBlock(1),
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 3,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 2.1,
+            children: [
+              for (var y = blockStart; y < blockStart + 12; y++)
+                _PickTile(
+                  label: '${y + offset}',
+                  selected: period.isYear && period.anchor.year == y,
+                  onTap: () => onPick(y),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -316,7 +401,8 @@ class _PickTile extends StatelessWidget {
 /// "วันนี้" shortcut shown in the sheet header — jumps back to the current
 /// month / week.
 class _TodayButton extends StatelessWidget {
-  const _TodayButton({required this.onTap});
+  const _TodayButton({required this.label, required this.onTap});
+  final String label;
   final VoidCallback onTap;
 
   @override
@@ -330,7 +416,7 @@ class _TodayButton extends StatelessWidget {
           color: AppColors.terraWash,
           borderRadius: BorderRadius.circular(99),
         ),
-        child: Text('วันนี้',
+        child: Text(label,
             style: AppTypography.heading(
                 size: 13, weight: FontWeight.w500, color: AppColors.terra700)),
       ),
