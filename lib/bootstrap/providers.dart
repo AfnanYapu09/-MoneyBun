@@ -181,7 +181,15 @@ final selectedPeriodProvider =
 
 /// Number of modal bottom sheets currently open. The home FAB hides while > 0
 /// so the floating "+" doesn't peek behind an open popup.
-final openSheetsProvider = StateProvider<int>((ref) => 0);
+class OpenSheets extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void increment() => state++;
+  void decrement() => state = state > 0 ? state - 1 : 0;
+}
+
+final openSheetsProvider = NotifierProvider<OpenSheets, int>(OpenSheets.new);
 
 /// Transactions inside the selected period (month or week).
 final periodTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {

@@ -23,11 +23,11 @@ Future<T?> _tracked<T>(
     BuildContext context, Future<T?> Function() show) async {
   final notifier = ProviderScope.containerOf(context, listen: false)
       .read(openSheetsProvider.notifier);
-  notifier.state++;
+  notifier.increment();
   try {
     return await show();
   } finally {
-    notifier.state--;
+    notifier.decrement();
   }
 }
 
