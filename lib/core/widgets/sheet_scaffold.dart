@@ -27,15 +27,15 @@ class SheetScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxH = MediaQuery.of(context).size.height * maxHeightFactor;
+    // Fixed height so every popup sheet is the same size (not just capped).
+    final height = MediaQuery.of(context).size.height * maxHeightFactor;
     return Container(
-      constraints: BoxConstraints(maxHeight: maxH),
+      height: height,
       decoration: const BoxDecoration(
         color: AppColors.cream,
         borderRadius: Tokens.sheetTop,
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           const _DragHandle(),
           Padding(
@@ -56,7 +56,7 @@ class SheetScaffold extends StatelessWidget {
               ],
             ),
           ),
-          Flexible(child: child),
+          Expanded(child: child),
           if (footer != null)
             Padding(
               padding: EdgeInsets.fromLTRB(
