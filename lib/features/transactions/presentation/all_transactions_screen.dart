@@ -12,6 +12,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
+import 'widgets/account_flow.dart';
 import 'widgets/txn_day_group.dart';
 
 /// Full-screen list of all transactions for the selected month, grouped by day.
@@ -72,9 +73,29 @@ class AllTransactionsScreen extends ConsumerWidget {
               locale: locale,
               onTapTxn: (id) => showAddTransactionSheet(context, editId: id),
               onCategorize: (t) => _categorize(context, ref, t),
+              onShowSlip: (t) => _showSlip(context, ref, t),
             ),
         ],
       ),
+    );
+  }
+
+  /// Open the source slip for a row, with a "ลบรายการ" button — used by the
+  /// zero-amount warning so the user can read or delete the failed import.
+  Future<void> _showSlip(
+      BuildContext context, WidgetRef ref, TransactionRow txn) async {
+    final slip = txn.slipId == null
+        ? null
+        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    if (!context.mounted) return;
+    if (slip == null) {
+      showAddTransactionSheet(context, editId: txn.id);
+      return;
+    }
+    showSlipViewer(
+      context,
+      slip,
+      onDelete: () => ref.read(transactionRepositoryProvider).delete(txn.id),
     );
   }
 

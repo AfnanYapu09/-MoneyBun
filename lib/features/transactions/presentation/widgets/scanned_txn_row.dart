@@ -19,6 +19,7 @@ class ScannedTxnRow extends StatelessWidget {
     required this.time,
     this.onTap,
     this.onCategorize,
+    this.onShowSlip,
   });
 
   final TransactionRow txn;
@@ -26,29 +27,55 @@ class ScannedTxnRow extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onCategorize;
 
+  /// View the source slip — used by the warning affordance shown when a slip
+  /// imported with an unreadable (zero) amount.
+  final VoidCallback? onShowSlip;
+
   @override
   Widget build(BuildContext context) {
+    // A slip whose amount OCR failed (฿0): flag it so the user can open the
+    // slip and fix or delete it, instead of the usual "categorise" affordance.
+    final needsAmount =
+        txn.slipId != null && txn.amountCents == 0 && onShowSlip != null;
+
     final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          InkWell(
-            onTap: onCategorize,
-            customBorder:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            child: const DashedBorder(
-              radius: 14,
-              strokeWidth: 2,
-              child: SizedBox(
+          if (needsAmount)
+            InkWell(
+              onTap: onShowSlip,
+              customBorder: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              child: Container(
                 width: 42,
                 height: 42,
-                child: Center(
-                  child:
-                      Icon(AppIcons.plus, size: 20, color: AppColors.terra700),
+                decoration: BoxDecoration(
+                  color: AppColors.dangerWash,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(AppIcons.triangleAlert,
+                    size: 20, color: AppColors.danger),
+              ),
+            )
+          else
+            InkWell(
+              onTap: onCategorize,
+              customBorder: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              child: const DashedBorder(
+                radius: 14,
+                strokeWidth: 2,
+                child: SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Center(
+                    child: Icon(AppIcons.plus,
+                        size: 20, color: AppColors.terra700),
+                  ),
                 ),
               ),
             ),
-          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -59,11 +86,16 @@ class ScannedTxnRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.heading(
                         size: 15, weight: FontWeight.w500)),
-                Text('ยังไม่จัดหมวด · $time',
+                Text(
+                    needsAmount
+                        ? 'อ่านยอดเงินไม่ได้ · แตะดูสลิป'
+                        : 'ยังไม่จัดหมวด · $time',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        AppTypography.body(size: 12.5, color: AppColors.ink3)),
+                    style: AppTypography.body(
+                        size: 12.5,
+                        color:
+                            needsAmount ? AppColors.danger : AppColors.ink3)),
               ],
             ),
           ),

@@ -28,6 +28,7 @@ class AppIcons {
   static const IconData ellipsis = LucideIcons.ellipsis;
   static const IconData clock = LucideIcons.clock;
   static const IconData info = LucideIcons.info;
+  static const IconData triangleAlert = LucideIcons.triangleAlert;
 
   // Status bar
   static const IconData signal = LucideIcons.signal;

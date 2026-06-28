@@ -20,6 +20,7 @@ import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/stat_chip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../transactions/presentation/widgets/account_flow.dart';
 import '../../transactions/presentation/widgets/txn_day_group.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -156,6 +157,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       onTapTxn: (id) =>
                           showAddTransactionSheet(context, editId: id),
                       onCategorize: _categorize,
+                      onShowSlip: _showSlip,
                     ),
                   ],
                 ),
@@ -203,6 +205,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _snack('สแกนไม่สำเร็จ ลองใหม่อีกครั้ง');
       }
     });
+  }
+
+  /// Open the source slip for a row, with a "ลบรายการ" button — used by the
+  /// zero-amount warning so the user can read or delete the failed import.
+  Future<void> _showSlip(TransactionRow txn) async {
+    final slip = txn.slipId == null
+        ? null
+        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    if (!mounted) return;
+    if (slip == null) {
+      showAddTransactionSheet(context, editId: txn.id);
+      return;
+    }
+    showSlipViewer(
+      context,
+      slip,
+      onDelete: () => ref.read(transactionRepositoryProvider).delete(txn.id),
+    );
   }
 
   Future<void> _categorize(TransactionRow txn) async {
@@ -491,6 +511,7 @@ class _RecentList extends StatelessWidget {
     required this.locale,
     required this.onTapTxn,
     required this.onCategorize,
+    required this.onShowSlip,
   });
 
   final List<TransactionRow> uncategorized;
@@ -499,6 +520,7 @@ class _RecentList extends StatelessWidget {
   final String locale;
   final void Function(String id) onTapTxn;
   final void Function(TransactionRow) onCategorize;
+  final void Function(TransactionRow) onShowSlip;
 
   @override
   Widget build(BuildContext context) {
@@ -535,6 +557,7 @@ class _RecentList extends StatelessWidget {
             locale: locale,
             onTapTxn: onTapTxn,
             onCategorize: onCategorize,
+            onShowSlip: onShowSlip,
           ),
       ],
     );
