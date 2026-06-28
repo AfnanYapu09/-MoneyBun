@@ -17,16 +17,29 @@ import '../widgets/primary_button.dart';
 
 const _barrier = Color(0x61211C18); // rgba(33,28,24,.38)
 
-/// A form sheet pinned to the bottom at 90% of the screen height.
+/// A bottom-pinned form sheet. Fixed at 90% of the screen, unless
+/// [growsWithKeyboard] is set — then it opens at 70% and grows to 90% while the
+/// keyboard is up (so the focused field stays visible).
 class _FormSheetSize extends StatelessWidget {
-  const _FormSheetSize({required this.child});
+  const _FormSheetSize({required this.child, this.growsWithKeyboard = false});
   final Widget child;
+  final bool growsWithKeyboard;
 
   @override
   Widget build(BuildContext context) {
-    return FractionallySizedBox(
+    if (!growsWithKeyboard) {
+      return FractionallySizedBox(
+        alignment: Alignment.bottomCenter,
+        heightFactor: 0.9,
+        child: child,
+      );
+    }
+    final typing = MediaQuery.of(context).viewInsets.bottom > 0;
+    return AnimatedFractionallySizedBox(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
       alignment: Alignment.bottomCenter,
-      heightFactor: 0.9,
+      heightFactor: typing ? 0.9 : 0.7,
       child: child,
     );
   }
@@ -149,6 +162,7 @@ Future<bool?> showAddCategorySheet(
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
       builder: (_) => _FormSheetSize(
+        growsWithKeyboard: true,
         child: AddCategorySheet(type: type),
       ),
     ),
