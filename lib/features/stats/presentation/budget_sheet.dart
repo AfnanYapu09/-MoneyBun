@@ -66,6 +66,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
 
     return SheetScaffold(
       title: widget.budget == null ? 'ตั้งงบประมาณ' : 'แก้ไขงบประมาณ',
+      sizeToContent: true,
       maxHeightFactor: 0.9,
       footer: PrimaryButton(label: 'บันทึกงบ', onPressed: _save),
       child: SingleChildScrollView(

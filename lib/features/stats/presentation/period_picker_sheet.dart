@@ -64,6 +64,10 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
     final locale = ref.watch(localeProvider).languageCode;
     return SheetScaffold(
       title: 'เลือกช่วงเวลา',
+      // Size to content; the body is locked to the month/year grid height so the
+      // three modes match in height and the week list scrolls within it.
+      sizeToContent: true,
+      maxHeightFactor: 0.9,
       action: _TodayButton(onTap: _jumpToThisMonth),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -81,7 +85,16 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
               onChanged: (m) => setState(() => _mode = m),
             ),
             const SizedBox(height: 16),
-            Flexible(child: _buildBody(locale)),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Height the 3×4 month/year grid needs (tiles are 3-up with a
+                // 2.1 aspect ratio + 10px gaps), plus its ‹ stepper › row.
+                final tileW = (constraints.maxWidth - 20) / 3;
+                final gridH = 4 * (tileW / 2.1) + 30;
+                final bodyH = 48 + gridH; // stepper (36) + 12 gap + grid
+                return SizedBox(height: bodyH, child: _buildBody(locale));
+              },
+            ),
           ],
         ),
       ),
