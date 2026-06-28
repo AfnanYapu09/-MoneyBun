@@ -14,7 +14,7 @@ class SheetScaffold extends StatelessWidget {
     required this.child,
     this.footer,
     this.action,
-    this.maxHeightFactor = 0.6,
+    this.maxHeightFactor = 0.85,
     this.fullHeight = false,
   });
 
@@ -24,54 +24,76 @@ class SheetScaffold extends StatelessWidget {
 
   /// Optional trailing action shown before the close (X) button.
   final Widget? action;
+
+  /// Max height as a fraction of the screen; the sheet sizes to its content and
+  /// only scrolls past this cap.
   final double maxHeightFactor;
 
-  /// When true the sheet fills its parent (e.g. a `FractionallySizedBox`)
-  /// instead of using the fixed [maxHeightFactor] — for tall form sheets that
-  /// should match the add-transaction sheet's height.
+  /// When true the sheet fills its parent (e.g. a `FractionallySizedBox` form
+  /// sheet) instead of sizing to content — for tall forms that should fill a
+  /// preset height.
   final bool fullHeight;
 
   @override
   Widget build(BuildContext context) {
-    // Fixed height so every popup sheet is the same size (not just capped),
-    // unless fullHeight lets a parent FractionallySizedBox drive it.
-    final height = fullHeight
-        ? null
-        : MediaQuery.of(context).size.height * maxHeightFactor;
-    return Container(
-      height: height,
-      decoration: const BoxDecoration(
-        color: AppColors.cream,
-        borderRadius: Tokens.sheetTop,
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 12, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(title,
+                style:
+                    AppTypography.heading(size: 17, weight: FontWeight.w600)),
+          ),
+          if (action != null) action!,
+          IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(AppIcons.x, size: 22),
+            color: AppColors.ink3,
+          ),
+        ],
       ),
+    );
+    final footerWidget = footer == null
+        ? null
+        : Padding(
+            padding: EdgeInsets.fromLTRB(
+                20, 4, 20, 16 + MediaQuery.of(context).padding.bottom),
+            child: footer!,
+          );
+    const decoration = BoxDecoration(
+      color: AppColors.cream,
+      borderRadius: Tokens.sheetTop,
+    );
+
+    // fullHeight: fill the parent (e.g. a FractionallySizedBox form sheet).
+    if (fullHeight) {
+      return Container(
+        decoration: decoration,
+        child: Column(
+          children: [
+            const _DragHandle(),
+            header,
+            Expanded(child: child),
+            if (footerWidget != null) footerWidget,
+          ],
+        ),
+      );
+    }
+
+    // Otherwise size to content, capped at maxHeightFactor (scroll if taller),
+    // so short sheets don't leave an empty gap below.
+    final maxH = MediaQuery.of(context).size.height * maxHeightFactor;
+    return Container(
+      constraints: BoxConstraints(maxHeight: maxH),
+      decoration: decoration,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           const _DragHandle(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 12, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(title,
-                      style: AppTypography.heading(
-                          size: 17, weight: FontWeight.w600)),
-                ),
-                if (action != null) action!,
-                IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(AppIcons.x, size: 22),
-                  color: AppColors.ink3,
-                ),
-              ],
-            ),
-          ),
-          Expanded(child: child),
-          if (footer != null)
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                  20, 4, 20, 16 + MediaQuery.of(context).padding.bottom),
-              child: footer!,
-            ),
+          header,
+          Flexible(child: child),
+          if (footerWidget != null) footerWidget,
         ],
       ),
     );

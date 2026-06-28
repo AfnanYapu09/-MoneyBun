@@ -138,12 +138,9 @@ Future<bool?> showBudgetSheet(BuildContext context, {BudgetRow? budget}) {
     () => showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => _FormSheetSize(
-        child: BudgetSheet(budget: budget),
-      ),
+      builder: (_) => BudgetSheet(budget: budget),
     ),
   );
 }
