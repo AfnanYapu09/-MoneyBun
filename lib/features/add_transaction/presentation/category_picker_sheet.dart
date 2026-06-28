@@ -50,7 +50,15 @@ class CategoryPickerSheet extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            CategoryTagBoard(
+              categoryType: categoryType,
+              initialTagIds: initialTagIds,
+              onPick: (categoryId, tagIds) =>
+                  Navigator.of(context).pop(CategoryPick(categoryId, tagIds)),
+            ),
+            // Secondary actions live below the grid — revealed on scroll.
             if (hasActions) ...[
+              const SizedBox(height: 20),
               Row(
                 children: [
                   if (slip != null)
@@ -76,14 +84,7 @@ class CategoryPickerSheet extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 16),
             ],
-            CategoryTagBoard(
-              categoryType: categoryType,
-              initialTagIds: initialTagIds,
-              onPick: (categoryId, tagIds) =>
-                  Navigator.of(context).pop(CategoryPick(categoryId, tagIds)),
-            ),
           ],
         ),
       ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
@@ -95,77 +96,113 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
               ),
             ),
             const SizedBox(height: 18),
-            Text('ไอคอน (เลื่อนดูเพิ่ม)',
-                style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
-            const SizedBox(height: 10),
-            // ~3 rows visible, scroll for the rest.
-            SizedBox(
-              height: 180,
-              child: GridView.count(
-                padding: EdgeInsets.zero,
-                crossAxisCount: 6,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                children: [
-                  for (final k in _iconKeys)
-                    InkWell(
-                      onTap: () => setState(() => _iconKey = k),
-                      customBorder: const CircleBorder(),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: _iconKey == k
-                              ? AppColors.terraWash
-                              : AppColors.paper,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: _iconKey == k
-                                  ? AppColors.terra
-                                  : AppColors.line,
-                              width: _iconKey == k ? 1.5 : 1),
-                        ),
-                        child: Icon(CategoryIcons.forKey(k),
-                            size: 20, color: AppColors.terra700),
-                      ),
-                    ),
-                ],
+            // Icon picker button.
+            _PickRow(
+              label: 'ไอคอน',
+              onTap: _pickIcon,
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.forHex(_colorHex),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(CategoryIcons.forKey(_iconKey),
+                    size: 19, color: Colors.white),
               ),
             ),
-            const SizedBox(height: 18),
-            Text('สี (เลื่อนดูเพิ่ม)',
-                style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
-            const SizedBox(height: 10),
-            // ~2 rows visible, scroll for the rest.
-            SizedBox(
-              height: 96,
-              child: GridView.count(
-                padding: EdgeInsets.zero,
-                crossAxisCount: 6,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                children: [
-                  for (final c in _colors)
-                    InkWell(
-                      onTap: () => setState(() => _colorHex = c),
-                      customBorder: const CircleBorder(),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.forHex(c),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: _colorHex == c
-                                  ? AppColors.ink
-                                  : Colors.transparent,
-                              width: 2.5),
-                        ),
-                      ),
-                    ),
-                ],
+            const SizedBox(height: 12),
+            // Colour picker button.
+            _PickRow(
+              label: 'สี',
+              onTap: _pickColor,
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.forHex(_colorHex),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.line),
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _pickIcon() async {
+    final key = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SheetScaffold(
+        title: 'เลือกไอคอน',
+        child: GridView.count(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          crossAxisCount: 5,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          children: [
+            for (final k in _iconKeys)
+              InkWell(
+                onTap: () => Navigator.of(context).pop(k),
+                customBorder: const CircleBorder(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color:
+                        _iconKey == k ? AppColors.terraWash : AppColors.paper,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: _iconKey == k ? AppColors.terra : AppColors.line,
+                        width: _iconKey == k ? 1.5 : 1),
+                  ),
+                  child: Icon(CategoryIcons.forKey(k),
+                      size: 22, color: AppColors.terra700),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (key != null) setState(() => _iconKey = key);
+  }
+
+  Future<void> _pickColor() async {
+    final hex = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SheetScaffold(
+        title: 'เลือกสี',
+        child: GridView.count(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          crossAxisCount: 5,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          children: [
+            for (final c in _colors)
+              InkWell(
+                onTap: () => Navigator.of(context).pop(c),
+                customBorder: const CircleBorder(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.forHex(c),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: _colorHex == c
+                            ? AppColors.ink
+                            : Colors.transparent,
+                        width: 3),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (hex != null) setState(() => _colorHex = hex);
   }
 
   Future<void> _save() async {
@@ -182,5 +219,45 @@ class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
           colorHex: _colorHex,
         );
     if (mounted) Navigator.of(context).pop(true);
+  }
+}
+
+/// A tappable row: leading preview chip + label + chevron. Opens a picker.
+class _PickRow extends StatelessWidget {
+  const _PickRow({
+    required this.label,
+    required this.leading,
+    required this.onTap,
+  });
+  final String label;
+  final Widget leading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.paper,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.line),
+        ),
+        child: Row(
+          children: [
+            leading,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(label,
+                  style:
+                      AppTypography.heading(size: 15, weight: FontWeight.w500)),
+            ),
+            const Icon(AppIcons.chevronRight, size: 19, color: AppColors.ink3),
+          ],
+        ),
+      ),
+    );
   }
 }
