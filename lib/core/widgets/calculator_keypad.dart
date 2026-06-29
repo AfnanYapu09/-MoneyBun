@@ -9,10 +9,11 @@ import '../utils/calculator.dart';
 /// Opens the in-app calculator keypad as a docked bottom sheet (no display of
 /// its own — what the user presses appears live in the field via [onChanged]).
 /// Seeded with [initial] (the field's current text). Pressing `=` resolves the
-/// expression, pushes the result through [onChanged] and closes the sheet.
+/// expression and pushes the result through [onChanged] but keeps the keypad
+/// open; the user dismisses it themselves (drag down / tap outside).
 ///
 /// The caller resolves whatever expression is left in the field once this
-/// future completes (covers `=`, drag-down and tap-outside alike).
+/// future completes (covers drag-down and tap-outside).
 ///
 /// [accent] tints the operator and `=` keys; it defaults to the app's primary
 /// colour (terracotta orange) so the keypad always follows the app theme.
@@ -65,14 +66,14 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
 
   void _onKey(String key) {
     HapticFeedback.selectionClick();
-    // "=" resolves the expression, shows the result in the field and closes.
+    // "=" resolves the expression and shows the result in the field, but keeps
+    // the keypad open — the user dismisses it themselves (tap away / drag down).
     if (key == '=') {
       final v = Calculator.evaluate(_expr);
       if (v != null) {
         _expr = Calculator.formatResult(v);
         widget.onChanged(_expr);
       }
-      Navigator.of(context).pop();
       return;
     }
     // The sheet itself shows nothing, so no rebuild is needed — just push the

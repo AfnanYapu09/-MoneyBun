@@ -134,7 +134,8 @@ class Calculator {
   /// Evaluate a display [expr] like `"100×2"`. Returns `null` when it's empty
   /// or cannot be evaluated (malformed, or a divide by zero). A trailing
   /// operator or dot is ignored so half-typed input like `"100×"` still yields
-  /// `100`.
+  /// `100`. A negative result is clamped to `0` — this is a money keypad, so an
+  /// amount can never go below zero ("ติดลบให้ = 0").
   static double? evaluate(String expr) {
     var s = expr.trim();
     while (_endsWithOpOrDot(s)) {
@@ -169,7 +170,7 @@ class Calculator {
     }
 
     if (total.isNaN || total.isInfinite) return null;
-    return total;
+    return total < 0 ? 0.0 : total; // amounts never go negative
   }
 
   /// Split into `[number, op, number, op, …]`; returns `null` on malformed

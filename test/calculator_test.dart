@@ -31,6 +31,12 @@ void main() {
     test('returns null on divide by zero', () {
       expect(Calculator.evaluate('5${div}0'), isNull);
     });
+
+    test('clamps a negative result to zero (amounts never go below 0)', () {
+      expect(Calculator.evaluate('5${sub}10'), 0);
+      expect(Calculator.evaluate('0${sub}5'), 0);
+      expect(Calculator.evaluate('100${sub}40'), 60);
+    });
   });
 
   group('Calculator.input (key handling)', () {
