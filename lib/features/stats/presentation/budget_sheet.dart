@@ -11,8 +11,8 @@ import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_toggle.dart';
-import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/icon_chip.dart';
+import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
@@ -88,18 +88,19 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                 ),
                 child: Row(
                   children: [
-                    IconChip(
-                        icon: cat == null
-                            ? AppIcons.layoutGrid
-                            : CategoryIcons.forKey(cat.iconKey),
-                        size: 38,
-                        radius: 12,
-                        iconSize: 19,
-                        background: cat == null
-                            ? AppColors.terraWash
-                            : AppColors.forHex(cat.colorHex),
-                        foreground:
-                            cat == null ? AppColors.terra700 : Colors.white),
+                    if (cat == null)
+                      const IconChip(
+                          icon: AppIcons.layoutGrid,
+                          size: 38,
+                          radius: 12,
+                          iconSize: 19)
+                    else
+                      CategoryGlyph(
+                          iconKey: cat.iconKey,
+                          color: AppColors.forHex(cat.colorHex),
+                          size: 38,
+                          radius: 12,
+                          iconSize: 19),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(

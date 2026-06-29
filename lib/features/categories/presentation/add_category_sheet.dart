@@ -4,186 +4,139 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/widgets/category_icons.dart';
-import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/segmented_control.dart';
+import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
+import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 
-/// Bottom sheet to create a new category (icon + color + name).
-class AddCategorySheet extends ConsumerStatefulWidget {
+/// Add a category by simply picking a pixel-art icon — no colour or name step.
+/// The chosen icon's Thai name + accent colour become the new category; it is
+/// appended to the end of the list. Icons already in use are shown ticked and
+/// are not selectable (tapping closes the sheet).
+class AddCategorySheet extends ConsumerWidget {
   const AddCategorySheet({super.key, this.type = CategoryType.expense});
   final CategoryType type;
 
   @override
-  ConsumerState<AddCategorySheet> createState() => _AddCategorySheetState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categories =
+        ref.watch(categoriesProvider).value ?? const <CategoryRow>[];
+    // Icons already used by a (non-deleted) category of this type — so we don't
+    // offer duplicates.
+    final used = {
+      for (final c in categories)
+        if (c.type == type) c.iconKey,
+    };
+    final income = type == CategoryType.income;
+    final options =
+        kPixelIconCatalog.where((i) => i.income == income).toList();
+
+    Future<void> add(PixelIconInfo info) async {
+      // Append after the current highest sortOrder so it lands last.
+      var maxOrder = -1;
+      for (final c in categories) {
+        if (c.sortOrder > maxOrder) maxOrder = c.sortOrder;
+      }
+      await ref.read(categoryRepositoryProvider).save(
+            name: info.nameTh,
+            nameEn: info.nameEn,
+            type: type,
+            iconKey: info.id,
+            colorHex: info.colorHex,
+            sortOrder: maxOrder + 1,
+          );
+      if (context.mounted) Navigator.of(context).pop(true);
+    }
+
+    return SheetScaffold(
+      title: income ? 'เพิ่มหมวดรายรับ' : 'เพิ่มหมวดรายจ่าย',
+      fullHeight: true,
+      child: GridView.count(
+        crossAxisCount: 4,
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 8,
+        childAspectRatio: 0.74,
+        children: [
+          for (final info in options)
+            _IconTile(
+              info: info,
+              added: used.contains(info.id),
+              onTap: () => add(info),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
-class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
-  static const _iconKeys = [
-    'food', 'coffee', 'groceries', 'shopping', 'clothing', 'entertainment',
-    'games', 'music', 'movie', 'book', 'ticket', 'transport', //
-    'car', 'fuel', 'bike', 'travel', 'home', 'rent', //
-    'electricity', 'water', 'gas', 'phone_bill', 'phone', 'electronics', //
-    'health', 'pharmacy', 'clinic', 'health_fitness', 'beauty', 'cosmetics', //
-    'family', 'baby', 'dog', 'cat', 'education', 'work', //
-    'gift', 'donate', 'insurance', 'debt', 'subscription', 'tax', //
-    'money', 'savings', 'invest', 'sale', 'package', 'other',
-  ];
-  static const _colors = [
-    'FFC4694A', 'FFE8732C', 'FFD9476B', 'FFD86592', 'FF3D7DCA', 'FF566AC2', //
-    'FF4FA36B', 'FF6E8B6F', 'FF8A6DBF', 'FFB5739E', 'FFB5531A', 'FFA9744F', //
-    'FF3FA9A0', 'FF4E8C8A', 'FF2FA8C4', 'FFD9A441', 'FFC0533F', 'FF7A736B',
-  ];
-
-  final _name = TextEditingController();
-  String _iconKey = 'food';
-  String _colorHex = 'FFC4694A';
-
-  /// false → icon grid, true → colour grid (icons shown first).
-  bool _showColors = false;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    super.dispose();
-  }
+class _IconTile extends StatelessWidget {
+  const _IconTile({
+    required this.info,
+    required this.added,
+    required this.onTap,
+  });
+  final PixelIconInfo info;
+  final bool added;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SheetScaffold(
-      title: 'หมวดใหม่',
-      fullHeight: true,
-      footer: PrimaryButton(label: 'บันทึก', onPressed: _save),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+    return Opacity(
+      opacity: added ? 0.4 : 1,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: added ? null : onTap,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Live preview: chosen icon + name input.
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppColors.paper,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.line),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: AppColors.forHex(_colorHex),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(CategoryIcons.forKey(_iconKey),
-                        size: 22, color: Colors.white),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CategoryGlyph(
+                  iconKey: info.id,
+                  color: AppColors.forHex(info.colorHex),
+                  size: 52,
+                  radius: 16,
+                  circle: true,
+                ),
+                if (added)
+                  const Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: _AddedBadge(),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: TextField(
-                      controller: _name,
-                      style: AppTypography.body(size: 16),
-                      decoration: InputDecoration(
-                        isCollapsed: true,
-                        border: InputBorder.none,
-                        filled: false,
-                        hintText: 'ชื่อหมวด เช่น คาเฟ่',
-                        hintStyle:
-                            AppTypography.body(size: 16, color: AppColors.ink3),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            // Toggle between the icon grid and the colour grid (icons first).
-            SegmentedControl<bool>(
-              value: _showColors,
-              onChanged: (v) => setState(() => _showColors = v),
-              segments: const [
-                Segment(value: false, label: 'ไอคอน'),
-                Segment(value: true, label: 'สี'),
               ],
             ),
-            const SizedBox(height: 14),
-            if (!_showColors)
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 6,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                children: [
-                  for (final k in _iconKeys)
-                    InkWell(
-                      onTap: () => setState(() => _iconKey = k),
-                      customBorder: const CircleBorder(),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: _iconKey == k
-                              ? AppColors.terraWash
-                              : AppColors.paper,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: _iconKey == k
-                                  ? AppColors.terra
-                                  : AppColors.line,
-                              width: _iconKey == k ? 1.5 : 1),
-                        ),
-                        child: Icon(CategoryIcons.forKey(k),
-                            size: 20, color: AppColors.terra700),
-                      ),
-                    ),
-                ],
-              )
-            else
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 6,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                children: [
-                  for (final c in _colors)
-                    InkWell(
-                      onTap: () => setState(() => _colorHex = c),
-                      customBorder: const CircleBorder(),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.forHex(c),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: _colorHex == c
-                                  ? AppColors.ink
-                                  : Colors.transparent,
-                              width: 3),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+            const SizedBox(height: 7),
+            Flexible(
+              child: Text(info.nameTh,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.body(size: 11.5, color: AppColors.ink2)),
+            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Future<void> _save() async {
-    final name = _name.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('กรอกชื่อหมวดหมู่')));
-      return;
-    }
-    await ref.read(categoryRepositoryProvider).save(
-          name: name,
-          type: widget.type,
-          iconKey: _iconKey,
-          colorHex: _colorHex,
-        );
-    if (mounted) Navigator.of(context).pop(true);
+class _AddedBadge extends StatelessWidget {
+  const _AddedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: const BoxDecoration(
+        color: AppColors.green,
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(AppIcons.check, size: 13, color: Colors.white),
+    );
   }
 }

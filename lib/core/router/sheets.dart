@@ -156,7 +156,6 @@ Future<bool?> showAddCategorySheet(
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
       builder: (_) => _FormSheetSize(
-        growsWithKeyboard: true,
         child: AddCategorySheet(type: type),
       ),
     ),

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,8 +8,8 @@ import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/dashed_border.dart';
+import '../../../core/widgets/pixel_icon.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 
@@ -43,68 +45,116 @@ class CategoryTagBoard extends ConsumerStatefulWidget {
 class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
   late final Set<String> _tags = {...widget.initialTagIds};
 
+  /// Manage mode only: iOS-style "wiggle" edit mode for drag-reorder + delete.
+  bool _editing = false;
+
   @override
   Widget build(BuildContext context) {
     final categories = (ref.watch(categoriesProvider).value ?? const [])
         .where((c) => c.type == widget.categoryType && c.id != 'sys_other')
         .toList();
     final tags = ref.watch(tagsProvider).value ?? const <TagRow>[];
+    final editing = widget.manage && _editing;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Tag chips
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: AppColors.terraWash,
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Icon(AppIcons.hash,
-                  size: 17, color: AppColors.terra700),
-            ),
-            for (final t in tags)
-              _TagChip(
-                label: t.name,
-                selected: !widget.manage && _tags.contains(t.id),
-                onTap: () => widget.manage
-                    ? _editTag(t)
-                    : setState(() => _tags.contains(t.id)
-                        ? _tags.remove(t.id)
-                        : _tags.add(t.id)),
-              ),
-            _AddTagChip(onAdd: _addTag),
-          ],
-        ),
-        if (widget.showCategories) ...[
-          const SizedBox(height: 18),
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 18,
-            crossAxisSpacing: 4,
-            childAspectRatio: 0.78,
+        // Tag chips (hidden while reordering categories, to keep focus).
+        if (!editing)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              for (final c in categories)
-                _CategoryButton(
-                  category: c,
-                  onTap: () => widget.manage
-                      ? _editCategory(c)
-                      : widget.onPick?.call(c.id, _tags.toList()),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.terraWash,
+                  borderRadius: BorderRadius.circular(11),
                 ),
-              if (widget.manage) _AddCategoryButton(onTap: _addCategory),
+                child: const Icon(AppIcons.hash,
+                    size: 17, color: AppColors.terra700),
+              ),
+              for (final t in tags)
+                _TagChip(
+                  label: t.name,
+                  selected: !widget.manage && _tags.contains(t.id),
+                  onTap: () => widget.manage
+                      ? _editTag(t)
+                      : setState(() => _tags.contains(t.id)
+                          ? _tags.remove(t.id)
+                          : _tags.add(t.id)),
+                ),
+              _AddTagChip(onAdd: _addTag),
             ],
           ),
+        if (widget.showCategories) ...[
+          const SizedBox(height: 18),
+          if (editing)
+            _CategoryEditList(
+              categories: categories,
+              onReorder: (ids) =>
+                  ref.read(categoryRepositoryProvider).reorder(ids),
+              onDelete: _confirmDeleteCategory,
+              onDone: () => setState(() => _editing = false),
+            )
+          else ...[
+            GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 18,
+              crossAxisSpacing: 4,
+              childAspectRatio: 0.78,
+              children: [
+                for (final c in categories)
+                  _CategoryButton(
+                    category: c,
+                    onTap: () => widget.manage
+                        ? _editCategory(c)
+                        : widget.onPick?.call(c.id, _tags.toList()),
+                    onLongPress: widget.manage
+                        ? () => setState(() => _editing = true)
+                        : null,
+                  ),
+                if (widget.manage) _AddCategoryButton(onTap: _addCategory),
+              ],
+            ),
+            if (widget.manage) ...[
+              const SizedBox(height: 12),
+              Center(
+                child: Text('กดค้างที่หมวดเพื่อจัดเรียงหรือลบ',
+                    style:
+                        AppTypography.body(size: 12.5, color: AppColors.ink3)),
+              ),
+            ],
+          ],
         ],
       ],
     );
+  }
+
+  Future<void> _confirmDeleteCategory(CategoryRow c) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text('ลบหมวด "${c.name}" ใช่ไหม?\n'
+            'รายการเก่าที่ใช้หมวดนี้จะกลายเป็น "อื่นๆ"'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ลบ', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ref.read(categoryRepositoryProvider).delete(c.id);
+    }
   }
 
   void _addCategory() =>
@@ -253,27 +303,31 @@ class _AddTagChip extends StatelessWidget {
 }
 
 class _CategoryButton extends StatelessWidget {
-  const _CategoryButton({required this.category, required this.onTap});
+  const _CategoryButton({
+    required this.category,
+    required this.onTap,
+    this.onLongPress,
+  });
   final CategoryRow category;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.forHex(category.colorHex),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(CategoryIcons.forKey(category.iconKey),
-                size: 24, color: Colors.white),
+          CategoryGlyph(
+            iconKey: category.iconKey,
+            color: AppColors.forHex(category.colorHex),
+            size: 52,
+            radius: 16,
+            iconSize: 24,
+            circle: true,
           ),
           const SizedBox(height: 7),
           Flexible(
@@ -322,6 +376,186 @@ class _AddCategoryButton extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Manage-mode edit state: the category list jiggles, each row can be dragged by
+/// the handle to reorder, and a red − badge deletes it. A "เสร็จ" button exits.
+class _CategoryEditList extends StatefulWidget {
+  const _CategoryEditList({
+    required this.categories,
+    required this.onReorder,
+    required this.onDelete,
+    required this.onDone,
+  });
+
+  final List<CategoryRow> categories;
+
+  /// Persist the new full order (list of category ids, top to bottom).
+  final void Function(List<String> idsInOrder) onReorder;
+  final Future<void> Function(CategoryRow category) onDelete;
+  final VoidCallback onDone;
+
+  @override
+  State<_CategoryEditList> createState() => _CategoryEditListState();
+}
+
+class _CategoryEditListState extends State<_CategoryEditList>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _wiggle = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 240),
+  )..repeat();
+
+  // A local working copy so reordering is instant; re-synced from the provider
+  // only when the set of categories changes (an add/delete), not on a reorder.
+  late List<CategoryRow> _items = [...widget.categories];
+
+  @override
+  void didUpdateWidget(_CategoryEditList old) {
+    super.didUpdateWidget(old);
+    final incoming = widget.categories.map((c) => c.id).toSet();
+    final current = _items.map((c) => c.id).toSet();
+    if (incoming.length != current.length || !incoming.containsAll(current)) {
+      _items = [...widget.categories];
+    }
+  }
+
+  @override
+  void dispose() {
+    _wiggle.dispose();
+    super.dispose();
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      final moved = _items.removeAt(oldIndex);
+      _items.insert(newIndex, moved);
+    });
+    widget.onReorder(_items.map((c) => c.id).toList());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text('ลากเพื่อจัดเรียง · แตะ − เพื่อลบ',
+                  style: AppTypography.body(size: 13, color: AppColors.ink3)),
+            ),
+            TextButton(
+              onPressed: widget.onDone,
+              child: Text('เสร็จ',
+                  style: AppTypography.heading(
+                      size: 15, weight: FontWeight.w600, color: AppColors.terra)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
+          itemCount: _items.length,
+          onReorder: _onReorder,
+          itemBuilder: (context, i) {
+            final c = _items[i];
+            return _EditRow(
+              key: ValueKey(c.id),
+              category: c,
+              index: i,
+              wiggle: _wiggle,
+              onDelete: () => widget.onDelete(c),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _EditRow extends StatelessWidget {
+  const _EditRow({
+    super.key,
+    required this.category,
+    required this.index,
+    required this.wiggle,
+    required this.onDelete,
+  });
+
+  final CategoryRow category;
+  final int index;
+  final Animation<double> wiggle;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.paper,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        children: [
+          // Delete (−) badge.
+          InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onDelete,
+            child: Container(
+              width: 26,
+              height: 26,
+              decoration: const BoxDecoration(
+                color: AppColors.danger,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(AppIcons.minus, size: 16, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 10),
+          CategoryGlyph(
+            iconKey: category.iconKey,
+            color: AppColors.forHex(category.colorHex),
+            size: 40,
+            radius: 13,
+            circle: true,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(category.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.body(size: 15)),
+          ),
+          // Drag handle ("กดข้างตรงไอคอน").
+          ReorderableDragStartListener(
+            index: index,
+            child: const Padding(
+              padding: EdgeInsets.all(6),
+              child: Icon(AppIcons.gripVertical, size: 22, color: AppColors.ink3),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // Subtle continuous "wiggle" so the list reads as editable. Phase-shift by
+    // index so rows don't rock in unison.
+    return AnimatedBuilder(
+      animation: wiggle,
+      builder: (context, child) {
+        final angle =
+            math.sin(wiggle.value * 2 * math.pi + index * 0.9) * 0.018;
+        return Transform.rotate(angle: angle, child: child);
+      },
+      child: row,
     );
   }
 }

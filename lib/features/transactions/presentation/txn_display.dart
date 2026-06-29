@@ -9,7 +9,7 @@ import '../../../domain/enums/enums.dart';
 
 /// Derived display fields for a transaction row.
 class TxnDisplay {
-  const TxnDisplay(this.icon, this.title, this.sub, {this.color});
+  const TxnDisplay(this.icon, this.title, this.sub, {this.color, this.iconKey});
   final IconData icon;
   final String title;
   final String sub;
@@ -18,6 +18,11 @@ class TxnDisplay {
   /// category management. Null for transfers / uncategorised rows, which keep
   /// the default terra tint.
   final Color? color;
+
+  /// The category's icon key, when this row is category-backed — lets the row
+  /// render the full-colour pixel-art glyph. Null (transfer / uncategorised /
+  /// no-category) falls back to [icon].
+  final String? iconKey;
 }
 
 TxnDisplay txnDisplay(
@@ -54,7 +59,8 @@ TxnDisplay txnDisplay(
       final icon = category != null
           ? CategoryIcons.forKey(category.iconKey)
           : AppIcons.banknote;
-      return TxnDisplay(icon, title, sub, color: categoryColor);
+      return TxnDisplay(icon, title, sub,
+          color: categoryColor, iconKey: category?.iconKey);
     case TxnType.expense:
       if (t.categoryId == null) {
         return TxnDisplay(AppIcons.receiptText, 'รายการใหม่จากสลิป',
@@ -66,6 +72,6 @@ TxnDisplay txnDisplay(
       final sub =
           '$date${category?.name ?? 'อื่นๆ'}${withTime ? ' · $time' : ''}';
       return TxnDisplay(CategoryIcons.forKey(category?.iconKey), title, sub,
-          color: categoryColor);
+          color: categoryColor, iconKey: category?.iconKey);
   }
 }

@@ -42,6 +42,13 @@ class CategoryRepository {
     return catId;
   }
 
+  /// Persist a new category order (drag-to-reorder in manage mode).
+  Future<void> reorder(List<String> idsInOrder) =>
+      _db.reorderCategories(idsInOrder);
+
+  /// Soft-delete a category.
+  Future<void> delete(String id) => _db.deleteCategory(id);
+
   /// Rename a category, preserving all its other fields.
   Future<void> rename(String id, String name) async {
     CategoryRow? existing;

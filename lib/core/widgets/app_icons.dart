@@ -14,6 +14,7 @@ class AppIcons {
   static const IconData chartPie = LucideIcons.chartPie;
   static const IconData settings = LucideIcons.settings;
   static const IconData plus = LucideIcons.plus;
+  static const IconData minus = LucideIcons.minus;
   static const IconData arrowLeft = LucideIcons.arrowLeft;
   static const IconData arrowRight = LucideIcons.arrowRight;
   static const IconData arrowDown = LucideIcons.arrowDown;

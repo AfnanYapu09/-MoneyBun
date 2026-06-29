@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;}
+    body{background:#ECE4D6;font-family:'IBM Plex Sans Thai',sans-serif;-webkit-font-smoothing:antialiased;}
+    ::selection{background:#C77E5E;color:#fff;}
+    .px-canvas{image-rendering:pixelated;image-rendering:crisp-edges;}
+    .ic-card:hover{transform:translateY(-3px);}
+    .ic-card{transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;}
+    .seg-btn{transition:all .12s ease;}
+    pre{margin:0;}
+    @keyframes blink{0%,92%{opacity:1}96%{opacity:.25}100%{opacity:1}}
+  </style>
+</helmet>
+<div ref="{{ rootRef }}" style="min-height:100vh;background:{{ pageBg }};color:#4A3B33;padding:0 0 80px;">
+
+  <!-- ===== HEADER ===== -->
+  <div style="max-width:1120px;margin:0 auto;padding:40px 32px 8px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;">
+    <div style="width:96px;height:96px;flex:none;background:#F6EFE5;border:3px solid #4A3B33;box-shadow:6px 6px 0 #4A3B33;display:flex;align-items:center;justify-content:center;">
+      <img src="assets/bun-mascot.png" alt="Bun" class="px-canvas" style="width:78px;height:78px;object-fit:contain;" />
+    </div>
+    <div style="flex:1;min-width:240px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:1px;color:#B0673F;margin-bottom:12px;">PIXEL ICON SET</div>
+      <h1 style="margin:0;font-size:34px;font-weight:700;line-height:1.1;letter-spacing:-.5px;">ชุดไอคอนพิกเซลอาร์ต น้องบัน</h1>
+      <p style="margin:8px 0 0;font-size:15px;color:#6B5D52;max-width:560px;line-height:1.5;">หมวดหมู่รายรับ–รายจ่ายสำหรับแอปบันทึกเงิน วาดจาก grid ทีละช่องเหมือน <code style="font-family:'IBM Plex Mono',monospace;background:#4A3B33;color:#F6EFE5;padding:1px 6px;font-size:13px;">CustomPainter</code> โทนสีเข้าชุดกับน้องบัน</p>
+    </div>
+  </div>
+
+  <!-- ===== RESOLUTION COMPARE ===== -->
+  <div style="max-width:1120px;margin:32px auto 0;padding:0 32px;">
+    <div style="background:#F6EFE5;border:3px solid #4A3B33;box-shadow:8px 8px 0 #4A3B33;padding:26px 28px;">
+      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+        <h2 style="margin:0;font-size:19px;font-weight:700;">เทียบความละเอียด grid ก่อนเลือก</h2>
+        <span style="font-size:13px;color:#8A7B6E;">ไอคอนเดียวกัน วาดที่ขนาด grid ต่างกัน — ยิ่งช่องมาก ยิ่งโค้งมน ละเอียดขึ้น</span>
+      </div>
+      <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:18px;align-items:flex-end;">
+        <sc-for list="{{ compares }}" as="cmp" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+            <div style="width:124px;height:124px;background:{{ tileBg }};border:2px solid #4A3B33;display:flex;align-items:center;justify-content:center;background-image:{{ checkerImg }};background-size:16px 16px;background-position:0 0,8px 8px;">
+              <canvas data-px="1" data-id="{{ cmp.id }}" class="px-canvas" width="112" height="112" style="width:112px;height:112px;"></canvas>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-family:'Press Start 2P',monospace;font-size:13px;color:#4A3B33;">{{ cmp.label }}</div>
+              <div style="font-size:12px;color:#8A7B6E;margin-top:5px;">{{ cmp.note }}</div>
+            </div>
+          </div>
+        </sc-for>
+        <div style="flex:1;min-width:200px;font-size:13.5px;color:#6B5D52;line-height:1.6;border-left:2px dashed #C9BBA9;padding-left:20px;align-self:stretch;display:flex;flex-direction:column;justify-content:center;">
+          ชุดนี้วาดที่ <b style="color:#4A3B33;">16×16</b> — ไฟล์เบา คมในลิสต์และ badge แสดงผลพอดีบนมือถือ ดู &ldquo;พิกเซล&rdquo; ชัดเจน · ถ้าอยากได้รายละเอียดมากขึ้นบนการ์ดใหญ่ บอกได้ ผม regenerate เป็น 24–32 ให้ได้
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONTROLS ===== -->
+  <div style="max-width:1120px;margin:30px auto 0;padding:0 32px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+    <div style="display:flex;border:2px solid #4A3B33;background:#F6EFE5;">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+        <button type="button" class="seg-btn" onClick="{{ f.onClick }}" style="border:none;background:{{ f.bg }};color:{{ f.fg }};font-family:'IBM Plex Sans Thai',sans-serif;font-weight:600;font-size:14px;padding:9px 18px;cursor:pointer;border-right:2px solid #4A3B33;">{{ f.label }}</button>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:13px;color:#6B5D52;font-weight:500;">ขนาดแสดง</span>
+      <input type="range" min="64" max="128" step="8" value="{{ scale }}" onInput="{{ onScale }}" style="accent-color:#C06B4B;width:120px;" />
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#4A3B33;min-width:38px;">{{ scale }}px</span>
+    </div>
+
+    <button type="button" onClick="{{ onToggleGrid }}" style="margin-left:auto;border:2px solid #4A3B33;background:{{ gridBtnBg }};color:{{ gridBtnFg }};font-family:'IBM Plex Sans Thai',sans-serif;font-weight:600;font-size:13.5px;padding:8px 16px;cursor:pointer;">เส้น grid: {{ gridLabel }}</button>
+  </div>
+
+  <!-- ===== ICON GRID ===== -->
+  <div style="max-width:1120px;margin:22px auto 0;padding:0 32px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px;">
+    <sc-for list="{{ shownIcons }}" as="ic" hint-placeholder-count="103">
+      <div class="ic-card" onClick="{{ ic.onClick }}" style="background:#F6EFE5;border:3px solid {{ ic.border }};box-shadow:5px 5px 0 {{ ic.shadow }};padding:18px 16px 16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:8px;">
+          <span style="display:inline-flex;align-items:center;white-space:nowrap;font-size:11px;font-weight:600;color:{{ ic.chipFg }};background:{{ ic.chipBg }};padding:3px 9px;border-radius:2px;">{{ ic.typeLabel }}</span>
+          <span style="width:12px;height:12px;background:{{ ic.accent }};border:1.5px solid #4A3B33;"></span>
+        </div>
+        <div style="height:140px;display:flex;align-items:center;justify-content:center;">
+          <canvas data-px="1" data-id="{{ ic.id }}" class="px-canvas" width="120" height="120"></canvas>
+        </div>
+        <div style="text-align:center;margin-top:6px;">
+          <div style="font-size:15px;font-weight:600;color:#4A3B33;line-height:1.25;">{{ ic.nameTh }}</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9A8B7E;margin-top:3px;letter-spacing:.3px;">{{ ic.nameEn }}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- ===== CODE DRAWER ===== -->
+  <sc-if value="{{ selected }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(42,35,32,.55);z-index:40;display:flex;justify-content:flex-end;" onClick="{{ closeDrawer }}">
+      <div onClick="{{ stop }}" style="width:min(560px,94vw);height:100%;background:#1E1A17;color:#E8E1D6;box-shadow:-12px 0 40px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden;">
+        <div style="padding:22px 26px;border-bottom:1px solid #3A332D;display:flex;align-items:center;gap:16px;">
+          <div style="width:64px;height:64px;flex:none;border:2px solid #3A332D;display:flex;align-items:center;justify-content:center;background-image:{{ checkerImgDark }};background-size:12px 12px;background-position:0 0,6px 6px;">
+            <canvas data-px="1" data-id="{{ selected.id }}" class="px-canvas" width="56" height="56" style="width:56px;height:56px;"></canvas>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:18px;font-weight:700;color:#fff;">{{ selected.nameTh }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9A8B7E;margin-top:2px;">{{ selected.nameEn }} · {{ selected.size }} · {{ selected.colorCount }} colors</div>
+          </div>
+          <button type="button" onClick="{{ closeDrawer }}" style="background:none;border:1px solid #4A413A;color:#C9BBA9;width:34px;height:34px;cursor:pointer;font-size:18px;line-height:1;">×</button>
+        </div>
+        <div style="padding:18px 26px;display:flex;gap:10px;border-bottom:1px solid #3A332D;">
+          <button type="button" onClick="{{ copyDart }}" style="flex:1;background:#C77E5E;border:none;color:#fff;font-family:'IBM Plex Sans Thai',sans-serif;font-weight:600;font-size:14px;padding:11px;cursor:pointer;">{{ copyLabel }}</button>
+          <button type="button" onClick="{{ copyJson }}" style="background:none;border:1px solid #4A413A;color:#C9BBA9;font-family:'IBM Plex Sans Thai',sans-serif;font-weight:600;font-size:14px;padding:11px 16px;cursor:pointer;">JSON grid</button>
+        </div>
+        <div style="flex:1;overflow:auto;padding:22px 26px;">
+          <div style="font-size:12px;color:#7A6E62;margin-bottom:10px;font-family:'IBM Plex Mono',monospace;">// Dart · ใช้กับ PixelIconPainter ด้านล่าง</div>
+          <pre style="font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.55;color:#D9CFC2;white-space:pre;overflow-x:auto;background:#16120F;padding:16px;border:1px solid #2E2823;">{{ selected.dartCode }}</pre>
+          <div style="font-size:12px;color:#7A6E62;margin:22px 0 10px;font-family:'IBM Plex Mono',monospace;">// CustomPainter — ใช้ซ้ำได้กับทุกไอคอน</div>
+          <pre style="font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.55;color:#A9C9B0;white-space:pre;overflow-x:auto;background:#16120F;padding:16px;border:1px solid #2E2823;">{{ painterCode }}</pre>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;bgTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;cream&quot;,&quot;charcoal&quot;],&quot;default&quot;:&quot;cream&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Display&quot;},&quot;pixelStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;sharp&quot;,&quot;gapped&quot;,&quot;rounded&quot;],&quot;default&quot;:&quot;sharp&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Display&quot;}}">
+class Component extends DCLogic {
+  state = { filter: 'all', scale: 96, grid: false, selectedId: null, copied: '' };
+
+  componentDidMount(){ this._raf = requestAnimationFrame(() => this.repaint()); }
+  componentDidUpdate(){ this._raf = requestAnimationFrame(() => this.repaint()); }
+
+  // ---------- palette ----------
+  pal(){
+    // soft terracotta — warm, muted, low-chroma family
+    return {
+      clay:'#C77E5E', clayD:'#A2603F', clayL:'#E3AA89',
+      ink:'#4A3B33', cream:'#F6EFE5', white:'#FCF9F2', shade:'#00000016',
+      teal:'#7CA39B', tealD:'#5A817A', tealL:'#A9C7C0',
+      plum:'#A87E91', plumD:'#7F586B', plumL:'#C9A7B4',
+      ochre:'#CBA068', ochreD:'#A57C44', ochreL:'#E6C896',
+      blue:'#849ABA', blueD:'#5F7798', blueL:'#AFC2D8',
+      red:'#CB7C6F', redD:'#A55749',
+      violet:'#9A8AAD', violetD:'#736288', violetL:'#C0B2D1',
+      green:'#8FA877', greenD:'#688254',
+      gold:'#CCA968', goldD:'#A6843F', goldL:'#E6CE95',
+      saff:'#D29657', saffD:'#A8702F',
+      brown:'#A8845F', brownD:'#7E6242', brownL:'#CBAA85',
+      pink:'#CD8A84', pinkD:'#A8665E', pinkL:'#E6B4AD',
+      leaf:'#8FA877', leafD:'#688254',
+      sky:'#A9C6D9', water:'#7FAFC4', grey:'#C3B8AB', greyD:'#897E70',
+      sage:'#8FA877', sageD:'#688254', sageL:'#BCCBA1',
+      taupe:'#A8845F', taupeD:'#7E6242', taupeL:'#CBAA85',
+      coral:'#CB7C6F', coralD:'#A55749', coralL:'#E6A99C',
+      sand:'#CBA068', sandD:'#A57C44', sandL:'#E6C896',
+      rose:'#CD8A84', roseD:'#A8665E', roseL:'#E6B4AD'
+    };
+  }
+
+  // ---------- drawing dsl ----------
+  newG(n){ return Array.from({length:n}, () => Array(n).fill(null)); }
+  _P(g,x,y,c){ x=Math.round(x); y=Math.round(y); if(x>=0&&y>=0&&x<g.length&&y<g.length) g[y][x]=c; }
+  _R(g,x0,y0,x1,y1,c){ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) this._P(g,x,y,c); }
+  _DISC(g,cx,cy,r,c){ for(let y=Math.floor(cy-r);y<=Math.ceil(cy+r);y++) for(let x=Math.floor(cx-r);x<=Math.ceil(cx+r);x++){ const dx=x-cx,dy=y-cy; if(dx*dx+dy*dy<=r*r) this._P(g,x,y,c);} }
+  _RING(g,cx,cy,r,c,t){ t=t||1; for(let y=Math.floor(cy-r);y<=Math.ceil(cy+r);y++) for(let x=Math.floor(cx-r);x<=Math.ceil(cx+r);x++){ const dx=x-cx,dy=y-cy; const d=Math.sqrt(dx*dx+dy*dy); if(d<=r+.2&&d>=r-t) this._P(g,x,y,c);} }
+  _LINE(g,x0,y0,x1,y1,c){ x0=Math.round(x0);y0=Math.round(y0);x1=Math.round(x1);y1=Math.round(y1); const dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1; let err=dx+dy; while(true){ this._P(g,x0,y0,c); if(x0===x1&&y0===y1)break; const e2=2*err; if(e2>=dy){err+=dy;x0+=sx;} if(e2<=dx){err+=dx;y0+=sy;} } }
+
+  // ---------- icon art (32x32) ----------
+  artFood(g){ const C=this.pal();
+    this._P(g,11,3,C.cream);this._P(g,11,5,C.cream);this._P(g,12,4,C.cream);this._P(g,12,6,C.cream);
+    this._P(g,19,2,C.cream);this._P(g,19,4,C.cream);this._P(g,20,3,C.cream);this._P(g,20,5,C.cream);
+    this._LINE(g,20,15,28,4,C.brown); this._LINE(g,21,15,29,4,C.brownD); this._LINE(g,24,16,31,7,C.brown); this._LINE(g,25,16,31,8,C.brownD);
+    this._DISC(g,15.5,15,7,C.cream);
+    this._R(g,10,12,11,13,C.red); this._R(g,18,11,19,12,C.red); this._R(g,14,9,15,10,C.redD); this._R(g,13,14,14,15,C.red);
+    this._R(g,4,16,27,17,C.clayD);
+    for(let y=18;y<=26;y++){ const ins=Math.round((y-17)*1.55); this._R(g,5+ins,y,26-ins,y,C.clay); }
+    this._R(g,6,16,12,16,C.clayL); this._R(g,12,27,19,28,C.clayD);
+  }
+  artTransport(g){ const C=this.pal();
+    this._DISC(g,8.5,24,4.4,C.ink); this._DISC(g,8.5,24,2,C.cream); this._P(g,8,24,C.greyD);
+    this._DISC(g,24.5,24,4.4,C.ink); this._DISC(g,24.5,24,2,C.cream); this._P(g,24,24,C.greyD);
+    this._R(g,8,20,25,22,C.teal);
+    this._R(g,7,16,16,19,C.tealD); this._R(g,7,15,15,15,C.teal);
+    this._LINE(g,22,21,25,11,C.tealD); this._R(g,22,11,26,13,C.teal);
+    this._R(g,24,9,30,10,C.ink); this._R(g,26,13,29,17,C.gold);
+    this._R(g,10,17,14,18,C.tealL);
+  }
+  artShopping(g){ const C=this.pal();
+    this._RING(g,16,13,5,C.plumD,2); this._R(g,11,13,21,16,null);
+    this._R(g,7,14,25,28,C.plum);
+    this._R(g,7,14,25,15,C.plumD); this._R(g,9,16,10,28,C.plumL);
+    this._R(g,11,9,12,15,C.plumD); this._R(g,20,9,21,15,C.plumD); this._R(g,12,8,20,9,C.plumD);
+    this._R(g,11,18,13,25,C.plumL);
+  }
+  artHousing(g){ const C=this.pal();
+    this._R(g,9,17,23,28,C.ochre); this._R(g,9,17,11,28,C.ochreD);
+    for(let y=6;y<=16;y++){ const w=y-6; this._R(g,15-w,y,16+w,y,C.ochreD); }
+    for(let y=7;y<=16;y++){ const w=y-7; if(w>=0) this._R(g,16-w,y,16+w,y,C.ochre); }
+    this._R(g,15,6,16,8,C.ochreL||C.gold);
+    this._R(g,19,3,20,7,C.brownD);
+    this._R(g,13,20,17,28,C.brownD); this._P(g,16,24,C.gold);
+    this._R(g,19,20,22,23,C.cream); this._R(g,20,20,20,23,C.ochreD); this._R(g,19,21,22,21,C.ochreD);
+  }
+  artBills(g){ const C=this.pal();
+    this._R(g,8,4,24,28,C.white);
+    for(let x=8;x<=23;x+=3){ this._R(g,x,28,x+1,29,C.white); this._P(g,x+2,28,C.grey); }
+    this._R(g,8,4,24,4,C.grey); this._R(g,8,4,8,28,C.grey); this._R(g,24,4,24,28,C.grey);
+    this._R(g,11,9,21,10,C.blue); this._R(g,11,13,21,14,C.greyD); this._R(g,11,17,18,18,C.greyD);
+    this._R(g,14,21,21,24,C.blue); this._R(g,16,22,16,23,C.cream); this._R(g,17,21,17,24,C.cream); this._R(g,15,22,19,22,C.cream);
+  }
+  artHealth(g){ const C=this.pal();
+    this._DISC(g,16,16,12,C.red); this._RING(g,16,16,12,C.redD,1.4);
+    this._R(g,14,8,18,24,C.cream); this._R(g,8,14,24,18,C.cream);
+    this._R(g,15,9,17,23,C.white); this._R(g,9,15,23,17,C.white);
+  }
+  artGame(g){ const C=this.pal();
+    this._R(g,5,12,27,24,C.violet);
+    this._DISC(g,8,24,4,C.violet); this._DISC(g,24,24,4,C.violet);
+    this._R(g,5,11,27,11,C.violetL);
+    this._R(g,9,16,11,17,C.cream); this._R(g,10,15,10,18,C.cream);
+    this._DISC(g,21,15.5,1.4,C.gold); this._DISC(g,24,18.5,1.4,C.red);
+    this._R(g,13,14,19,15,C.violetD); this._R(g,12,18,15,19,C.violetD);
+  }
+  artMerit(g){ const C=this.pal();
+    this._DISC(g,16,21,4,C.gold); this._R(g,12,18,20,18,C.goldL);
+    this._R(g,15,8,17,17,C.pink);
+    this._LINE(g,16,17,9,11,C.pinkD); this._LINE(g,15,17,9,12,C.pinkD); this._DISC(g,9,11,2.4,C.pink);
+    this._LINE(g,16,17,23,11,C.pinkD); this._LINE(g,17,17,23,12,C.pinkD); this._DISC(g,23,11,2.4,C.pink);
+    this._DISC(g,16,8,2.6,C.pinkD); this._DISC(g,16,9,1.6,C.gold);
+    this._DISC(g,12,12,1.8,C.pinkD); this._DISC(g,20,12,1.8,C.pinkD);
+    this._R(g,14,22,18,23,C.goldL);
+  }
+  artEducation(g){ const C=this.pal();
+    this._R(g,12,16,21,24,C.cream); this._R(g,12,16,21,17,C.grey); this._R(g,12,24,21,24,C.grey);
+    for(let y=8;y<=12;y++){ const w=(12-y); this._R(g,16-w,y,16+w,y,C.blue); }
+    for(let y=8;y<=12;y++){ const w=(12-y); this._R(g,16-w,y,16+w,y,(y===8?C.blueL:C.blue)); }
+    this._R(g,15,12,17,15,C.blueD);
+    this._R(g,22,10,23,18,C.gold); this._DISC(g,22.5,20,1.8,C.goldD);
+  }
+  artPet(g){ const C=this.pal();
+    this._DISC(g,16,21,5.6,C.brown); this._DISC(g,16,21,3,C.brownL);
+    this._DISC(g,9,12,2.6,C.brown); this._DISC(g,16,9,2.8,C.brown); this._DISC(g,23,12,2.6,C.brown);
+    this._DISC(g,5.5,18,2.2,C.brown);
+  }
+  artSalary(g){ const C=this.pal();
+    this._R(g,4,9,28,23,C.green); this._R(g,4,9,28,9,C.greenD); this._R(g,4,23,28,23,C.greenD);
+    this._R(g,4,9,5,23,C.greenD); this._R(g,27,9,28,23,C.greenD);
+    this._RING(g,16,16,5,C.cream,1.4);
+    this._R(g,15,12,16,21,C.cream); this._R(g,13,13,18,14,C.cream); this._R(g,13,17,18,18,C.cream); this._R(g,18,13,18,14,C.cream); this._R(g,18,17,18,18,C.cream);
+    this._R(g,15,11,16,12,C.cream); this._R(g,15,21,16,22,C.cream);
+    this._R(g,7,11,9,13,C.greenD); this._R(g,23,19,25,21,C.greenD);
+  }
+  artBonus(g){ const C=this.pal();
+    this._R(g,8,14,24,28,C.gold);
+    this._R(g,7,11,25,15,C.goldL); this._R(g,7,11,25,11,C.goldD);
+    this._R(g,14,11,18,28,C.red);
+    this._DISC(g,13,9,2.4,C.red); this._DISC(g,19,9,2.4,C.red); this._R(g,15,9,16,11,C.redD);
+    this._R(g,9,16,12,18,C.goldD);
+    this._P(g,6,7,C.goldL); this._P(g,7,8,C.goldL); this._P(g,26,9,C.goldL); this._P(g,25,10,C.goldL);
+  }
+  artSavings(g){ const C=this.pal();
+    this._DISC(g,15,19,8,C.pink);
+    this._DISC(g,25,17,4,C.pink); this._P(g,28,16,C.pinkD); this._P(g,28,17,C.pinkD);
+    this._R(g,21,9,24,12,C.pinkD); this._R(g,22,12,23,13,C.pink);
+    this._DISC(g,27,17,1,C.pinkD);
+    this._R(g,12,9,17,10,C.ink); this._R(g,13,8,16,9,C.ink);
+    this._R(g,10,26,12,29,C.pinkD); this._R(g,18,26,20,29,C.pinkD);
+    this._DISC(g,8,18,1.4,C.cream);
+    this._DISC(g,15,5,2.6,C.gold); this._R(g,14,4,16,6,C.goldD); this._P(g,15,5,C.goldL);
+  }
+
+  // ---------- icon art (16x16) ----------
+  artFood16(g){const C=this.pal();
+    this._P(g,4,1,C.cream);this._P(g,4,3,C.cream);this._P(g,9,0,C.cream);this._P(g,9,2,C.cream);
+    this._LINE(g,10,7,14,2,C.brown);this._LINE(g,11,7,15,3,C.brownD);
+    this._DISC(g,7,6,3.2,C.cream);
+    this._P(g,5,5,C.red);this._P(g,8,4,C.redD);this._P(g,6,7,C.red);
+    this._R(g,1,7,13,8,C.clayD);
+    this._R(g,2,9,12,9,C.clay);this._R(g,3,10,11,10,C.clay);this._R(g,4,11,10,11,C.clay);this._R(g,5,12,9,12,C.clayD);
+    this._R(g,2,7,5,7,C.clayL);
+  }
+  artTransport16(g){const C=this.pal();
+    this._DISC(g,4,12,2.3,C.ink);this._P(g,4,12,C.cream);
+    this._DISC(g,12,12,2.3,C.ink);this._P(g,12,12,C.cream);
+    this._R(g,4,10,12,11,C.teal);
+    this._R(g,3,7,8,9,C.tealD);this._R(g,3,6,7,6,C.teal);
+    this._LINE(g,11,10,13,5,C.tealD);this._R(g,11,5,12,6,C.teal);
+    this._R(g,12,4,15,4,C.ink);this._R(g,13,6,14,8,C.gold);
+  }
+  artShopping16(g){const C=this.pal();
+    // paper shopping bag with two handles
+    this._RING(g,6,6,1.6,C.plumD,1.2);this._RING(g,9,6,1.6,C.plumD,1.2);
+    this._R(g,3,7,12,14,C.plum);
+    this._R(g,3,7,12,8,C.plumL);
+    this._R(g,3,7,4,14,C.plumD);
+    this._R(g,7,10,8,12,C.plumL);
+  }
+  artHousing16(g){const C=this.pal();
+    this._R(g,4,8,11,14,C.ochre);this._R(g,4,8,5,14,C.ochreD);
+    for(let y=2;y<=8;y++){const w=y-2;this._R(g,7-w,y,8+w,y,C.ochreD);}
+    for(let y=3;y<=8;y++){const w=y-3;this._R(g,7-w,y,8+w,y,C.ochre);}
+    this._R(g,10,2,11,4,C.brownD);
+    this._R(g,6,11,8,14,C.brownD);this._P(g,8,13,C.gold);
+    this._R(g,9,10,11,12,C.cream);this._R(g,10,10,10,12,C.ochreD);this._R(g,9,11,11,11,C.ochreD);
+  }
+  artBills16(g){const C=this.pal();
+    this._R(g,4,1,12,13,C.white);
+    this._R(g,4,1,12,1,C.grey);this._R(g,4,1,4,13,C.grey);this._R(g,12,1,12,13,C.grey);
+    this._P(g,5,13,C.grey);this._P(g,7,13,C.grey);this._P(g,9,13,C.grey);this._P(g,11,13,C.grey);
+    this._R(g,6,3,10,3,C.blue);
+    this._R(g,6,5,10,5,C.greyD);this._R(g,6,7,9,7,C.greyD);
+    this._R(g,6,9,10,10,C.blue);
+  }
+  artHealth16(g){const C=this.pal();
+    this._DISC(g,7.5,7.5,6,C.red);this._RING(g,7.5,7.5,6,C.redD,1);
+    this._R(g,7,5,8,10,C.cream);this._R(g,5,7,10,8,C.cream);
+  }
+  artGame16(g){const C=this.pal();
+    this._R(g,2,5,13,10,C.violet);
+    this._DISC(g,3,10,2,C.violet);this._DISC(g,12,10,2,C.violet);
+    this._R(g,2,5,13,5,C.violetL);
+    this._R(g,3,7,5,7,C.cream);this._R(g,4,6,4,8,C.cream);
+    this._DISC(g,10,7,1,C.gold);this._DISC(g,12,8,1,C.red);
+  }
+  artMerit16(g){const C=this.pal();
+    this._DISC(g,7,11,2.2,C.gold);this._R(g,5,10,9,10,C.goldL);
+    this._R(g,7,5,8,10,C.pink);
+    this._LINE(g,7,9,3,5,C.pinkD);this._DISC(g,4,5,1.3,C.pink);
+    this._LINE(g,8,9,12,5,C.pinkD);this._DISC(g,11,5,1.3,C.pink);
+    this._DISC(g,7.5,4,1.6,C.pinkD);
+  }
+  artEducation16(g){const C=this.pal();
+    // graduation cap, black mortarboard + gold tassel
+    this._R(g,3,6,12,7,C.ink);
+    this._R(g,5,5,10,6,C.ink);
+    this._R(g,6,8,9,11,C.ink);this._R(g,6,8,9,8,C.greyD);
+    this._P(g,7,5,C.gold);this._P(g,8,5,C.gold);
+    this._R(g,11,7,11,10,C.gold);this._DISC(g,11,11,1,C.goldD);
+  }
+  artPet16(g){const C=this.pal();
+    this._DISC(g,7,10,3.4,C.brown);
+    this._DISC(g,3,7,1.5,C.brown);this._DISC(g,6,4,1.6,C.brown);this._DISC(g,10,4,1.6,C.brown);this._DISC(g,12,7,1.5,C.brown);
+    this._DISC(g,7,10,1.7,C.brownL);
+    this._P(g,3,7,C.brownL);this._P(g,6,4,C.brownL);this._P(g,10,4,C.brownL);this._P(g,12,7,C.brownL);
+  }
+  artSalary16(g){const C=this.pal();
+    this._R(g,1,4,14,11,C.green);
+    this._R(g,1,4,14,4,C.greenD);this._R(g,1,11,14,11,C.greenD);this._R(g,1,4,1,11,C.greenD);this._R(g,14,4,14,11,C.greenD);
+    this._RING(g,7.5,7.5,2.6,C.cream,1);
+    this._R(g,7,6,7,9,C.cream);this._R(g,7,6,9,6,C.cream);this._R(g,7,8,9,8,C.cream);this._R(g,9,6,9,8,C.cream);
+    this._P(g,3,6,C.greenD);this._P(g,12,9,C.greenD);
+  }
+  artBonus16(g){const C=this.pal();
+    this._R(g,3,7,12,14,C.gold);
+    this._R(g,2,5,13,7,C.goldL);this._R(g,2,5,13,5,C.goldD);
+    this._R(g,7,5,8,14,C.red);
+    this._DISC(g,6,4,1.4,C.red);this._DISC(g,9,4,1.4,C.red);this._R(g,7,4,8,5,C.redD);
+    this._R(g,4,9,6,10,C.goldD);
+  }
+  artSavings16(g){const C=this.pal();
+    this._DISC(g,7,9,4,C.pink);
+    this._DISC(g,12,8,2,C.pink);this._DISC(g,13,8,0.6,C.pinkD);
+    this._R(g,10,5,11,6,C.pinkD);
+    this._R(g,5,5,8,5,C.ink);
+    this._R(g,5,12,6,14,C.pinkD);this._R(g,9,12,10,14,C.pinkD);
+    this._DISC(g,4,9,0.8,C.cream);
+    this._DISC(g,7,3,1.5,C.gold);this._R(g,6,2,8,3,C.goldD);
+  }
+
+  artCoffee16(g){const C=this.pal();
+    this._P(g,6,1,C.cream);this._P(g,6,3,C.cream);this._P(g,9,0,C.cream);this._P(g,9,2,C.cream);
+    this._R(g,4,5,11,5,C.clayL);
+    this._R(g,4,6,11,12,C.clay);
+    this._R(g,4,6,4,12,C.clayD);
+    this._R(g,5,12,10,13,C.clayD);
+    this._R(g,5,6,10,7,C.brownD);
+    this._P(g,12,7,C.clayD);this._P(g,13,8,C.clayD);this._P(g,13,9,C.clayD);this._P(g,13,10,C.clayD);this._P(g,12,11,C.clayD);
+  }
+  artGroceries16(g){const C=this.pal();
+    this._R(g,5,2,5,5,C.leaf);this._R(g,6,3,6,5,C.leafD);this._R(g,4,4,4,5,C.leaf);
+    this._R(g,9,3,10,6,C.coral);this._P(g,9,2,C.leaf);this._P(g,10,3,C.coralL);
+    this._R(g,3,6,12,7,C.taupeD);
+    this._R(g,4,7,11,12,C.taupe);
+    this._R(g,5,12,10,13,C.taupeD);
+    this._R(g,6,8,6,11,C.taupeD);this._R(g,9,8,9,11,C.taupeD);this._R(g,4,9,11,9,C.taupeD);
+  }
+  artFuel16(g){const C=this.pal();
+    this._R(g,3,3,9,13,C.coral);
+    this._R(g,3,3,9,3,C.coralD);this._R(g,3,3,4,13,C.coralD);
+    this._R(g,4,5,8,8,C.cream);this._R(g,5,6,7,7,C.coralD);
+    this._R(g,2,13,10,14,C.coralD);
+    this._R(g,10,6,11,7,C.coralD);this._LINE(g,11,7,13,9,C.coralD);this._R(g,12,9,13,12,C.coralD);this._P(g,13,8,C.coral);
+  }
+  artBeauty16(g){const C=this.pal();
+    this._R(g,6,8,9,14,C.plum);
+    this._R(g,6,8,6,14,C.plumD);
+    this._R(g,5,8,10,9,C.plumD);
+    this._R(g,6,4,9,7,C.pink);
+    this._P(g,6,3,C.pink);this._P(g,7,3,C.pinkL);
+    this._R(g,6,4,6,7,C.pinkD);
+  }
+  artPhone16(g){const C=this.pal();
+    // iPhone (same size as topup phone): blue screen + top notch, no buttons
+    this._R(g,5,3,11,13,C.ink);                                  // body frame
+    this._R(g,6,4,10,11,C.blueL);                                // blue screen
+    this._R(g,6,4,10,4,C.sky);                                   // lighter top band
+    this._R(g,6,10,10,11,C.blue);                                // darker lower band
+    this._P(g,6,5,C.cream);                                      // screen glint
+    this._R(g,8,4,8,4,C.ink);                                    // notch
+  }
+  artTravel16(g){const C=this.pal();
+    this._R(g,7,2,8,13,C.teal);
+    this._R(g,7,2,8,3,C.tealL);
+    this._R(g,2,7,13,8,C.teal);
+    this._R(g,2,8,13,8,C.tealD);
+    this._R(g,5,12,10,12,C.teal);
+    this._P(g,7,5,C.cream);this._P(g,7,10,C.cream);
+  }
+  artFitness16(g){const C=this.pal();
+    this._R(g,5,7,10,8,C.ink);
+    this._R(g,2,5,3,10,C.violet);this._R(g,4,6,4,9,C.violetD);
+    this._R(g,11,5,12,10,C.violet);this._R(g,13,6,13,9,C.violetD);
+    this._R(g,4,7,4,8,C.ink);this._R(g,11,7,11,8,C.ink);
+  }
+  artLottery16(g){const C=this.pal();
+    this._R(g,2,4,13,11,C.sand);
+    this._R(g,2,4,13,4,C.sandD);this._R(g,2,11,13,11,C.sandD);
+    this._R(g,5,5,5,10,C.sandD);
+    this._R(g,7,6,12,6,C.cream);this._R(g,7,8,11,8,C.brownD);this._R(g,7,9,12,9,C.brownD);
+    this._P(g,3,6,C.cream);this._P(g,3,8,C.cream);this._P(g,3,10,C.cream);
+  }
+  artClothes16(g){const C=this.pal();
+    this._R(g,2,4,13,6,C.rose);
+    this._R(g,2,5,3,8,C.rose);this._R(g,12,5,13,8,C.rose);
+    this._R(g,6,3,9,4,C.roseD);this._R(g,7,4,8,5,C.cream);
+    this._R(g,4,6,11,14,C.rose);
+    this._R(g,4,6,5,14,C.roseD);
+  }
+  artInsurance16(g){const C=this.pal();
+    this._R(g,4,3,11,8,C.teal);
+    this._R(g,5,9,10,9,C.teal);
+    this._R(g,6,10,9,10,C.teal);
+    this._R(g,7,11,8,12,C.teal);
+    this._R(g,4,3,5,8,C.tealD);
+    this._LINE(g,6,7,7,9,C.cream);this._LINE(g,7,9,10,5,C.cream);
+  }
+  artFreelance16(g){const C=this.pal();
+    this._R(g,4,4,11,10,C.sageD);
+    this._R(g,5,5,10,9,C.sageL);
+    this._R(g,7,6,7,8,C.sageD);this._R(g,7,6,8,6,C.sageD);this._R(g,7,8,8,8,C.sageD);
+    this._R(g,3,11,12,12,C.sage);this._R(g,2,12,13,13,C.sageD);
+  }
+  artAngpao16(g){const C=this.pal();
+    this._R(g,4,3,11,14,C.coral);
+    this._R(g,4,3,5,14,C.coralD);
+    this._R(g,4,3,11,5,C.coralD);
+    this._DISC(g,7.5,8,2,C.gold);this._DISC(g,7.5,8,0.9,C.goldD);
+  }
+
+  artFamily16(g){const C=this.pal();
+    // two people + heart above
+    this._DISC(g,4.5,7,1.7,C.clay);this._R(g,2,9,7,14,C.clay);this._R(g,2,9,2,14,C.clayD);
+    this._DISC(g,10.5,7,1.7,C.clayL);this._R(g,8,9,13,14,C.clayL);this._R(g,12,9,13,14,C.clay);
+    this._DISC(g,6,3,1,C.coral);this._DISC(g,9,3,1,C.coral);this._R(g,5,3,10,4,C.coral);this._R(g,6,5,9,5,C.coral);this._R(g,7,6,8,6,C.coral);
+  }
+  artKids16(g){const C=this.pal();
+    // baby bottle
+    this._R(g,7,1,8,2,C.pinkL);
+    this._R(g,6,2,9,3,C.pinkD);
+    this._R(g,5,3,10,13,C.pink);this._R(g,5,3,6,13,C.pinkD);this._R(g,5,13,10,13,C.pinkD);
+    this._R(g,5,7,10,7,C.cream);
+    this._P(g,9,5,C.cream);this._P(g,9,9,C.cream);this._P(g,9,11,C.cream);
+  }
+  artHome16(g){const C=this.pal();
+    this._R(g,4,3,8,4,C.teal);this._R(g,3,4,5,6,C.teal);this._R(g,8,2,9,3,C.tealD);
+    this._R(g,5,6,10,14,C.tealL);this._R(g,5,6,6,14,C.teal);
+    this._R(g,6,9,9,11,C.cream);
+  }
+  artRepair16(g){const C=this.pal();
+    this._LINE(g,4,12,10,6,C.brown);this._LINE(g,5,12,11,6,C.brownD);
+    this._RING(g,11,5,2,C.brown,1.3);this._P(g,11,4,C.cream);this._P(g,12,4,C.cream);
+    this._R(g,3,11,5,13,C.brownD);
+  }
+  artTax16(g){const C=this.pal();
+    this._R(g,4,2,11,14,C.cream);
+    this._R(g,4,2,11,2,C.grey);this._R(g,4,2,4,14,C.grey);this._R(g,11,2,11,14,C.grey);this._R(g,4,14,11,14,C.grey);
+    this._DISC(g,6,6,1,C.red);this._DISC(g,9,10,1,C.red);this._LINE(g,9,5,6,11,C.red);
+  }
+  artDebt16(g){const C=this.pal();
+    this._R(g,2,4,13,11,C.violet);this._R(g,2,4,13,5,C.violetD);
+    this._R(g,2,6,13,7,C.ink);
+    this._R(g,4,9,7,10,C.violetL);this._R(g,9,9,11,9,C.violetL);
+  }
+  artDelivery16(g){const C=this.pal();
+    // postal parcel: kraft box + string tie + stamp
+    this._R(g,2,5,13,13,C.sand);
+    this._R(g,2,5,13,6,C.sandL);
+    this._R(g,7,5,8,13,C.brownD);
+    this._R(g,2,8,13,9,C.brownD);
+    this._R(g,9,6,12,8,C.cream);this._DISC(g,10.5,7,0.9,C.coral);
+  }
+  artFuneral16(g){const C=this.pal();
+    // white condolence envelope with black mourning corner
+    this._R(g,2,5,13,12,C.white);
+    this._R(g,2,5,13,5,C.grey);this._R(g,2,12,13,12,C.grey);this._R(g,2,5,2,12,C.grey);this._R(g,13,5,13,12,C.grey);
+    this._LINE(g,2,5,8,9,C.grey);this._LINE(g,13,5,8,9,C.grey);
+    this._R(g,2,5,4,5,C.ink);this._R(g,2,5,2,7,C.ink);this._LINE(g,4,5,2,7,C.ink);
+  }
+  artCigarette16(g){const C=this.pal();
+    // liquor bottle + cigarette
+    this._R(g,5,1,6,2,C.ink);
+    this._R(g,5,2,6,4,C.brownD);
+    this._R(g,4,4,7,13,C.brown);this._R(g,4,4,4,13,C.brownD);
+    this._R(g,4,8,7,10,C.cream);
+    this._R(g,10,4,11,13,C.cream);this._R(g,10,4,10,13,C.grey);
+    this._R(g,10,4,11,5,C.coralD);
+    this._R(g,10,11,11,13,C.brownD);
+    this._P(g,11,2,C.grey);this._P(g,12,3,C.grey);
+  }
+  artMovies16(g){const C=this.pal();
+    this._R(g,2,3,13,5,C.ink);
+    this._P(g,3,3,C.cream);this._P(g,5,3,C.cream);this._P(g,7,3,C.cream);this._P(g,9,3,C.cream);this._P(g,11,3,C.cream);
+    this._P(g,4,4,C.cream);this._P(g,6,4,C.cream);this._P(g,8,4,C.cream);this._P(g,10,4,C.cream);
+    this._R(g,2,6,13,13,C.red);this._R(g,2,6,3,13,C.redD);
+    this._R(g,6,8,9,11,C.cream);
+  }
+  artSnacks16(g){const C=this.pal();
+    this._DISC(g,7,6,2.8,C.pink);
+    this._DISC(g,7,6,2.8,C.pinkL);this._R(g,5,6,9,7,C.pink);
+    for(let y=8;y<=14;y++){const w=Math.max(0,Math.round((14-y)*0.7));this._R(g,7-w,y,7+w,y,C.sand);}
+    this._P(g,6,11,C.sandD);this._P(g,8,12,C.sandD);
+    this._DISC(g,7,3,0.9,C.red);
+  }
+  artDrinks16(g){const C=this.pal();
+    this._LINE(g,4,4,7,9,C.taupeL);this._LINE(g,11,4,8,9,C.taupeL);this._R(g,4,4,11,4,C.taupeL);
+    this._R(g,4,4,11,5,C.coral);
+    this._R(g,7,9,8,13,C.taupeD);this._R(g,5,13,10,14,C.taupeD);
+    this._DISC(g,10,3,1,C.coralL);
+  }
+  artBusiness16(g){const C=this.pal();
+    // storefront: awning + shop body + door
+    this._R(g,2,4,13,5,C.coralD);
+    this._R(g,2,4,3,5,C.coralL);this._R(g,4,4,5,5,C.cream);this._R(g,6,4,7,5,C.coralL);this._R(g,8,4,9,5,C.cream);this._R(g,10,4,11,5,C.coralL);this._R(g,12,4,13,5,C.cream);
+    this._R(g,2,6,13,6,C.ochreD);
+    this._R(g,3,7,12,13,C.ochre);this._R(g,3,7,12,7,C.ochreL);
+    this._R(g,6,9,9,13,C.ochreD);this._P(g,8,11,C.gold);
+  }
+  artPlant16(g){const C=this.pal();
+    this._R(g,5,11,10,14,C.clayD);this._R(g,5,11,10,11,C.clay);
+    this._R(g,7,5,8,11,C.leafD);
+    this._DISC(g,5,6,1.8,C.leaf);this._DISC(g,10,6,1.8,C.leaf);this._DISC(g,7.5,3,1.9,C.sage);
+  }
+  artLaundry16(g){const C=this.pal();
+    this._R(g,3,2,12,14,C.blueL);
+    this._R(g,3,2,12,3,C.blue);
+    this._RING(g,7.5,9,3,C.cream,1.2);
+    this._DISC(g,7.5,9,1.6,C.blue);
+    this._P(g,4,2,C.blueD);this._P(g,6,2,C.blueD);
+  }
+  artParking16(g){const C=this.pal();
+    this._R(g,3,2,12,13,C.teal);
+    this._R(g,3,2,12,2,C.tealD);this._R(g,3,13,12,13,C.tealD);
+    this._R(g,6,5,7,11,C.cream);this._R(g,6,5,9,5,C.cream);this._R(g,6,7,9,7,C.cream);this._R(g,9,5,9,7,C.cream);
+  }
+  artSubscription16(g){const C=this.pal();
+    // star (favorite / subscription)
+    this._R(g,7,2,8,3,C.gold);
+    this._R(g,7,4,8,4,C.gold);this._R(g,6,5,9,5,C.gold);
+    this._R(g,2,6,13,7,C.gold);
+    this._R(g,4,8,11,8,C.gold);this._R(g,5,9,10,9,C.gold);
+    this._R(g,5,10,6,12,C.gold);this._R(g,9,10,10,12,C.gold);
+    this._P(g,4,12,C.gold);this._P(g,11,12,C.gold);
+    this._R(g,7,5,8,7,C.goldL);
+  }
+  artInterest16(g){const C=this.pal();
+    this._R(g,2,12,4,13,C.gold);this._R(g,5,9,7,13,C.gold);this._R(g,8,6,10,13,C.gold);this._R(g,11,3,13,13,C.gold);
+    this._R(g,2,12,4,12,C.goldL);this._R(g,5,9,7,9,C.goldL);this._R(g,8,6,10,6,C.goldL);this._R(g,11,3,13,3,C.goldL);
+    this._LINE(g,2,9,13,2,C.greenD);this._P(g,13,2,C.greenD);this._P(g,11,2,C.greenD);
+  }
+  artRefund16(g){const C=this.pal();
+    // circular return arrow with coin
+    this._RING(g,8,8,5,C.sage,1.6);
+    this._R(g,8,3,13,8,null);            // open the top-right quadrant
+    // arrowhead pointing into the gap (down-left from top)
+    this._R(g,7,2,8,3,C.sageD);this._P(g,6,3,C.sageD);this._P(g,9,3,C.sageD);
+    this._R(g,7,2,7,5,C.sageD);
+    // baht coin in center
+    this._DISC(g,8,9,1.8,C.gold);this._P(g,8,8,C.goldD);this._P(g,8,10,C.goldD);
+  }
+  artPharmacy16(g){const C=this.pal();
+    // capsule, rounded both ends, white + red halves
+    this._DISC(g,4.5,7.5,2,C.red);this._DISC(g,10.5,7.5,2,C.white);
+    this._R(g,4,6,10,9,C.white);
+    this._R(g,4,6,7,9,C.red);
+    this._R(g,7,6,7,9,C.redD);
+    this._P(g,12,7,C.grey);this._P(g,12,8,C.grey);
+    this._P(g,9,7,C.cream);this._P(g,3,8,C.redD);
+  }
+  artCeremony16(g){const C=this.pal();
+    // pedestal offering tray (พาน) with flowers
+    this._R(g,3,9,12,11,C.gold);this._R(g,3,9,12,9,C.goldL);
+    this._R(g,6,11,9,12,C.goldD);this._R(g,4,13,11,14,C.brownD);
+    this._DISC(g,5,7,1.3,C.pink);this._DISC(g,8,6,1.4,C.coral);this._DISC(g,10,7,1.3,C.plum);
+    this._P(g,7,8,C.sage);this._P(g,9,8,C.sage);
+  }
+  artElectronics16(g){const C=this.pal();
+    // tv / monitor
+    this._R(g,2,3,13,11,C.ink);
+    this._R(g,3,4,12,10,C.blueL);
+    this._R(g,4,5,5,7,C.cream);
+    this._R(g,7,11,8,12,C.ink);this._R(g,5,12,10,13,C.ink);
+  }
+  artCarCare16(g){const C=this.pal();
+    // car front, with wash drops
+    this._P(g,4,2,C.blueL);this._P(g,8,1,C.blueL);this._P(g,11,2,C.blueL);
+    this._R(g,4,5,11,6,C.coralL);
+    this._R(g,2,7,13,10,C.coral);this._R(g,2,7,13,7,C.coralL);
+    this._R(g,5,6,10,7,C.blueL);
+    this._R(g,2,10,4,11,C.ink);this._R(g,11,10,13,11,C.ink);
+    this._P(g,2,9,C.gold);this._P(g,13,9,C.gold);
+  }
+  artMusic16(g){const C=this.pal();
+    this._R(g,6,3,11,4,C.violetD);
+    this._R(g,6,3,6,11,C.violet);this._R(g,11,4,11,12,C.violet);
+    this._DISC(g,5,11,1.8,C.violetD);this._DISC(g,10,12,1.8,C.violetD);
+  }
+  artHobby16(g){const C=this.pal();
+    // paint palette + blobs
+    this._DISC(g,7.5,8,5,C.brownL);
+    this._DISC(g,9.5,10,1.3,C.cream);
+    this._DISC(g,5,5,1,C.coral);this._DISC(g,8,4,1,C.sage);this._DISC(g,10.5,6,1,C.plum);this._DISC(g,4.5,9,1,C.gold);
+  }
+  artBooks16(g){const C=this.pal();
+    this._R(g,2,11,13,13,C.coral);this._R(g,2,11,13,11,C.coralL);this._P(g,12,12,C.cream);
+    this._R(g,3,8,12,10,C.sage);this._R(g,3,8,12,8,C.sageL);this._P(g,11,9,C.cream);
+    this._R(g,2,5,11,7,C.blue);this._R(g,2,5,11,5,C.blueL);this._P(g,10,6,C.cream);
+  }
+  artStationery16(g){const C=this.pal();
+    // pencil, vertical
+    this._R(g,6,2,9,3,C.pink);
+    this._R(g,6,3,9,3,C.grey);
+    this._R(g,6,4,9,11,C.gold);this._R(g,6,4,7,11,C.goldL);
+    this._R(g,7,12,8,12,C.brownL);this._R(g,7,13,8,13,C.ink);
+  }
+  artMisc16(g){const C=this.pal();
+    this._DISC(g,4,8,1.7,C.taupe);this._DISC(g,8,8,1.7,C.taupe);this._DISC(g,12,8,1.7,C.taupe);
+    this._P(g,4,8,C.taupeL);this._P(g,8,8,C.taupeL);this._P(g,12,8,C.taupeL);
+  }
+  artRental16(g){const C=this.pal();
+    // house generating a coin
+    for(let y=3;y<=7;y++){const w=y-3;this._R(g,6-w,y,7+w,y,C.brownD);}
+    this._R(g,4,7,9,13,C.sand);this._R(g,4,7,5,13,C.sandD);
+    this._R(g,6,10,7,13,C.brownD);
+    this._DISC(g,11,10,2.3,C.gold);this._P(g,11,9,C.goldD);this._P(g,11,11,C.goldD);this._RING(g,11,10,2.3,C.goldD,1);
+  }
+  artPrize16(g){const C=this.pal();
+    // trophy
+    this._R(g,5,3,10,4,C.goldL);this._R(g,5,4,10,7,C.gold);
+    this._R(g,6,7,9,8,C.gold);this._R(g,7,8,8,10,C.goldD);
+    this._RING(g,4,5,1.6,C.goldD,1);this._RING(g,11,5,1.6,C.goldD,1);
+    this._R(g,5,10,10,11,C.goldD);this._R(g,4,11,11,13,C.brownD);
+    this._P(g,7,5,C.cream);this._P(g,8,5,C.cream);this._P(g,7,6,C.cream);
+  }
+  artWater16(g){const C=this.pal();
+    // big water droplet
+    this._P(g,8,2,C.water);this._R(g,7,3,8,4,C.water);
+    this._R(g,6,5,9,6,C.water);
+    this._DISC(g,7.5,10,3.6,C.water);
+    this._R(g,6,12,6,13,C.cream);this._P(g,6,11,C.cream);
+    this._RING(g,7.5,10,3.6,C.tealD,1);
+  }
+  artElectric16(g){const C=this.pal();
+    // lightning bolt
+    this._P(g,9,2,C.goldL);
+    this._R(g,7,3,9,3,C.gold);
+    this._R(g,6,4,8,4,C.gold);
+    this._R(g,5,5,10,5,C.gold);
+    this._R(g,7,6,9,6,C.gold);
+    this._R(g,6,7,8,7,C.gold);
+    this._R(g,5,8,7,8,C.gold);
+    this._P(g,6,9,C.gold);this._P(g,6,10,C.goldD);
+    this._R(g,5,5,5,5,C.goldD);this._R(g,5,8,5,8,C.goldD);
+  }
+  artTaxi16(g){const C=this.pal();
+    // taxi: roof sign + car + checker
+    this._R(g,6,2,9,3,C.goldL);
+    this._R(g,4,4,11,6,C.goldL);this._R(g,5,4,10,5,C.blueL);
+    this._R(g,2,7,13,10,C.gold);this._R(g,2,7,13,7,C.goldD);
+    this._P(g,3,8,C.ink);this._P(g,5,8,C.ink);this._P(g,7,8,C.ink);this._P(g,9,8,C.ink);this._P(g,11,8,C.ink);
+    this._R(g,3,10,5,11,C.ink);this._R(g,10,10,12,11,C.ink);
+  }
+  artFlight16(g){const C=this.pal();
+    // airplane, top view pointing up
+    this._R(g,7,2,8,13,C.blue);this._P(g,7,2,C.blueL);this._P(g,8,2,C.blueL);
+    this._R(g,2,7,13,8,C.blue);this._R(g,3,7,12,7,C.blueL);
+    this._R(g,5,11,10,12,C.blue);
+    this._R(g,7,13,8,13,C.blueD);
+  }
+  artHotel16(g){const C=this.pal();
+    // bed
+    this._R(g,2,5,3,12,C.plumD);
+    this._R(g,12,7,13,12,C.plumD);
+    this._R(g,2,8,13,9,C.plum);
+    this._R(g,2,9,13,11,C.plumD);
+    this._R(g,3,7,6,8,C.cream);
+    this._P(g,2,12,C.plumD);this._P(g,13,12,C.plumD);
+  }
+  artSpa16(g){const C=this.pal();
+    // stacked zen stones + leaves + flower
+    this._R(g,4,11,11,12,C.taupeD);
+    this._R(g,5,9,10,10,C.taupe);
+    this._R(g,6,7,9,8,C.taupeL);
+    this._DISC(g,4.5,6,1.6,C.sage);this._DISC(g,10.5,6,1.6,C.sage);
+    this._DISC(g,7.5,5,1.4,C.pink);this._P(g,7,5,C.cream);
+  }
+  artGold16(g){const C=this.pal();
+    // stacked gold bars
+    this._R(g,4,9,11,12,C.gold);this._R(g,4,9,11,9,C.goldL);this._R(g,4,12,11,12,C.goldD);
+    this._R(g,5,6,10,8,C.gold);this._R(g,5,6,10,6,C.goldL);this._R(g,5,8,10,8,C.goldD);
+    this._P(g,6,7,C.cream);this._P(g,6,10,C.cream);
+  }
+  artInvest16(g){const C=this.pal();
+    // candlestick chart
+    this._R(g,3,5,4,10,C.sage);this._R(g,3,4,4,4,C.sageD);this._R(g,3,11,4,11,C.sageD);
+    this._R(g,7,7,8,12,C.coral);this._R(g,7,5,8,6,C.coralD);this._R(g,7,13,8,13,C.coralD);
+    this._R(g,11,4,12,9,C.sage);this._R(g,11,3,12,3,C.sageD);this._R(g,11,10,12,10,C.sageD);
+  }
+  artFlowers16(g){const C=this.pal();
+    // bouquet
+    this._DISC(g,5,4,1.7,C.rose);this._P(g,5,4,C.gold);
+    this._DISC(g,8,3,1.8,C.coral);this._P(g,8,3,C.gold);
+    this._DISC(g,11,4,1.7,C.plum);this._P(g,11,4,C.gold);
+    this._LINE(g,5,6,8,10,C.leafD);this._R(g,8,5,8,10,C.leafD);this._LINE(g,11,6,8,10,C.leafD);
+    this._R(g,6,10,10,11,C.cream);this._R(g,7,11,9,13,C.taupeL);
+  }
+  artWelfare16(g){const C=this.pal();
+    // open hand receiving a baht coin
+    this._DISC(g,7.5,4,2.6,C.gold);this._RING(g,7.5,4,2.6,C.goldD,1);this._R(g,7,3,8,6,C.goldD);this._R(g,7,3,9,3,C.goldD);
+    this._R(g,3,10,12,12,C.brownL);
+    this._R(g,3,9,3,10,C.brownL);this._R(g,5,8,5,10,C.brownL);this._R(g,7,8,7,10,C.brownL);this._R(g,9,8,9,10,C.brownL);this._R(g,11,9,11,10,C.brownL);
+  }
+  artTip16(g){const C=this.pal();
+    // two coins + heart (gratuity)
+    this._DISC(g,5,11,2.3,C.gold);this._RING(g,5,11,2.3,C.goldD,1);
+    this._DISC(g,9.5,11,2.3,C.goldL);this._RING(g,9.5,11,2.3,C.goldD,1);
+    this._DISC(g,6,5,1.3,C.coral);this._DISC(g,8,5,1.3,C.coral);this._R(g,5,5,9,6,C.coral);this._R(g,6,7,8,7,C.coral);this._P(g,7,8,C.coralD);
+  }
+  artLoan16(g){const C=this.pal();
+    // banknote handed over (into a hand)
+    this._R(g,4,3,12,8,C.ochre);this._R(g,4,3,12,4,C.ochreL);this._R(g,4,8,12,8,C.ochreD);
+    this._DISC(g,8,5.5,1.5,C.cream);this._P(g,8,5,C.ochreD);
+    this._R(g,2,11,11,13,C.brownL);
+    this._R(g,2,10,2,12,C.brownL);this._R(g,4,10,4,12,C.brownL);this._R(g,6,10,6,12,C.brownL);this._R(g,8,10,8,12,C.brownL);this._R(g,10,10,10,12,C.brownL);
+  }
+  artFruit16(g){const C=this.pal();
+    this._DISC(g,6,9,3.4,C.coral);this._DISC(g,9.5,9,3.4,C.coral);
+    this._R(g,7,4,8,6,C.brownD);
+    this._DISC(g,10,5,1.4,C.sage);this._P(g,11,4,C.sageL);
+    this._P(g,5,7,C.coralL);this._P(g,8,7,C.coralL);
+  }
+  artBakery16(g){const C=this.pal();
+    this._R(g,5,10,10,13,C.taupeL);this._R(g,5,10,5,13,C.taupe);this._R(g,8,10,8,13,C.taupe);
+    this._DISC(g,7.5,8,3.4,C.pinkL);this._R(g,4,9,11,10,C.pinkL);
+    this._P(g,5,8,C.pink);this._P(g,10,8,C.pink);
+    this._DISC(g,7.5,5,1.3,C.red);
+  }
+  artBbq16(g){const C=this.pal();
+    // grilled skewers (หมูปิ้ง) on a grill
+    this._R(g,2,9,13,10,C.ink);this._R(g,2,11,13,12,C.ink);
+    this._R(g,4,3,4,9,C.brownL);this._DISC(g,4,5,1.2,C.coralD);this._DISC(g,4,7,1.2,C.brown);
+    this._R(g,8,3,8,9,C.brownL);this._DISC(g,8,5,1.2,C.brown);this._DISC(g,8,7,1.2,C.coralD);
+    this._R(g,11,3,11,9,C.brownL);this._DISC(g,11,5,1.2,C.coralD);this._DISC(g,11,7,1.2,C.brown);
+    this._P(g,5,13,C.gold);this._P(g,8,13,C.coral);this._P(g,11,13,C.gold);
+  }
+  artTrain16(g){const C=this.pal();
+    this._R(g,3,3,12,12,C.teal);this._R(g,3,3,12,3,C.tealD);
+    this._R(g,4,5,11,8,C.blueL);this._R(g,7,5,8,8,C.teal);
+    this._R(g,3,9,12,10,C.tealD);
+    this._DISC(g,5,11,1,C.gold);this._DISC(g,10,11,1,C.gold);
+    this._R(g,4,13,6,13,C.ink);this._R(g,9,13,11,13,C.ink);
+  }
+  artBoat16(g){const C=this.pal();
+    this._R(g,2,10,13,11,C.brownD);this._R(g,3,11,12,12,C.brownD);this._P(g,4,12,C.brownD);this._P(g,11,12,C.brownD);
+    this._R(g,5,6,10,9,C.coralL);this._R(g,6,7,9,8,C.blueL);
+    this._R(g,7,3,8,6,C.brownL);this._R(g,8,3,10,4,C.coral);
+    this._R(g,1,13,14,13,C.water);
+  }
+  artBike16(g){const C=this.pal();
+    this._RING(g,4,10,2.6,C.ink,1.2);this._RING(g,11,10,2.6,C.ink,1.2);
+    this._LINE(g,4,10,7,6,C.teal);this._LINE(g,7,6,11,10,C.teal);this._LINE(g,4,10,9,10,C.teal);this._R(g,7,5,8,7,C.teal);
+    this._R(g,9,5,11,5,C.tealD);this._R(g,5,5,7,5,C.tealD);
+  }
+  artGas16(g){const C=this.pal();
+    this._R(g,4,5,11,13,C.coral);this._R(g,4,5,5,13,C.coralD);
+    this._R(g,5,3,10,5,C.coralD);
+    this._R(g,6,2,9,3,C.ink);this._R(g,7,1,8,2,C.ink);
+    this._R(g,4,8,11,9,C.coralD);
+    this._P(g,6,6,C.coralL);
+  }
+  artFurniture16(g){const C=this.pal();
+    this._R(g,2,7,13,8,C.plumL);
+    this._R(g,2,7,3,12,C.plum);this._R(g,12,7,13,12,C.plum);
+    this._R(g,3,9,12,11,C.plumL);this._R(g,3,8,12,9,C.plumD);
+    this._R(g,4,12,5,13,C.plumD);this._R(g,10,12,11,13,C.plumD);
+  }
+  artCleaning16(g){const C=this.pal();
+    this._R(g,7,2,8,9,C.brownL);
+    this._R(g,6,9,9,9,C.brownD);
+    this._R(g,5,10,10,11,C.gold);this._R(g,4,11,11,13,C.goldL);
+    this._P(g,4,13,C.gold);this._P(g,6,13,C.goldD);this._P(g,8,13,C.gold);this._P(g,10,13,C.goldD);
+  }
+  artCondofee16(g){const C=this.pal();
+    this._R(g,3,2,12,13,C.blue);this._R(g,3,2,4,13,C.blueD);
+    this._R(g,5,4,6,5,C.blueL);this._R(g,8,4,9,5,C.blueL);
+    this._R(g,5,7,6,8,C.blueL);this._R(g,8,7,9,8,C.blueL);
+    this._R(g,5,10,6,11,C.blueL);this._R(g,8,10,9,11,C.blueL);
+    this._R(g,3,13,12,13,C.blueD);
+  }
+  artShoes16(g){const C=this.pal();
+    // sneaker, side profile
+    this._R(g,2,10,13,12,C.cream);this._R(g,2,12,13,12,C.coralD);
+    this._R(g,3,6,10,10,C.coral);this._R(g,10,8,12,10,C.coral);
+    this._R(g,3,6,4,10,C.coralD);this._R(g,3,5,5,6,C.coralL);
+    this._R(g,6,7,8,7,C.cream);this._P(g,6,8,C.cream);this._P(g,8,8,C.cream);
+    this._LINE(g,5,9,9,7,C.cream);
+  }
+  artBag16(g){const C=this.pal();
+    this._RING(g,7.5,5,2.4,C.brownL,1.2);this._R(g,6,6,9,7,C.cream);
+    this._R(g,4,6,11,13,C.brown);this._R(g,4,6,11,7,C.brownD);this._R(g,4,6,5,13,C.brownD);
+    this._R(g,7,8,8,9,C.gold);
+  }
+  artGlasses16(g){const C=this.pal();
+    this._RING(g,4,8,2.4,C.ink,1.4);this._RING(g,11,8,2.4,C.ink,1.4);
+    this._R(g,6,8,9,8,C.ink);
+    this._R(g,1,7,2,7,C.ink);this._R(g,13,7,14,7,C.ink);
+    this._DISC(g,4,8,1.4,C.blueL);this._DISC(g,11,8,1.4,C.blueL);
+  }
+  artWatch16(g){const C=this.pal();
+    this._R(g,6,2,9,4,C.coralD);this._R(g,6,11,9,13,C.coralD);
+    this._RING(g,7.5,7.5,3.4,C.ink,1.4);this._DISC(g,7.5,7.5,2.4,C.cream);
+    this._R(g,7,6,8,8,C.ink);this._R(g,7,7,9,8,C.ink);
+  }
+  artDentist16(g){const C=this.pal();
+    // tooth: all white with light outline (two lobes + two roots)
+    this._DISC(g,6,5,2,C.grey);this._DISC(g,9,5,2,C.grey);
+    this._R(g,3,5,12,8,C.grey);
+    this._R(g,3,8,6,13,C.grey);this._R(g,9,8,12,13,C.grey);
+    this._DISC(g,6,5,1.3,C.white);this._DISC(g,9,5,1.3,C.white);
+    this._R(g,4,5,11,7,C.white);
+    this._R(g,4,8,5,12,C.white);this._R(g,10,8,11,12,C.white);
+    this._P(g,7,4,C.grey);this._P(g,8,4,C.grey);
+    this._P(g,5,6,C.cream);
+  }
+  artSupplement16(g){const C=this.pal();
+    this._R(g,5,4,10,5,C.coralD);
+    this._R(g,5,5,10,13,C.white);this._R(g,5,5,6,13,C.grey);
+    this._R(g,5,7,10,10,C.gold);
+    this._R(g,7,8,8,9,C.cream);this._R(g,6,8,9,8,C.cream);
+  }
+  artToys16(g){const C=this.pal();
+    this._DISC(g,5,3,1.3,C.brownL);this._DISC(g,10,3,1.3,C.brownL);
+    this._DISC(g,7.5,5,2.4,C.brownL);
+    this._DISC(g,7.5,10,3,C.brownL);
+    this._DISC(g,4,9,1.4,C.brownL);this._DISC(g,11,9,1.4,C.brownL);
+    this._P(g,6,5,C.ink);this._P(g,9,5,C.ink);this._R(g,7,6,8,6,C.brownD);
+    this._DISC(g,7.5,10,1.4,C.taupeL);
+  }
+  artSports16(g){const C=this.pal();
+    // black & white soccer ball
+    this._DISC(g,7.5,8,4.6,C.white);this._RING(g,7.5,8,4.6,C.ink,1);
+    this._DISC(g,7.5,8,1.5,C.ink);
+    this._P(g,7,4,C.ink);this._P(g,8,4,C.ink);
+    this._P(g,4,8,C.ink);this._P(g,11,8,C.ink);
+    this._P(g,5,11,C.ink);this._P(g,10,11,C.ink);
+    this._LINE(g,8,7,8,5,C.ink);this._LINE(g,6,9,5,10,C.ink);this._LINE(g,9,9,10,10,C.ink);
+  }
+  artCamera16(g){const C=this.pal();
+    this._R(g,4,3,7,5,C.ink);
+    this._R(g,2,5,13,12,C.ink);this._R(g,2,5,13,6,C.greyD);
+    this._DISC(g,8,9,2.8,C.blueD);this._DISC(g,8,9,1.6,C.blueL);
+    this._R(g,11,6,12,7,C.gold);
+  }
+  artComputer16(g){const C=this.pal();
+    this._R(g,3,3,12,9,C.ink);this._R(g,4,4,11,8,C.blueL);
+    this._R(g,2,10,13,11,C.grey);this._R(g,2,11,13,12,C.greyD);
+    this._R(g,6,4,9,5,C.blue);
+  }
+  artFine16(g){const C=this.pal();
+    this._R(g,4,2,11,13,C.cream);
+    this._R(g,4,2,11,2,C.grey);this._R(g,4,2,4,13,C.grey);this._R(g,11,2,11,13,C.grey);this._R(g,4,13,11,13,C.grey);
+    this._R(g,7,4,8,8,C.red);this._R(g,7,10,8,11,C.red);
+  }
+  artOvertime16(g){const C=this.pal();
+    this._RING(g,6,6,3.4,C.blue,1.3);this._DISC(g,6,6,2.4,C.cream);
+    this._R(g,6,5,6,7,C.blueD);this._R(g,6,6,8,6,C.blueD);
+    this._DISC(g,11,11,2.4,C.gold);this._RING(g,11,11,2.4,C.goldD,1);this._R(g,11,10,11,12,C.goldD);
+  }
+  artCommission16(g){const C=this.pal();
+    this._DISC(g,4.5,4.5,1.7,C.sage);this._RING(g,4.5,4.5,1.7,C.sageD,1);
+    this._DISC(g,11,11,1.7,C.sage);this._RING(g,11,11,1.7,C.sageD,1);
+    this._LINE(g,12,3,3,12,C.sageD);this._LINE(g,11,3,2,12,C.sage);
+  }
+  artPension16(g){const C=this.pal();
+    this._R(g,4,2,11,3,C.brownD);this._R(g,4,12,11,13,C.brownD);
+    this._R(g,5,4,5,11,C.brownL);this._R(g,10,4,10,11,C.brownL);
+    this._R(g,6,4,9,4,C.goldL);this._R(g,7,5,8,5,C.goldL);this._P(g,7,6,C.gold);this._P(g,8,6,C.gold);
+    this._P(g,7,8,C.gold);this._P(g,8,8,C.gold);this._R(g,7,9,8,9,C.goldL);this._R(g,6,10,9,11,C.goldL);
+  }
+  artAssetSale16(g){const C=this.pal();
+    this._R(g,6,4,12,10,C.ochre);this._R(g,6,4,12,5,C.ochreL);
+    this._R(g,5,5,6,9,C.ochre);this._P(g,4,7,C.ochreD);this._R(g,5,6,5,8,C.ochre);
+    this._DISC(g,7,7,1,C.cream);
+    this._LINE(g,7,7,11,11,C.brownD);
+  }
+  artHaircut16(g){const C=this.pal();
+    // open scissors
+    this._LINE(g,7,8,5,3,C.grey);this._LINE(g,7,8,4,3,C.greyD);
+    this._LINE(g,7,8,10,3,C.grey);this._LINE(g,7,8,11,3,C.greyD);
+    this._P(g,7,8,C.ink);
+    this._LINE(g,7,8,5,10,C.ink);this._LINE(g,7,8,10,10,C.ink);
+    this._RING(g,4,11,1.6,C.coral,1.2);this._RING(g,11,11,1.6,C.coral,1.2);
+  }
+  artNails16(g){const C=this.pal();
+    this._R(g,6,2,9,5,C.plumD);
+    this._R(g,5,6,10,13,C.rose);this._R(g,5,6,6,13,C.roseD);
+    this._R(g,6,9,9,11,C.cream);
+    this._P(g,8,7,C.roseL);
+    this._DISC(g,12,12,1.3,C.rose);
+  }
+  artVet16(g){const C=this.pal();
+    // paw + medical cross badge
+    this._DISC(g,6,9,2.8,C.brownL);this._DISC(g,6,9,1.3,C.brown);
+    this._DISC(g,3.5,5,1.1,C.brownL);this._DISC(g,6,4,1.2,C.brownL);this._DISC(g,8.5,5,1.1,C.brownL);
+    this._R(g,11,8,12,13,C.sage);this._R(g,10,10,13,11,C.sage);this._P(g,11,10,C.sageL);
+  }
+  artTopup16(g){const C=this.pal();
+    this._R(g,3,3,9,13,C.ink);this._R(g,4,5,8,11,C.blueL);
+    this._R(g,5,12,7,12,C.greyD);
+    this._DISC(g,11,6,2.6,C.gold);this._RING(g,11,6,2.6,C.goldD,1);
+    this._R(g,11,5,11,7,C.cream);this._R(g,10,6,12,6,C.cream);
+  }
+  artFortune16(g){const C=this.pal();
+    this._DISC(g,7.5,7,4,C.violetL);this._RING(g,7.5,7,4,C.violet,1);
+    this._R(g,5,5,6,6,C.cream);
+    this._P(g,9,6,C.cream);this._P(g,8,9,C.cream);
+    this._R(g,5,11,10,12,C.violetD);this._R(g,4,12,11,13,C.brownD);
+    this._P(g,12,3,C.gold);this._P(g,3,4,C.gold);
+  }
+  artAmulet16(g){const C=this.pal();
+    // Thai Buddha amulet: pointed-arch gold frame + seated Buddha
+    this._R(g,7,2,8,2,C.gold);
+    this._R(g,6,3,9,3,C.gold);
+    this._R(g,5,4,10,5,C.gold);
+    this._R(g,4,6,11,13,C.gold);
+    this._R(g,4,6,4,13,C.goldD);this._R(g,11,6,11,13,C.goldD);this._R(g,4,13,11,13,C.goldD);
+    this._R(g,6,4,9,5,C.ochreL);this._R(g,5,6,10,12,C.ochreL);
+    this._DISC(g,7.5,6,1.1,C.brownD);this._P(g,8,4,C.brownD);
+    for(let y=8;y<=11;y++){const w=y-7;this._R(g,8-w,y,7+w,y,C.brownD);}
+    this._R(g,5,12,10,12,C.goldD);
+  }
+  artKitchenware16(g){const C=this.pal();
+    this._DISC(g,6,8,3.4,C.ink);this._DISC(g,6,8,2.4,C.greyD);
+    this._R(g,9,7,14,8,C.brownD);
+    this._P(g,5,7,C.grey);
+  }
+  artWaterDrink16(g){const C=this.pal();
+    this._R(g,7,1,9,2,C.blueD);
+    this._R(g,7,2,9,4,C.blueL);
+    this._R(g,5,4,11,14,C.blueL);this._R(g,5,4,6,14,C.water);
+    this._R(g,5,8,11,10,C.cream);
+    this._P(g,9,6,C.cream);
+  }
+  artRice16(g){const C=this.pal();
+    // rice / dry-goods sack with tied top + label
+    this._R(g,4,6,11,13,C.sandL);this._R(g,4,6,5,13,C.sand);this._R(g,4,13,11,13,C.sandD);
+    this._R(g,5,4,10,6,C.sand);this._R(g,6,3,9,4,C.sandD);this._R(g,6,5,9,5,C.brownD);
+    this._R(g,6,8,9,11,C.cream);
+    this._P(g,7,9,C.sandD);this._P(g,8,10,C.sandD);this._P(g,7,10,C.gold);this._P(g,8,9,C.gold);
+  }
+  artCourse16(g){const C=this.pal();
+    this._R(g,3,5,12,10,C.cream);
+    this._R(g,3,5,12,5,C.grey);this._R(g,3,10,12,10,C.grey);
+    this._R(g,5,7,10,7,C.greyD);this._R(g,5,8,8,8,C.greyD);
+    this._DISC(g,11,11,1.6,C.coral);this._R(g,10,12,10,14,C.coralD);this._R(g,12,12,12,14,C.coralD);
+  }
+  artSouvenir16(g){const C=this.pal();
+    this._R(g,3,9,12,13,C.taupe);this._R(g,3,9,12,9,C.taupeD);
+    this._R(g,5,11,5,13,C.taupeD);this._R(g,8,11,8,13,C.taupeD);this._R(g,10,11,10,13,C.taupeD);
+    this._DISC(g,5,7,1.4,C.coral);this._DISC(g,8,6,1.5,C.gold);this._DISC(g,10,7,1.4,C.sage);
+    this._RING(g,7.5,7,5,C.rose,1);this._R(g,2,8,13,13,null);this._R(g,2,8,13,8,C.rose);
+  }
+
+  defs(){
+    const C=this.pal();
+    return [
+      {id:'food', th:'อาหาร & เครื่องดื่ม', en:'food_drink', type:'expense', accent:C.clay, art:'artFood16'},
+      {id:'coffee', th:'กาแฟ / ชานม', en:'coffee_tea', type:'expense', accent:C.taupe, art:'artCoffee16'},
+      {id:'groceries', th:'ตลาด / ของสด', en:'groceries', type:'expense', accent:C.sage, art:'artGroceries16'},
+      {id:'rice', th:'ข้าวสาร / ของแห้ง', en:'rice_grain', type:'expense', accent:C.gold, art:'artRice16'},
+      {id:'snacks', th:'ขนม / ของหวาน', en:'snacks_dessert', type:'expense', accent:C.pink, art:'artSnacks16'},
+      {id:'bakery', th:'เบเกอรี่ / เค้ก', en:'bakery_cake', type:'expense', accent:C.pink, art:'artBakery16'},
+      {id:'fruit', th:'ผลไม้', en:'fruit', type:'expense', accent:C.coral, art:'artFruit16'},
+      {id:'bbq', th:'ปิ้งย่าง / บุฟเฟ่ต์', en:'bbq_buffet', type:'expense', accent:C.brown, art:'artBbq16'},
+      {id:'parcel', th:'ค่าส่งพัสดุ / ไปรษณีย์', en:'parcel_post', type:'expense', accent:C.brown, art:'artDelivery16'},
+      {id:'drinks', th:'สังสรรค์ / เครื่องดื่ม', en:'drinks_party', type:'expense', accent:C.coral, art:'artDrinks16'},
+      {id:'cigarette', th:'บุหรี่ / เหล้า', en:'cigarette_alcohol', type:'expense', accent:C.brown, art:'artCigarette16'},
+      {id:'waterdrink', th:'น้ำดื่ม / น้ำเปล่า', en:'drinking_water', type:'expense', accent:C.teal, art:'artWaterDrink16'},
+      {id:'transport', th:'เดินทาง', en:'transport', type:'expense', accent:C.teal, art:'artTransport16'},
+      {id:'taxi', th:'แท็กซี่ / เรียกรถ', en:'taxi_ride', type:'expense', accent:C.gold, art:'artTaxi16'},
+      {id:'train', th:'รถไฟฟ้า BTS/MRT', en:'train_metro', type:'expense', accent:C.teal, art:'artTrain16'},
+      {id:'boat', th:'เรือ / เรือข้ามฟาก', en:'boat_ferry', type:'expense', accent:C.brown, art:'artBoat16'},
+      {id:'bike', th:'จักรยาน', en:'bicycle', type:'expense', accent:C.teal, art:'artBike16'},
+      {id:'fuel', th:'น้ำมันรถ', en:'fuel', type:'expense', accent:C.coral, art:'artFuel16'},
+      {id:'carcare', th:'ดูแลรถ / ล้างรถ', en:'car_care', type:'expense', accent:C.coral, art:'artCarCare16'},
+      {id:'parking', th:'ค่าจอด / ทางด่วน', en:'parking_toll', type:'expense', accent:C.teal, art:'artParking16'},
+      {id:'shopping', th:'ช้อปปิ้ง', en:'shopping', type:'expense', accent:C.plum, art:'artShopping16'},
+      {id:'flowers', th:'ดอกไม้ / ช่อดอกไม้', en:'flowers', type:'expense', accent:C.rose, art:'artFlowers16'},
+      {id:'souvenir', th:'ของฝาก / กระเช้า', en:'souvenir', type:'expense', accent:C.sand, art:'artSouvenir16'},
+      {id:'clothes', th:'เสื้อผ้า', en:'clothes', type:'expense', accent:C.rose, art:'artClothes16'},
+      {id:'shoes', th:'รองเท้า', en:'shoes', type:'expense', accent:C.coral, art:'artShoes16'},
+      {id:'bag', th:'กระเป๋า', en:'bag', type:'expense', accent:C.brown, art:'artBag16'},
+      {id:'glasses', th:'แว่นตา', en:'glasses', type:'expense', accent:C.blue, art:'artGlasses16'},
+      {id:'watch', th:'นาฬิกา / เครื่องประดับ', en:'watch', type:'expense', accent:C.coral, art:'artWatch16'},
+      {id:'beauty', th:'ความงาม / เสริมสวย', en:'beauty', type:'expense', accent:C.pink, art:'artBeauty16'},
+      {id:'haircut', th:'ตัดผม / ร้านเสริมสวย', en:'haircut_salon', type:'expense', accent:C.coral, art:'artHaircut16'},
+      {id:'nails', th:'ทำเล็บ', en:'nails', type:'expense', accent:C.rose, art:'artNails16'},
+      {id:'spa', th:'สปา / นวด', en:'spa_massage', type:'expense', accent:C.sage, art:'artSpa16'},
+      {id:'laundry', th:'ซัก / รีด', en:'laundry', type:'expense', accent:C.blue, art:'artLaundry16'},
+      {id:'home', th:'ของใช้ในบ้าน', en:'home_goods', type:'expense', accent:C.teal, art:'artHome16'},
+      {id:'furniture', th:'เฟอร์นิเจอร์', en:'furniture', type:'expense', accent:C.plum, art:'artFurniture16'},
+      {id:'kitchenware', th:'เครื่องครัว', en:'kitchenware', type:'expense', accent:C.brown, art:'artKitchenware16'},
+      {id:'cleaning', th:'ทำความสะอาด / แม่บ้าน', en:'cleaning', type:'expense', accent:C.gold, art:'artCleaning16'},
+      {id:'condofee', th:'ค่าส่วนกลาง / นิติ', en:'condo_fee', type:'expense', accent:C.blue, art:'artCondofee16'},
+      {id:'housing', th:'ที่พัก / ค่าเช่า', en:'housing_rent', type:'expense', accent:C.ochre, art:'artHousing16'},
+      {id:'repair', th:'ซ่อมแซม / ช่าง', en:'repair', type:'expense', accent:C.brown, art:'artRepair16'},
+      {id:'plant', th:'ต้นไม้ / สวน', en:'plants_garden', type:'expense', accent:C.sage, art:'artPlant16'},
+      {id:'bills', th:'บิล & สาธารณูปโภค', en:'bills_utility', type:'expense', accent:C.blue, art:'artBills16'},
+      {id:'water', th:'ค่าน้ำ / ประปา', en:'water_bill', type:'expense', accent:C.teal, art:'artWater16'},
+      {id:'electric', th:'ค่าไฟ', en:'electric_bill', type:'expense', accent:C.gold, art:'artElectric16'},
+      {id:'gas', th:'แก๊สหุงต้ม', en:'cooking_gas', type:'expense', accent:C.coral, art:'artGas16'},
+      {id:'phone', th:'มือถือ / เน็ต', en:'phone_internet', type:'expense', accent:C.blue, art:'artPhone16'},
+      {id:'topup', th:'เติมเงินมือถือ / e-wallet', en:'mobile_topup', type:'expense', accent:C.gold, art:'artTopup16'},
+      {id:'subscription', th:'ค่าสมาชิก / แอป', en:'subscription', type:'expense', accent:C.violet, art:'artSubscription16'},
+      {id:'electronics', th:'เครื่องใช้ไฟฟ้า', en:'electronics', type:'expense', accent:C.blue, art:'artElectronics16'},
+      {id:'computer', th:'คอม / โน้ตบุ๊ก', en:'computer_laptop', type:'expense', accent:C.blue, art:'artComputer16'},
+      {id:'health', th:'สุขภาพ / โรงพยาบาล', en:'health', type:'expense', accent:C.coral, art:'artHealth16'},
+      {id:'pharmacy', th:'ยา / ร้านขายยา', en:'pharmacy', type:'expense', accent:C.coral, art:'artPharmacy16'},
+      {id:'dentist', th:'หมอฟัน / ทันตกรรม', en:'dentist', type:'expense', accent:C.blue, art:'artDentist16'},
+      {id:'supplement', th:'วิตามิน / อาหารเสริม', en:'supplement', type:'expense', accent:C.gold, art:'artSupplement16'},
+      {id:'fitness', th:'ออกกำลังกาย', en:'fitness', type:'expense', accent:C.violet, art:'artFitness16'},
+      {id:'sports', th:'กีฬา / ดูบอล', en:'sports', type:'expense', accent:C.sage, art:'artSports16'},
+      {id:'game', th:'บันเทิง / เกม', en:'entertainment', type:'expense', accent:C.violet, art:'artGame16'},
+      {id:'movies', th:'หนัง / สตรีมมิ่ง', en:'movies_streaming', type:'expense', accent:C.red, art:'artMovies16'},
+      {id:'music', th:'ดนตรี / คอนเสิร์ต', en:'music_concert', type:'expense', accent:C.violet, art:'artMusic16'},
+      {id:'hobby', th:'งานอดิเรก / ศิลปะ', en:'hobby_craft', type:'expense', accent:C.brown, art:'artHobby16'},
+      {id:'camera', th:'กล้อง / ถ่ายรูป', en:'camera_photo', type:'expense', accent:C.ink, art:'artCamera16'},
+      {id:'travel', th:'ท่องเที่ยว', en:'travel', type:'expense', accent:C.teal, art:'artTravel16'},
+      {id:'flight', th:'ตั๋วเครื่องบิน', en:'flight', type:'expense', accent:C.blue, art:'artFlight16'},
+      {id:'hotel', th:'โรงแรม / ที่พักเที่ยว', en:'hotel', type:'expense', accent:C.plum, art:'artHotel16'},
+      {id:'lottery', th:'หวย / ลอตเตอรี่', en:'lottery', type:'expense', accent:C.sand, art:'artLottery16'},
+      {id:'education', th:'การศึกษา', en:'education', type:'expense', accent:C.blue, art:'artEducation16'},
+      {id:'course', th:'คอร์สเรียน / อบรม', en:'course_training', type:'expense', accent:C.coral, art:'artCourse16'},
+      {id:'books', th:'หนังสือ', en:'books', type:'expense', accent:C.sage, art:'artBooks16'},
+      {id:'stationery', th:'เครื่องเขียน', en:'stationery', type:'expense', accent:C.gold, art:'artStationery16'},
+      {id:'kids', th:'ลูก / ค่าเลี้ยงดู', en:'kids_childcare', type:'expense', accent:C.sand, art:'artKids16'},
+      {id:'toys', th:'ของเล่นเด็ก', en:'toys', type:'expense', accent:C.brown, art:'artToys16'},
+      {id:'family', th:'ครอบครัว / ให้พ่อแม่', en:'family_support', type:'expense', accent:C.clay, art:'artFamily16'},
+      {id:'pet', th:'สัตว์เลี้ยง', en:'pet', type:'expense', accent:C.brown, art:'artPet16'},
+      {id:'vet', th:'หมอสัตว์ / รักษาสัตว์', en:'veterinary', type:'expense', accent:C.sage, art:'artVet16'},
+      {id:'insurance', th:'ประกัน', en:'insurance', type:'expense', accent:C.teal, art:'artInsurance16'},
+      {id:'tax', th:'ภาษี / ค่าธรรมเนียม', en:'tax_fees', type:'expense', accent:C.red, art:'artTax16'},
+      {id:'fine', th:'ค่าปรับ / ใบสั่ง', en:'fine_ticket', type:'expense', accent:C.red, art:'artFine16'},
+      {id:'debt', th:'หนี้ / ผ่อนชำระ', en:'debt_installment', type:'expense', accent:C.violet, art:'artDebt16'},
+      {id:'merit', th:'ทำบุญ / บริจาค', en:'merit_donate', type:'expense', accent:C.pink, art:'artMerit16'},
+      {id:'ceremony', th:'งานบุญ / งานบวช-แต่ง', en:'ceremony', type:'expense', accent:C.gold, art:'artCeremony16'},
+      {id:'funeral', th:'ซองช่วยงานศพ', en:'funeral_condolence', type:'expense', accent:C.greyD, art:'artFuneral16'},
+      {id:'amulet', th:'พระเครื่อง / เครื่องราง', en:'amulet', type:'expense', accent:C.gold, art:'artAmulet16'},
+      {id:'fortune', th:'ดูดวง / หมอดู', en:'fortune_telling', type:'expense', accent:C.violet, art:'artFortune16'},
+      {id:'misc', th:'จิปาถะ / อื่นๆ', en:'misc_other', type:'expense', accent:C.taupe, art:'artMisc16'},
+      {id:'salary', th:'เงินเดือน', en:'salary', type:'income', accent:C.sage, art:'artSalary16'},
+      {id:'freelance', th:'รายได้เสริม / ฟรีแลนซ์', en:'freelance', type:'income', accent:C.sage, art:'artFreelance16'},
+      {id:'business', th:'ค้าขาย / ร้านค้า', en:'business_sales', type:'income', accent:C.ochre, art:'artBusiness16'},
+      {id:'assetsale', th:'ขายของมือสอง / ทรัพย์สิน', en:'asset_sale', type:'income', accent:C.ochre, art:'artAssetSale16'},
+      {id:'rental', th:'ค่าเช่ารับ / ปล่อยเช่า', en:'rental_income', type:'income', accent:C.sand, art:'artRental16'},
+      {id:'bonus', th:'โบนัส / เงินพิเศษ', en:'bonus', type:'income', accent:C.gold, art:'artBonus16'},
+      {id:'overtime', th:'OT / ค่าล่วงเวลา', en:'overtime', type:'income', accent:C.blue, art:'artOvertime16'},
+      {id:'commission', th:'คอมมิชชั่น', en:'commission', type:'income', accent:C.sage, art:'artCommission16'},
+      {id:'interest', th:'ดอกเบี้ย / เงินปันผล', en:'interest_dividend', type:'income', accent:C.gold, art:'artInterest16'},
+      {id:'pension', th:'บำนาญ / เงินเกษียณ', en:'pension', type:'income', accent:C.gold, art:'artPension16'},
+      {id:'prize', th:'เงินรางวัล / ถูกรางวัล', en:'prize_winnings', type:'income', accent:C.gold, art:'artPrize16'},
+      {id:'refund', th:'เงินคืน / คืนภาษี', en:'refund', type:'income', accent:C.sage, art:'artRefund16'},
+      {id:'angpao', th:'อั่งเปา / ของขวัญ', en:'gift_received', type:'income', accent:C.coral, art:'artAngpao16'},
+      {id:'savings', th:'ออมเงิน / ลงทุน', en:'savings', type:'income', accent:C.pink, art:'artSavings16'},
+      {id:'gold', th:'ทองคำ / เครื่องประดับ', en:'gold_jewelry', type:'income', accent:C.gold, art:'artGold16'},
+      {id:'invest', th:'หุ้น / คริปโต', en:'invest_stocks', type:'income', accent:C.sage, art:'artInvest16'},
+      {id:'welfare', th:'สวัสดิการ / เงินช่วยเหลือ', en:'welfare_subsidy', type:'income', accent:C.sage, art:'artWelfare16'},
+      {id:'tip', th:'ทิป / เซอร์วิสชาร์จ', en:'tips', type:'income', accent:C.gold, art:'artTip16'},
+      {id:'loan', th:'เงินกู้ / เงินยืม', en:'loan_received', type:'income', accent:C.ochre, art:'artLoan16'},
+    ];
+  }
+
+  // compare icon: piggy/coin at multiple sizes -> use FOOD bowl scaled? we author coin per size
+  artCoin(g){ const C=this.pal(); const n=g.length; const c=(n-1)/2; const r=n*0.42;
+    this._DISC(g,c,c,r,C.gold); this._RING(g,c,c,r,C.goldD,Math.max(1,n*0.07));
+    this._RING(g,c,c,r*0.78,C.goldL,Math.max(1,n*0.05));
+    // baht-ish glyph: vertical bar + B + top stroke
+    const x0=Math.round(c-n*0.06), x1=Math.round(c+n*0.06);
+    this._R(g,x0,Math.round(c-r*0.55),x1,Math.round(c+r*0.55),C.goldD);
+    const bx=x1+1, by0=Math.round(c-r*0.4), by1=Math.round(c+r*0.4);
+    this._R(g,bx,by0,bx,by1,C.goldD);
+    this._R(g,bx,by0,bx+Math.round(n*0.12),by0,C.goldD);
+    this._R(g,bx,Math.round((by0+by1)/2),bx+Math.round(n*0.12),Math.round((by0+by1)/2),C.goldD);
+    this._R(g,bx,by1,bx+Math.round(n*0.12),by1,C.goldD);
+    this._R(g,bx+Math.round(n*0.12),by0,bx+Math.round(n*0.12),by1,C.goldD);
+    // top/bottom stem ticks
+    this._P(g,Math.round(c-n*0.02),Math.round(c-r*0.7),C.goldD);
+    this._P(g,Math.round(c-n*0.02),Math.round(c+r*0.7),C.goldD);
+  }
+
+  buildAll(){
+    if(this._cache) return this._cache;
+    const defs = this.defs();
+    const map = {};
+    const icons = defs.map(d => {
+      const g = this.newG(16); this[d.art](g);
+      const exp = this.encode(g);
+      const dart = this.dartCode(d, exp);
+      const json = JSON.stringify(exp.data);
+      const rec = { ...d, grid:g, palette:exp.palette, data:exp.data, dart, json, colorCount:exp.palette.length-1 };
+      map[d.id] = rec; return rec;
+    });
+    // compares
+    const comps = [
+      {id:'cmp16', n:16, label:'16×16', note:'badge เล็ก'},
+      {id:'cmp24', n:24, label:'24×24', note:'พอดี ๆ'},
+      {id:'cmp32', n:32, label:'32×32', note:'ละเอียดสุด'},
+    ].map(c => { const g=this.newG(c.n); this.artCoin(g); map[c.id]={grid:g}; return c; });
+    this._cache = { icons, comps, map };
+    return this._cache;
+  }
+
+  encode(g){
+    const palette = ['#00000000'];
+    const idx = {}; const data = g.map(row => row.map(cell => {
+      if(cell==null) return 0;
+      let hex = cell.length===9 ? cell : cell; // keep
+      if(idx[hex]==null){ palette.push(hex); idx[hex]=palette.length-1; }
+      return idx[hex];
+    }));
+    return { palette, data };
+  }
+  toARGB(hex){ // #RRGGBB or #RRGGBBAA -> 0xAARRGGBB
+    let h = hex.replace('#','');
+    if(h.length===8){ // RRGGBBAA
+      const r=h.slice(0,2),gg=h.slice(2,4),b=h.slice(4,6),a=h.slice(6,8); return '0x'+(a+r+gg+b).toUpperCase();
+    }
+    if(h.length===6) return '0xFF'+h.toUpperCase();
+    if(h==='00000000') return '0x00000000';
+    return '0xFF000000';
+  }
+  dartCode(d, exp){
+    const pal = exp.palette.map((hex,i)=>{
+      const argb = hex==='#00000000' ? '0x00000000' : this.toARGB(hex);
+      const note = i===0 ? ' // transparent' : '';
+      return '  Color('+argb+'),'+note;
+    }).join('\n');
+    const rows = exp.data.map(r => '    ['+r.join(',')+'],').join('\n');
+    const id = d.id;
+    return 'const List<Color> '+id+'Palette = [\n'+pal+'\n];\n\n'+
+      'const List<List<int>> '+id+'Pixels = [\n'+rows+'\n];';
+  }
+  painterCodeStr(){
+    return [
+'class PixelIconPainter extends CustomPainter {',
+'  final List<List<int>> pixels;',
+'  final List<Color> palette;',
+'  PixelIconPainter(this.pixels, this.palette);',
+'',
+'  @override',
+'  void paint(Canvas canvas, Size size) {',
+'    final n = pixels.length;',
+'    final cell = size.width / n;',
+'    final p = Paint()..isAntiAlias = false;',
+'    for (int y = 0; y < n; y++) {',
+'      for (int x = 0; x < pixels[y].length; x++) {',
+'        final idx = pixels[y][x];',
+'        if (idx == 0) continue; // transparent',
+'        p.color = palette[idx];',
+'        canvas.drawRect(',
+'          Rect.fromLTWH(x * cell, y * cell, cell + 0.5, cell + 0.5), p);',
+'      }',
+'    }',
+'  }',
+'',
+'  @override',
+'  bool shouldRepaint(covariant PixelIconPainter old) =>',
+'      old.pixels != pixels || old.palette != palette;',
+'}',
+'',
+'// ใช้งาน:  CustomPaint(',
+'//   size: const Size(48, 48),',
+'//   painter: PixelIconPainter(foodPixels, foodPalette),',
+'// )'
+    ].join('\n');
+  }
+
+  // ---------- rendering ----------
+  repaint(){
+    const root = this._root; if(!root) return;
+    const all = this.buildAll();
+    const dpr = Math.max(1, window.devicePixelRatio||1);
+    const style = this.props.pixelStyle || 'sharp';
+    const showGrid = this.state.grid;
+    root.querySelectorAll('canvas[data-px]').forEach(cv => {
+      const rec = all.map[cv.dataset.id]; if(!rec) return;
+      const g = rec.grid; const n = g.length;
+      const dispW = cv.clientWidth || parseInt(cv.getAttribute('width'))||120;
+      const W = Math.round(dispW*dpr);
+      if(cv.width!==W){ cv.width=W; cv.height=W; }
+      const ctx = cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
+      const cell = cv.width/n;
+      const gap = style==='gapped' ? Math.max(1, cell*0.12) : 0;
+      const rad = style==='rounded' ? cell*0.5 : 0;
+      for(let y=0;y<n;y++) for(let x=0;x<n;x++){
+        const c = g[y][x]; if(c==null) continue;
+        ctx.fillStyle = c;
+        const px=x*cell+gap, py=y*cell+gap, s=cell-gap*2+(style==='sharp'?0.6:0);
+        if(rad>0){ this.rrect(ctx,px,py,s,s,Math.min(rad,s/2)); ctx.fill(); }
+        else ctx.fillRect(px,py,s,s);
+      }
+      if(showGrid){ ctx.strokeStyle='rgba(42,35,32,.16)'; ctx.lineWidth=1;
+        for(let i=0;i<=n;i++){ const p=Math.round(i*cell)+.5; ctx.beginPath();ctx.moveTo(p,0);ctx.lineTo(p,cv.height);ctx.stroke(); ctx.beginPath();ctx.moveTo(0,p);ctx.lineTo(cv.width,p);ctx.stroke(); }
+      }
+    });
+  }
+  rrect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+  renderVals(){
+    const C = this.pal();
+    const all = this.buildAll();
+    const f = this.state.filter;
+    const bgTheme = this.props.bgTheme || 'cream';
+    const pageBg = bgTheme==='charcoal' ? '#28231E' : '#ECE4D6';
+    const tileBg = '#F6EFE5';
+    const checker = (a,b)=>`linear-gradient(45deg,${a} 25%,transparent 25%,transparent 75%,${a} 75%),linear-gradient(45deg,${a} 25%,${b} 25%,${b} 75%,${a} 75%)`;
+    const checkerImg = checker('#E4DECF','#F3EEE3');
+    const checkerImgDark = checker('#2A2521','#221E1B');
+
+    const typeLabel = t => t==='income' ? 'รายรับ' : 'รายจ่าย';
+    const chip = t => t==='income'
+      ? {bg:'#E6EEDD', fg:'#5C7A4A'}
+      : {bg:'#F3E2D6', fg:'#A2603F'};
+
+    const shown = all.icons
+      .filter(ic => f==='all' ? true : ic.type===f)
+      .map(ic => ({
+        id:ic.id, nameTh:ic.th, nameEn:ic.en, accent:ic.accent,
+        typeLabel: typeLabel(ic.type),
+        chipBg: chip(ic.type).bg, chipFg: chip(ic.type).fg,
+        border:'#4A3B33', shadow:'#4A3B33',
+        onClick: () => this.setState({selectedId: ic.id, copied:''}),
+      }));
+
+    const filters = [
+      {key:'all', label:'ทั้งหมด'},
+      {key:'expense', label:'รายจ่าย'},
+      {key:'income', label:'รายรับ'},
+    ].map(x => ({
+      label:x.label,
+      onClick: () => this.setState({filter:x.key}),
+      bg: f===x.key ? '#4A3B33' : '#F6EFE5',
+      fg: f===x.key ? '#F6EFE5' : '#4A3B33',
+    }));
+
+    const compares = all.comps.map(c => ({id:c.id, label:c.label, note:c.note}));
+
+    const sel = this.state.selectedId ? all.map[this.state.selectedId] : null;
+    const selected = sel ? {
+      id: sel.id, nameTh: sel.th, nameEn: sel.en, colorCount: sel.colorCount,
+      size: sel.grid.length + '×' + sel.grid.length,
+      dartCode: sel.dart,
+    } : null;
+
+    return {
+      rootRef: (el)=>{ this._root = el; },
+      pageBg, tileBg, checkerImg, checkerImgDark,
+      compares, filters, shownIcons: shown,
+      scale: this.state.scale,
+      onScale: (e)=> this.setState({scale: parseInt(e.target.value)}),
+      onToggleGrid: ()=> this.setState({grid: !this.state.grid}),
+      gridLabel: this.state.grid ? 'เปิด' : 'ปิด',
+      gridBtnBg: this.state.grid ? '#4A3B33' : '#F6EFE5',
+      gridBtnFg: this.state.grid ? '#F6EFE5' : '#4A3B33',
+      selected,
+      painterCode: this.painterCodeStr(),
+      copyLabel: this.state.copied==='dart' ? '✓ คัดลอกแล้ว' : 'คัดลอก Dart',
+      closeDrawer: ()=> this.setState({selectedId:null}),
+      stop: (e)=> e.stopPropagation(),
+      copyDart: (e)=>{ e.stopPropagation(); if(sel){ navigator.clipboard && navigator.clipboard.writeText(sel.dart+'\n\n'+this.painterCodeStr()); this.setState({copied:'dart'}); } },
+      copyJson: (e)=>{ e.stopPropagation(); if(sel){ navigator.clipboard && navigator.clipboard.writeText(sel.json); this.setState({copied:'json'}); } },
+    };
+  }
+}
+</script>
+</body>
+</html>

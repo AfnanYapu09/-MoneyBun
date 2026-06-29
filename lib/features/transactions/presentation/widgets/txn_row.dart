@@ -4,6 +4,7 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/money.dart';
 import '../../../../core/widgets/icon_chip.dart';
+import '../../../../core/widgets/pixel_icon.dart';
 import '../../../../domain/enums/enums.dart';
 
 /// A single transaction list row: tinted icon + title/sub + signed amount.
@@ -16,6 +17,7 @@ class TxnRow extends StatelessWidget {
     required this.amountCents,
     required this.type,
     this.iconColor,
+    this.iconKey,
     this.onTap,
   });
 
@@ -28,6 +30,10 @@ class TxnRow extends StatelessWidget {
   /// The category colour for the leading icon (matches category management);
   /// null falls back to the default terra tint.
   final Color? iconColor;
+
+  /// The category's pixel-art icon key, when category-backed. Renders the
+  /// full-colour glyph; otherwise [icon] is used.
+  final String? iconKey;
   final VoidCallback? onTap;
 
   @override
@@ -41,14 +47,22 @@ class TxnRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          IconChip(
-            icon: icon,
-            size: 42,
-            radius: 14,
-            iconSize: 20,
-            background: iconColor ?? AppColors.terraWash,
-            foreground: iconColor == null ? AppColors.terra700 : Colors.white,
-          ),
+          if (hasPixelGlyph(iconKey))
+            CategoryGlyph(
+              iconKey: iconKey,
+              color: iconColor ?? AppColors.terraWash,
+              size: 42,
+              radius: 14,
+            )
+          else
+            IconChip(
+              icon: icon,
+              size: 42,
+              radius: 14,
+              iconSize: 20,
+              background: iconColor ?? AppColors.terraWash,
+              foreground: iconColor == null ? AppColors.terra700 : Colors.white,
+            ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

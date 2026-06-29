@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,6 +54,13 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await _seedCategories();
           }
+          // v5: Bun pixel-art icons. Add the new main-set categories
+          // (insertOrIgnore) and re-skin carried-over system categories so they
+          // render the new pixel glyphs + accent colours (names are preserved).
+          if (from < 5) {
+            await _seedCategories();
+            await _reskinSystemCategories();
+          }
         },
       );
 
@@ -74,6 +81,24 @@ class AppDatabase extends _$AppDatabase {
         mode: InsertMode.insertOrIgnore,
       );
     });
+  }
+
+  /// Re-skin carried-over system categories to the current seed's pixel glyph +
+  /// accent colour (used by the v5 upgrade). Only touches `isSystem` rows and
+  /// only their icon/colour/nameEn — the user's name is left untouched.
+  Future<void> _reskinSystemCategories() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (final s in [...SeedData.categories, ...SeedData.incomeCategories]) {
+      await (update(categories)
+            ..where((c) => c.id.equals(s.id) & c.isSystem.equals(true)))
+          .write(CategoriesCompanion(
+        iconKey: Value(s.iconKey),
+        colorHex: Value(s.colorHex),
+        nameEn: Value(s.nameEn),
+        updatedAt: Value(now),
+        syncStatus: const Value(SyncStatus.pendingUpdate),
+      ));
+    }
   }
 
   /// Seed default accounts/wallets (idempotent via stable ids + insertOrIgnore).
@@ -156,6 +181,39 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> upsertCategory(CategoriesCompanion row) =>
       into(categories).insertOnConflictUpdate(row);
+
+  /// Persist a new category order: rewrite each row's `sortOrder` to its index
+  /// in [idsInOrder]. Done in one batch so the list reorders atomically.
+  Future<void> reorderCategories(List<String> idsInOrder) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await batch((b) {
+      for (var i = 0; i < idsInOrder.length; i++) {
+        final id = idsInOrder[i];
+        final order = i;
+        b.update(
+          categories,
+          CategoriesCompanion(
+            sortOrder: Value(order),
+            updatedAt: Value(now),
+            syncStatus: const Value(SyncStatus.pendingUpdate),
+          ),
+          where: (c) => c.id.equals(id),
+        );
+      }
+    });
+  }
+
+  /// Soft-delete a category (mark deleted + pending so the delete syncs).
+  Future<void> deleteCategory(String id) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await (update(categories)..where((c) => c.id.equals(id))).write(
+      CategoriesCompanion(
+        deleted: const Value(true),
+        updatedAt: Value(now),
+        syncStatus: const Value(SyncStatus.pendingDelete),
+      ),
+    );
+  }
 
   // ---- Transactions ------------------------------------------------------
 
