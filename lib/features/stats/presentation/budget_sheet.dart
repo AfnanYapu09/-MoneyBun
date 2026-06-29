@@ -140,7 +140,6 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
               ),
             ),
             const SizedBox(height: 14),
-            CalcHistoryLine(_calcHistory),
             // Amount
             Container(
               padding: const EdgeInsets.all(20),
@@ -155,6 +154,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                   Text('จำนวนงบ',
                       style: AppTypography.body(
                           size: 12.5, color: AppColors.ink3)),
+                  CalcHistoryLine(_calcHistory),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,

@@ -185,51 +185,57 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             ),
           ),
           const SizedBox(height: 14),
-          CalcHistoryLine(_calcHistory),
           // Amount card
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             decoration: BoxDecoration(
               color: AppColors.paper,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.line),
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(_directionIcon, size: 30, color: _accent),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: TextField(
-                    controller: _amount,
-                    // Tapping opens the in-app calculator instead of the system
-                    // keyboard — so amounts can be worked out (e.g. 100×2) inline.
-                    readOnly: true,
-                    showCursor: false,
-                    enableInteractiveSelection: false,
-                    onTap: _openCalculator,
-                    style: AppTypography.heading(
-                        size: 40,
-                        weight: FontWeight.w600,
-                        color: AppColors.ink),
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      filled: false,
-                      hintText: '0',
-                      hintStyle: AppTypography.heading(
-                          size: 40,
-                          weight: FontWeight.w600,
-                          color: AppColors.ink3),
+                CalcHistoryLine(_calcHistory),
+                Row(
+                  children: [
+                    Icon(_directionIcon, size: 30, color: _accent),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: TextField(
+                        controller: _amount,
+                        // Tapping opens the in-app calculator instead of the
+                        // system keyboard (amounts can be worked out inline).
+                        readOnly: true,
+                        showCursor: false,
+                        enableInteractiveSelection: false,
+                        onTap: _openCalculator,
+                        style: AppTypography.heading(
+                            size: 40,
+                            weight: FontWeight.w600,
+                            color: AppColors.ink),
+                        decoration: InputDecoration(
+                          isCollapsed: true,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          hintText: '0',
+                          hintStyle: AppTypography.heading(
+                              size: 40,
+                              weight: FontWeight.w600,
+                              color: AppColors.ink3),
+                        ),
+                      ),
                     ),
-                  ),
+                    Text('฿',
+                        style: AppTypography.heading(
+                            size: 26,
+                            weight: FontWeight.w500,
+                            color: AppColors.ink3)),
+                  ],
                 ),
-                Text('฿',
-                    style: AppTypography.heading(
-                        size: 26,
-                        weight: FontWeight.w500,
-                        color: AppColors.ink3)),
               ],
             ),
           ),

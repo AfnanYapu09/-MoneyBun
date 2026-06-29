@@ -256,14 +256,17 @@ class CalcHistoryLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (text.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 2),
-      child: Text(
-        text,
-        style: AppTypography.heading(
-          size: 14,
-          weight: FontWeight.w500,
-          color: AppColors.ink3,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: Text(
+          text,
+          style: AppTypography.heading(
+            size: 14,
+            weight: FontWeight.w500,
+            color: AppColors.terra,
+          ),
         ),
       ),
     );
