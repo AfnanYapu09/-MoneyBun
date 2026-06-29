@@ -59,33 +59,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onPickAvatar: _pickAvatar,
           ),
           const SizedBox(height: 20),
-          _ProfileRow(
-            icon: AppIcons.userRound,
-            label: 'ชื่อที่แสดง',
-            controller: _name,
-            hint: 'คุณบัน',
-          ),
-          const _RowDivider(),
-          _ProfileRow(
-            icon: AppIcons.hash,
-            label: 'ชื่อผู้ใช้',
-            controller: _username,
-            prefix: '@',
-            hint: 'moneybun',
-          ),
-          const _RowDivider(),
-          _ProfileRow(
-            icon: AppIcons.mail,
-            label: 'อีเมล',
-            value: email,
-          ),
-          const _RowDivider(),
-          _ProfileRow(
-            icon: AppIcons.phone,
-            label: 'เบอร์โทร',
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            hint: 'ไม่ระบุ',
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.paper,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.line),
+            ),
+            child: Column(
+              children: [
+                _ProfileRow(
+                  icon: AppIcons.userRound,
+                  label: 'ชื่อที่แสดง',
+                  controller: _name,
+                  hint: 'คุณบัน',
+                ),
+                const _RowDivider(),
+                _ProfileRow(
+                  icon: AppIcons.hash,
+                  label: 'ชื่อผู้ใช้',
+                  controller: _username,
+                  prefix: '@',
+                  hint: 'moneybun',
+                ),
+                const _RowDivider(),
+                _ProfileRow(
+                  icon: AppIcons.mail,
+                  label: 'อีเมล',
+                  value: email,
+                ),
+                const _RowDivider(),
+                _ProfileRow(
+                  icon: AppIcons.phone,
+                  label: 'เบอร์โทร',
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  hint: 'ไม่ระบุ',
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 28),
           PrimaryButton(label: 'บันทึก', onPressed: _save),
@@ -232,7 +243,7 @@ class _ProfileRow extends StatelessWidget {
     final valueStyle = AppTypography.body(size: 15.5);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 13),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
         children: [
           Icon(icon, size: 22, color: AppColors.terra700),
@@ -275,7 +286,7 @@ class _RowDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.only(left: 36),
+      padding: EdgeInsets.only(left: 52),
       child: Divider(height: 1, thickness: 1, color: AppColors.line),
     );
   }
