@@ -45,6 +45,51 @@ function colorLiteral(hex) {
   return 'Color(' + argb + ')';
 }
 
+// Extra app-chrome glyphs (not categories, so they are NOT added to the picker
+// catalogue) drawn in the same 16x16 DSL as the design's icons, using the shared
+// primitives on the evaluated component instance `c`.
+const EXTRA_GLYPHS = [
+  // ย้ายเงิน — two opposing arrows (gold), matching the amber transfer accent.
+  {
+    id: 'transfer',
+    draw(g) {
+      const C = c.pal();
+      // top arrow → (gold)
+      c._R(g, 3, 5, 9, 5, C.gold);
+      c._R(g, 10, 3, 10, 7, C.gold);
+      c._R(g, 11, 4, 11, 6, C.gold);
+      c._P(g, 12, 5, C.gold);
+      c._P(g, 3, 4, C.goldL);
+      c._P(g, 3, 6, C.goldL);
+      // bottom arrow ← (dark gold)
+      c._R(g, 6, 10, 12, 10, C.goldD);
+      c._R(g, 5, 8, 5, 12, C.goldD);
+      c._R(g, 4, 9, 4, 11, C.goldD);
+      c._P(g, 3, 10, C.goldD);
+      c._P(g, 12, 9, C.gold);
+      c._P(g, 12, 11, C.gold);
+    },
+  },
+  // การแจ้งเตือน — a bell with a small red alert dot.
+  {
+    id: 'notification',
+    draw(g) {
+      const C = c.pal();
+      c._R(g, 7, 2, 8, 3, C.goldD); // knob
+      c._R(g, 6, 4, 9, 5, C.gold);
+      c._R(g, 5, 6, 10, 7, C.gold);
+      c._R(g, 4, 8, 11, 9, C.gold);
+      c._R(g, 3, 10, 12, 10, C.goldD); // rim
+      c._P(g, 6, 4, C.goldL);
+      c._P(g, 5, 6, C.goldL);
+      c._P(g, 4, 8, C.goldL); // highlight
+      c._R(g, 7, 11, 8, 12, C.goldD); // clapper
+      c._R(g, 11, 2, 12, 3, C.red); // alert dot
+      c._P(g, 12, 2, C.redD);
+    },
+  },
+];
+
 const defs = c.defs();
 const glyphLines = [];
 const catalogLines = [];
@@ -74,12 +119,27 @@ for (const d of defs) {
   );
 }
 
+// Append the extra app-chrome glyphs to the glyph map only (not the catalogue).
+for (const e of EXTRA_GLYPHS) {
+  const g = c.newG(16);
+  e.draw(g);
+  const exp = c.encode(g);
+  const palette = exp.palette.map(colorLiteral).join(', ');
+  const rows = exp.data.map((r) => '      [' + r.join(',') + '],').join('\n');
+  glyphLines.push(
+    "  '" + e.id + "': PixelGlyph(\n" +
+    '    palette: [' + palette + '],\n' +
+    '    pixels: [\n' + rows + '\n    ],\n' +
+    '  ),'
+  );
+}
+
 const out =
 `// GENERATED FILE — do not edit by hand.
 // Source: tool/bun_pixel_icons.dc.html (Claude Design handoff "Bun Pixel Icons").
 // Regenerate: node tool/gen_pixel_icons.js
 //
-// ${defs.length} pixel-art glyphs (16x16). Each PixelGlyph holds an ARGB palette
+// ${glyphLines.length} pixel-art glyphs (16x16). Each PixelGlyph holds an ARGB palette
 // (index 0 is transparent) and a 16-row index grid; PixelIconPainter renders it.
 import 'dart:ui' show Color;
 
