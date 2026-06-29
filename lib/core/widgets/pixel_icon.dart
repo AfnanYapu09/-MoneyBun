@@ -225,7 +225,12 @@ class PixelMaskPainter extends CustomPainter {
 
 /// Renders the mask for [maskKey] in [color] at [size]×[size].
 class PixelMaskIcon extends StatelessWidget {
-  const PixelMaskIcon(this.maskKey, {super.key, required this.color, this.size = 24});
+  const PixelMaskIcon(
+    this.maskKey, {
+    super.key,
+    required this.color,
+    this.size = 24,
+  });
   final String? maskKey;
   final Color color;
   final double size;

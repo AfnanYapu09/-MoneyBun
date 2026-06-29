@@ -75,7 +75,8 @@ for (const d of defs) {
 }
 
 const out =
-`// GENERATED FILE — do not edit by hand.
+`// dart format off
+// GENERATED FILE — do not edit by hand.
 // Source: tool/bun_pixel_icons.dc.html (Claude Design handoff "Bun Pixel Icons").
 // Regenerate: node tool/gen_pixel_icons.js
 //
