@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../bootstrap/providers.dart';
@@ -8,6 +7,7 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/calculator_keypad.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/segmented_control.dart';
@@ -95,6 +95,15 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         TxnType.expense => AppColors.terra,
       };
 
+  /// Open the orange in-app calculator and write the computed amount back into
+  /// the field (edit mode persists live, mirroring the old onChanged hook).
+  Future<void> _openCalculator() async {
+    final result = await showAmountCalculator(context, initial: _amount.text);
+    if (!mounted || result == null) return;
+    _amount.text = result;
+    _persistLive();
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider).languageCode;
@@ -178,12 +187,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 Expanded(
                   child: TextField(
                     controller: _amount,
-                    onChanged: (_) => _persistLive(),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-                    ],
+                    // Tapping opens the in-app calculator instead of the system
+                    // keyboard — so amounts can be worked out (e.g. 100×2) inline.
+                    readOnly: true,
+                    showCursor: false,
+                    enableInteractiveSelection: false,
+                    onTap: _openCalculator,
                     style: AppTypography.heading(
                         size: 40,
                         weight: FontWeight.w600,

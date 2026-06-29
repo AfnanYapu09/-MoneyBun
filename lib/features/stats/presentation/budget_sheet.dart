@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -11,6 +10,7 @@ import '../../../core/utils/app_date.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/calculator_keypad.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -53,6 +53,11 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   void dispose() {
     _amount.dispose();
     super.dispose();
+  }
+
+  Future<void> _openCalculator() async {
+    final result = await showAmountCalculator(context, initial: _amount.text);
+    if (mounted && result != null) setState(() => _amount.text = result);
   }
 
   @override
@@ -143,12 +148,11 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                       Expanded(
                         child: TextField(
                           controller: _amount,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9.,]'))
-                          ],
+                          // Tap to open the in-app calculator (no system keyboard).
+                          readOnly: true,
+                          showCursor: false,
+                          enableInteractiveSelection: false,
+                          onTap: _openCalculator,
                           style: AppTypography.heading(
                               size: 38, weight: FontWeight.w600),
                           decoration: InputDecoration(

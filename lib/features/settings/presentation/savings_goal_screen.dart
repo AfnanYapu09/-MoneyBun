@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +7,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/calculator_keypad.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
@@ -28,6 +28,11 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
   void dispose() {
     _amount.dispose();
     super.dispose();
+  }
+
+  Future<void> _openCalculator() async {
+    final result = await showAmountCalculator(context, initial: _amount.text);
+    if (mounted && result != null) setState(() => _amount.text = result);
   }
 
   @override
@@ -124,10 +129,11 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: _amount,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-            ],
+            // Tap to open the in-app calculator (no system keyboard).
+            readOnly: true,
+            showCursor: false,
+            enableInteractiveSelection: false,
+            onTap: _openCalculator,
             decoration:
                 const InputDecoration(prefixText: '฿ ', hintText: '8,000'),
           ),
