@@ -136,11 +136,10 @@ class CategoryGlyph extends StatelessWidget {
         color: AppColors.pixelTile,
         shape: circle ? BoxShape.circle : BoxShape.rectangle,
         borderRadius: circle ? null : BorderRadius.circular(radius),
-        border: Border.all(color: AppColors.line),
       ),
       alignment: Alignment.center,
       // A square glyph in a circle needs more inset so its corners stay inside.
-      child: PixelIcon(iconKey, size: size * (circle ? 0.64 : 0.72)),
+      child: PixelIcon(iconKey, size: size * (circle ? 0.66 : 0.74)),
     );
   }
 }
