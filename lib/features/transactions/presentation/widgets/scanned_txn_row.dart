@@ -5,6 +5,7 @@ import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/money.dart';
 import '../../../../core/widgets/app_icons.dart';
 import '../../../../core/widgets/dashed_border.dart';
+import '../../../../core/widgets/pixel_icon.dart';
 import '../../../../data/local/database.dart';
 
 /// Row for an uncategorised slip import ("รายการใหม่จากสลิป").
@@ -54,8 +55,9 @@ class ScannedTxnRow extends StatelessWidget {
                   color: AppColors.dangerWash,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(AppIcons.triangleAlert,
-                    size: 20, color: AppColors.danger),
+                alignment: Alignment.center,
+                child: const PixelMaskIcon('alert',
+                    color: AppColors.danger, size: 24),
               ),
             )
           else

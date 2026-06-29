@@ -26,126 +26,147 @@ class CategorySeed {
 class SeedData {
   const SeedData._();
 
-  /// The 12 spending categories from the design's category picker
-  /// (`design_files/modals.jsx` CATS), in the same order — the list index
-  /// becomes each category's `sortOrder`. `sys_other` is kept last as the stats
-  /// "อื่นๆ" bucket (and is hidden from the picker). Stable `sys_` ids keep
-  /// re-seeding/sync idempotent.
+  /// The default "main" expense categories — the ones an ordinary Thai user
+  /// reaches for daily. Each uses a Bun pixel-art glyph (`iconKey` == the
+  /// glyph id in `pixel_icons_data.dart`) and its design accent colour. The
+  /// list index becomes each category's `sortOrder`. The full ~100-icon set is
+  /// reachable from the "+ เพิ่ม" icon picker. `sys_other` is kept last as the
+  /// stats "อื่นๆ" bucket (hidden from the picker). Stable `sys_` ids keep
+  /// re-seeding/sync idempotent; ids carried over from earlier versions are
+  /// re-skinned to pixel glyphs by the v5 migration.
   static const List<CategorySeed> categories = [
     CategorySeed(
         id: 'sys_food',
         nameTh: 'อาหาร',
         nameEn: 'Food',
         iconKey: 'food',
-        colorHex: 'FFE8732C'),
+        colorHex: 'FFC77E5E'),
+    CategorySeed(
+        id: 'sys_coffee',
+        nameTh: 'กาแฟ ชานม',
+        nameEn: 'Coffee & Tea',
+        iconKey: 'coffee',
+        colorHex: 'FFA8845F'),
+    CategorySeed(
+        id: 'sys_groceries',
+        nameTh: 'ของสด ตลาด',
+        nameEn: 'Groceries',
+        iconKey: 'groceries',
+        colorHex: 'FF8FA877'),
+    CategorySeed(
+        id: 'sys_snacks',
+        nameTh: 'ขนม ของหวาน',
+        nameEn: 'Snacks',
+        iconKey: 'snacks',
+        colorHex: 'FFCD8A84'),
     CategorySeed(
         id: 'sys_transport',
-        nameTh: 'เดินทาง, รถ',
+        nameTh: 'เดินทาง',
         nameEn: 'Transport',
         iconKey: 'transport',
-        colorHex: 'FF8A6DBF'),
+        colorHex: 'FF7CA39B'),
     CategorySeed(
-        id: 'sys_essentials',
-        nameTh: 'ของใช้จำเป็น',
-        nameEn: 'Essentials',
-        iconKey: 'package',
-        colorHex: 'FF6E8B6F'),
+        id: 'sys_taxi',
+        nameTh: 'แท็กซี่ วิน',
+        nameEn: 'Taxi & Ride',
+        iconKey: 'taxi',
+        colorHex: 'FFCCA968'),
+    CategorySeed(
+        id: 'sys_fuel',
+        nameTh: 'น้ำมันรถ',
+        nameEn: 'Fuel',
+        iconKey: 'fuel',
+        colorHex: 'FFCB7C6F'),
     CategorySeed(
         id: 'sys_shopping',
         nameTh: 'ช้อปปิ้ง',
         nameEn: 'Shopping',
         iconKey: 'shopping',
-        colorHex: 'FFD9476B'),
+        colorHex: 'FFA87E91'),
     CategorySeed(
-        id: 'sys_entertainment',
-        nameTh: 'บันเทิง',
-        nameEn: 'Entertainment',
-        iconKey: 'entertainment',
-        colorHex: 'FFB5531A'),
+        id: 'sys_clothes',
+        nameTh: 'เสื้อผ้า',
+        nameEn: 'Clothes',
+        iconKey: 'clothes',
+        colorHex: 'FFCD8A84'),
     CategorySeed(
         id: 'sys_home',
-        nameTh: 'บ้าน, บิล',
-        nameEn: 'Home & Bills',
+        nameTh: 'ของใช้ในบ้าน',
+        nameEn: 'Home',
         iconKey: 'home',
-        colorHex: 'FF4FA36B'),
+        colorHex: 'FF7CA39B'),
+    CategorySeed(
+        id: 'sys_bills',
+        nameTh: 'บิล ค่าน้ำไฟ',
+        nameEn: 'Bills',
+        iconKey: 'bills',
+        colorHex: 'FF849ABA'),
+    CategorySeed(
+        id: 'sys_phone',
+        nameTh: 'มือถือ เน็ต',
+        nameEn: 'Phone & Net',
+        iconKey: 'phone',
+        colorHex: 'FF849ABA'),
     CategorySeed(
         id: 'sys_health',
         nameTh: 'สุขภาพ',
         nameEn: 'Health',
         iconKey: 'health',
-        colorHex: 'FFC0533F'),
-    CategorySeed(
-        id: 'sys_family',
-        nameTh: 'ครอบครัว, สัตว์',
-        nameEn: 'Family & Pets',
-        iconKey: 'family',
-        colorHex: 'FFB5739E'),
-    CategorySeed(
-        id: 'sys_lend',
-        nameTh: 'ให้คนอื่น',
-        nameEn: 'Give',
-        iconKey: 'lend',
-        colorHex: 'FF3FA9A0'),
-    CategorySeed(
-        id: 'sys_travel',
-        nameTh: 'ท่องเที่ยว',
-        nameEn: 'Travel',
-        iconKey: 'travel',
-        colorHex: 'FF2FA8C4'),
-    CategorySeed(
-        id: 'sys_education',
-        nameTh: 'การศึกษา',
-        nameEn: 'Education',
-        iconKey: 'education',
-        colorHex: 'FF3D7DCA'),
-    CategorySeed(
-        id: 'sys_work',
-        nameTh: 'งาน, ธุรกิจ',
-        nameEn: 'Work & Business',
-        iconKey: 'work',
-        colorHex: 'FF8A6D52'),
-    CategorySeed(
-        id: 'sys_coffee',
-        nameTh: 'คาเฟ่, กาแฟ',
-        nameEn: 'Cafe',
-        iconKey: 'coffee',
-        colorHex: 'FFA9744F'),
-    CategorySeed(
-        id: 'sys_subscription',
-        nameTh: 'ค่าบริการรายเดือน',
-        nameEn: 'Subscriptions',
-        iconKey: 'subscription',
-        colorHex: 'FF566AC2'),
+        colorHex: 'FFCB7C6F'),
     CategorySeed(
         id: 'sys_beauty',
         nameTh: 'ความงาม',
         nameEn: 'Beauty',
         iconKey: 'beauty',
-        colorHex: 'FFD86592'),
+        colorHex: 'FFCD8A84'),
     CategorySeed(
-        id: 'sys_insurance',
-        nameTh: 'ประกัน',
-        nameEn: 'Insurance',
-        iconKey: 'insurance',
-        colorHex: 'FF4E8C8A'),
+        id: 'sys_entertainment',
+        nameTh: 'บันเทิง เกม',
+        nameEn: 'Entertainment',
+        iconKey: 'game',
+        colorHex: 'FF9A8AAD'),
     CategorySeed(
-        id: 'sys_debt',
-        nameTh: 'ผ่อน, หนี้',
-        nameEn: 'Debt',
-        iconKey: 'debt',
-        colorHex: 'FFC0533F'),
+        id: 'sys_education',
+        nameTh: 'การศึกษา',
+        nameEn: 'Education',
+        iconKey: 'education',
+        colorHex: 'FF849ABA'),
+    CategorySeed(
+        id: 'sys_family',
+        nameTh: 'ครอบครัว',
+        nameEn: 'Family',
+        iconKey: 'family',
+        colorHex: 'FFC77E5E'),
+    CategorySeed(
+        id: 'sys_pet',
+        nameTh: 'สัตว์เลี้ยง',
+        nameEn: 'Pet',
+        iconKey: 'pet',
+        colorHex: 'FFA8845F'),
     CategorySeed(
         id: 'sys_donate',
-        nameTh: 'บริจาค, ทำบุญ',
-        nameEn: 'Donate',
-        iconKey: 'donate',
-        colorHex: 'FFCB5A75'),
+        nameTh: 'ทำบุญ บริจาค',
+        nameEn: 'Merit & Donate',
+        iconKey: 'merit',
+        colorHex: 'FFCD8A84'),
+    CategorySeed(
+        id: 'sys_housing',
+        nameTh: 'ค่าเช่า หอพัก',
+        nameEn: 'Rent',
+        iconKey: 'housing',
+        colorHex: 'FFCBA068'),
+    CategorySeed(
+        id: 'sys_subscription',
+        nameTh: 'ค่าสมาชิก',
+        nameEn: 'Subscriptions',
+        iconKey: 'subscription',
+        colorHex: 'FF9A8AAD'),
     CategorySeed(
         id: 'sys_other',
         nameTh: 'อื่นๆ',
         nameEn: 'Other',
-        iconKey: 'other',
-        colorHex: 'FF7A736B'),
+        iconKey: 'misc',
+        colorHex: 'FFA8845F'),
   ];
 
   /// Income categories — the basics for everyday money in. `type: income`.
@@ -156,49 +177,49 @@ class SeedData {
         nameTh: 'เงินเดือน',
         nameEn: 'Salary',
         iconKey: 'salary',
-        colorHex: 'FF4FA36B',
+        colorHex: 'FF8FA877',
         type: CategoryType.income),
     CategorySeed(
         id: 'sys_inc_bonus',
         nameTh: 'โบนัส',
         nameEn: 'Bonus',
         iconKey: 'bonus',
-        colorHex: 'FFD9A441',
+        colorHex: 'FFCCA968',
         type: CategoryType.income),
     CategorySeed(
         id: 'sys_inc_freelance',
-        nameTh: 'รายได้เสริม, ฟรีแลนซ์',
+        nameTh: 'รายได้เสริม',
         nameEn: 'Freelance',
-        iconKey: 'work',
-        colorHex: 'FF3FA9A0',
-        type: CategoryType.income),
-    CategorySeed(
-        id: 'sys_inc_invest',
-        nameTh: 'ดอกเบี้ย, เงินปันผล',
-        nameEn: 'Investment',
-        iconKey: 'invest',
-        colorHex: 'FF3D7DCA',
+        iconKey: 'freelance',
+        colorHex: 'FF8FA877',
         type: CategoryType.income),
     CategorySeed(
         id: 'sys_inc_sale',
-        nameTh: 'ขายของ',
+        nameTh: 'ค้าขาย',
         nameEn: 'Sales',
-        iconKey: 'sale',
-        colorHex: 'FFB5531A',
+        iconKey: 'business',
+        colorHex: 'FFCBA068',
+        type: CategoryType.income),
+    CategorySeed(
+        id: 'sys_inc_invest',
+        nameTh: 'หุ้น ปันผล',
+        nameEn: 'Investment',
+        iconKey: 'invest',
+        colorHex: 'FF8FA877',
         type: CategoryType.income),
     CategorySeed(
         id: 'sys_inc_gift',
-        nameTh: 'ได้รับ, ของขวัญ',
+        nameTh: 'ของขวัญ อั่งเปา',
         nameEn: 'Gifts',
-        iconKey: 'gift',
-        colorHex: 'FFB5739E',
+        iconKey: 'angpao',
+        colorHex: 'FFCB7C6F',
         type: CategoryType.income),
     CategorySeed(
         id: 'sys_inc_refund',
         nameTh: 'เงินคืน',
         nameEn: 'Refund',
         iconKey: 'refund',
-        colorHex: 'FF6E8B6F',
+        colorHex: 'FF8FA877',
         type: CategoryType.income),
   ];
 }

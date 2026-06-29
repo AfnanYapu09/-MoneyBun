@@ -12,6 +12,7 @@ import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/period_chip.dart';
+import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
@@ -187,16 +188,21 @@ class _BudgetBar extends StatelessWidget {
         : (pct > 0.85 ? AppColors.terra : AppColors.green);
     return Row(
       children: [
-        IconChip(
-          icon: CategoryIcons.forKey(category?.iconKey),
-          size: 42,
-          radius: 13,
-          iconSize: 20,
-          background: category == null
-              ? AppColors.terraWash
-              : AppColors.forHex(category!.colorHex),
-          foreground: category == null ? AppColors.terra700 : Colors.white,
-        ),
+        if (category == null)
+          IconChip(
+            icon: CategoryIcons.forKey(null),
+            size: 42,
+            radius: 13,
+            iconSize: 20,
+          )
+        else
+          CategoryGlyph(
+            iconKey: category!.iconKey,
+            color: AppColors.forHex(category!.colorHex),
+            size: 42,
+            radius: 13,
+            iconSize: 20,
+          ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(

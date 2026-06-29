@@ -6,6 +6,7 @@ import 'bootstrap/providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/colors.dart';
+import 'core/utils/money.dart';
 import 'l10n/generated/app_localizations.dart';
 
 /// The GoRouter, created once for the app's lifetime.
@@ -28,6 +29,10 @@ class MoneyBunApp extends ConsumerWidget {
       'dark' => ThemeMode.dark,
       _ => ThemeMode.system,
     };
+
+    // Drive the money formatter from the user's currency setting so every
+    // amount reformats when it changes (this widget rebuilds on settings change).
+    Money.setCurrency(settings?.currencyCode ?? 'THB');
 
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,

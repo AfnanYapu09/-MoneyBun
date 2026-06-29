@@ -39,6 +39,7 @@ dependencies:
 
   # Utilities
   connectivity_plus: ^6.0.0
+  url_launcher: ^6.3.0 # open LINE / email links from Help
   uuid: ^4.4.0
   intl: any
   google_fonts: ^6.2.0

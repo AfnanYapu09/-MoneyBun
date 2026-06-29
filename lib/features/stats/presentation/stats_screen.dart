@@ -13,6 +13,7 @@ import '../../../core/widgets/category_icons.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/pill.dart';
+import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/week_strip.dart';
@@ -419,8 +420,8 @@ class _TransferSummary extends StatelessWidget {
             size: 46,
             radius: 14,
             iconSize: 22,
-            background: AppColors.amber,
-            foreground: Colors.white,
+            background: AppColors.amberWash,
+            foreground: AppColors.amber,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -490,6 +491,7 @@ class _TransferList extends StatelessWidget {
                 title: d.title,
                 sub: d.sub,
                 iconColor: d.color,
+                iconKey: d.iconKey,
                 amountCents: t.amountCents,
                 type: t.type,
                 onTap: () => onTap(t.id),
@@ -518,16 +520,21 @@ class _CategoryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        IconChip(
-          icon: CategoryIcons.forKey(category?.iconKey),
-          size: 40,
-          radius: 13,
-          iconSize: 19,
-          background: category == null
-              ? AppColors.terraWash
-              : AppColors.forHex(category!.colorHex),
-          foreground: category == null ? AppColors.terra700 : Colors.white,
-        ),
+        if (category == null)
+          IconChip(
+            icon: CategoryIcons.forKey(null),
+            size: 40,
+            radius: 13,
+            iconSize: 19,
+          )
+        else
+          CategoryGlyph(
+            iconKey: category!.iconKey,
+            color: AppColors.forHex(category!.colorHex),
+            size: 40,
+            radius: 13,
+            iconSize: 19,
+          ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(

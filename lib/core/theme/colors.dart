@@ -28,6 +28,10 @@ class AppColors {
   static const Color line = Color(0xFFE7E0D2); // borders, dividers
   static const Color toggleOff = Color(0xFFD8D0C2); // off-state switch track
 
+  // Clean white disc behind a full-colour pixel-art icon, so the art pops and
+  // the chip reads as a soft borderless circle in line with the app.
+  static const Color pixelTile = Color(0xFFFFFFFF);
+
   // Positive / income
   static const Color green = Color(0xFF4E7A5E);
   static const Color greenTint = Color(0xFFE3EDE2);

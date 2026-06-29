@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
@@ -8,6 +10,30 @@ import '../../../core/widgets/sub_screen_scaffold.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
+
+  // Support contacts.
+  static const _lineId = 'afnan9632';
+  static const _email = 'afnanyapu09@gmail.com';
+
+  /// Open [uri]; if no app can handle it, copy [copyText] to the clipboard so
+  /// the user can still reach us.
+  static Future<void> _open(
+      BuildContext context, Uri uri, String copyText) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened && context.mounted) {
+      await Clipboard.setData(ClipboardData(text: copyText));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('คัดลอกแล้ว: $copyText')),
+        );
+      }
+    }
+  }
 
   static const _faqs = [
     (
@@ -93,8 +119,14 @@ class HelpScreen extends StatelessWidget {
                 child: _ContactCard(
                   icon: AppIcons.messageCircle,
                   label: 'แชทกับเรา',
+                  sub: 'LINE: $_lineId',
                   background: AppColors.terra,
                   foreground: AppColors.reverse,
+                  onTap: () => _open(
+                    context,
+                    Uri.parse('https://line.me/ti/p/~$_lineId'),
+                    'LINE ID: $_lineId',
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -102,9 +134,21 @@ class HelpScreen extends StatelessWidget {
                 child: _ContactCard(
                   icon: AppIcons.mail,
                   label: 'อีเมลซัพพอร์ต',
+                  sub: _email,
                   background: AppColors.paper,
                   foreground: AppColors.ink,
                   bordered: true,
+                  onTap: () => _open(
+                    context,
+                    Uri(
+                      scheme: 'mailto',
+                      path: _email,
+                      queryParameters: const {
+                        'subject': 'MoneyBun — สอบถาม/แจ้งปัญหา',
+                      },
+                    ),
+                    _email,
+                  ),
                 ),
               ),
             ],
@@ -151,31 +195,47 @@ class _ContactCard extends StatelessWidget {
     required this.label,
     required this.background,
     required this.foreground,
+    this.sub,
+    this.onTap,
     this.bordered = false,
   });
   final IconData icon;
   final String label;
+  final String? sub;
+  final VoidCallback? onTap;
   final Color background;
   final Color foreground;
   final bool bordered;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(18),
-        border: bordered ? Border.all(color: AppColors.line) : null,
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: foreground, size: 24),
-          const SizedBox(height: 8),
-          Text(label,
-              style: AppTypography.heading(
-                  size: 14, weight: FontWeight.w500, color: foreground)),
-        ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(18),
+          border: bordered ? Border.all(color: AppColors.line) : null,
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: foreground, size: 24),
+            const SizedBox(height: 8),
+            Text(label,
+                style: AppTypography.heading(
+                    size: 14, weight: FontWeight.w500, color: foreground)),
+            if (sub != null) ...[
+              const SizedBox(height: 3),
+              Text(sub!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.body(
+                      size: 11.5, color: foreground.withValues(alpha: 0.85))),
+            ],
+          ],
+        ),
       ),
     );
   }
