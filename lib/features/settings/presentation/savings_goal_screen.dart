@@ -24,6 +24,7 @@ class SavingsGoalScreen extends ConsumerStatefulWidget {
 class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
   final _amount = TextEditingController();
   bool _init = false;
+  String _calcHistory = '';
 
   @override
   void dispose() {
@@ -36,11 +37,15 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
     await showAmountCalculator(
       context,
       initial: original,
-      onChanged: (text) => _amount.text = text,
+      onChanged: (text, history) {
+        _amount.text = text;
+        setState(() => _calcHistory = history);
+      },
     );
     if (!mounted) return;
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
+    setState(() => _calcHistory = '');
   }
 
   @override
@@ -135,6 +140,7 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
               style: AppTypography.heading(
                   size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
           const SizedBox(height: 8),
+          CalcHistoryLine(_calcHistory),
           TextField(
             controller: _amount,
             // Tap to open the in-app calculator (no system keyboard).

@@ -6,11 +6,16 @@ import '../theme/colors.dart';
 import '../theme/typography.dart';
 import '../utils/calculator.dart';
 
+/// Signature for [showAmountCalculator]'s live callback: [value] is the text to
+/// show in the amount field, [history] is the just-computed expression to show
+/// above it (e.g. "2+2 =") — empty while the user is still typing.
+typedef CalcChanged = void Function(String value, String history);
+
 /// Opens the in-app calculator keypad as a docked bottom sheet (no display of
 /// its own — what the user presses appears live in the field via [onChanged]).
 /// Seeded with [initial] (the field's current text). Pressing `=` resolves the
-/// expression and pushes the result through [onChanged] but keeps the keypad
-/// open; the user dismisses it themselves (drag down / tap outside).
+/// expression, pushes the result + the "2+2 =" history through [onChanged], and
+/// keeps the keypad open; the user dismisses it themselves (drag / tap outside).
 ///
 /// The caller resolves whatever expression is left in the field once this
 /// future completes (covers drag-down and tap-outside).
@@ -20,7 +25,7 @@ import '../utils/calculator.dart';
 Future<void> showAmountCalculator(
   BuildContext context, {
   required String initial,
-  required ValueChanged<String> onChanged,
+  required CalcChanged onChanged,
   Color? accent,
 }) {
   final color = accent ?? Theme.of(context).colorScheme.primary;
@@ -46,7 +51,7 @@ class _CalculatorSheet extends StatefulWidget {
 
   final String initial;
   final Color accent;
-  final ValueChanged<String> onChanged;
+  final CalcChanged onChanged;
 
   @override
   State<_CalculatorSheet> createState() => _CalculatorSheetState();
@@ -66,20 +71,22 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
 
   void _onKey(String key) {
     HapticFeedback.selectionClick();
-    // "=" resolves the expression and shows the result in the field, but keeps
-    // the keypad open — the user dismisses it themselves (tap away / drag down).
+    // "=" resolves the expression, shows the result in the field and surfaces
+    // the "2+2 =" history above it, but keeps the keypad open — the user
+    // dismisses it themselves (tap away / drag down).
     if (key == '=') {
       final v = Calculator.evaluate(_expr);
       if (v != null) {
+        final history = '$_expr =';
         _expr = Calculator.formatResult(v);
-        widget.onChanged(_expr);
+        widget.onChanged(_expr, history);
       }
       return;
     }
     // The sheet itself shows nothing, so no rebuild is needed — just push the
-    // updated expression into the field.
+    // updated expression into the field (history clears until the next "=").
     _expr = Calculator.input(_expr, key);
-    widget.onChanged(_expr);
+    widget.onChanged(_expr, '');
   }
 
   @override
@@ -233,6 +240,31 @@ class _KeyButton extends StatelessWidget {
         onTap: () => onKey(data.value),
         borderRadius: BorderRadius.circular(16),
         child: SizedBox(height: 58, child: Center(child: child)),
+      ),
+    );
+  }
+}
+
+/// Small expression line shown above the amount (e.g. "2+2 =") right after the
+/// user presses "=". Renders nothing while [text] is empty, so screens can keep
+/// it in the tree unconditionally.
+class CalcHistoryLine extends StatelessWidget {
+  const CalcHistoryLine(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 2),
+      child: Text(
+        text,
+        style: AppTypography.heading(
+          size: 14,
+          weight: FontWeight.w500,
+          color: AppColors.ink3,
+        ),
       ),
     );
   }

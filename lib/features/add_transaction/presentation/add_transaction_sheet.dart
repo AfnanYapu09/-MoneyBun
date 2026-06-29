@@ -39,6 +39,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   DateTime _occurredAt = DateTime.now();
   SlipRow? _slip;
   bool _loaded = false;
+  String _calcHistory = '';
 
   @override
   void initState() {
@@ -104,11 +105,15 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     await showAmountCalculator(
       context,
       initial: original,
-      onChanged: (text) => _amount.text = text,
+      onChanged: (text, history) {
+        _amount.text = text;
+        setState(() => _calcHistory = history);
+      },
     );
     if (!mounted) return;
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
+    setState(() => _calcHistory = '');
     _persistLive();
   }
 
@@ -180,6 +185,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             ),
           ),
           const SizedBox(height: 14),
+          CalcHistoryLine(_calcHistory),
           // Amount card
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
