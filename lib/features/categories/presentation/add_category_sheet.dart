@@ -10,10 +10,85 @@ import '../../../core/widgets/sheet_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 
+/// A labelled section of the icon picker, so icons are easy to find by topic.
+class _IconGroup {
+  const _IconGroup(this.nameTh, this.income, this.ids);
+  final String nameTh;
+  final bool income;
+  final List<String> ids;
+}
+
+/// Icon-picker sections. Order = display order. Every catalogue id appears in
+/// exactly one group (84 expense across 15 groups, 19 income across 4).
+const List<_IconGroup> _groups = [
+  // ---- Expense ----
+  _IconGroup('อาหาร & เครื่องดื่ม', false, [
+    'food', 'coffee', 'groceries', 'rice', 'snacks', //
+    'bakery', 'fruit', 'bbq', 'drinks', 'cigarette', 'waterdrink',
+  ]),
+  _IconGroup('เดินทาง & รถ', false, [
+    'transport', 'taxi', 'train', 'boat', 'bike', 'fuel', 'carcare', 'parking',
+  ]),
+  _IconGroup('ช้อปปิ้ง & ของใช้ส่วนตัว', false, [
+    'shopping', 'clothes', 'shoes', 'bag', 'glasses', //
+    'watch', 'flowers', 'souvenir', 'parcel',
+  ]),
+  _IconGroup('ความงาม & ดูแลตัวเอง', false, [
+    'beauty', 'haircut', 'nails', 'spa', 'laundry',
+  ]),
+  _IconGroup('บ้าน & ที่พัก', false, [
+    'home', 'furniture', 'kitchenware', 'cleaning', //
+    'repair', 'plant', 'condofee', 'housing',
+  ]),
+  _IconGroup('บิล & สาธารณูปโภค', false, [
+    'bills', 'water', 'electric', 'gas', 'phone', 'topup', 'subscription',
+  ]),
+  _IconGroup('อุปกรณ์ & ไอที', false, [
+    'electronics', 'computer', 'camera',
+  ]),
+  _IconGroup('สุขภาพ', false, [
+    'health', 'pharmacy', 'dentist', 'supplement', 'fitness', 'sports',
+  ]),
+  _IconGroup('บันเทิง', false, [
+    'game', 'movies', 'music', 'hobby',
+  ]),
+  _IconGroup('ท่องเที่ยว', false, [
+    'travel', 'flight', 'hotel', 'lottery',
+  ]),
+  _IconGroup('การศึกษา', false, [
+    'education', 'course', 'books', 'stationery',
+  ]),
+  _IconGroup('ครอบครัว & สัตว์เลี้ยง', false, [
+    'kids', 'toys', 'family', 'pet', 'vet',
+  ]),
+  _IconGroup('การเงิน & ภาระ', false, [
+    'insurance', 'tax', 'fine', 'debt',
+  ]),
+  _IconGroup('บุญ & ความเชื่อ', false, [
+    'merit', 'ceremony', 'funeral', 'amulet', 'fortune',
+  ]),
+  _IconGroup('อื่นๆ', false, [
+    'misc',
+  ]),
+  // ---- Income ----
+  _IconGroup('งาน & เงินเดือน', true, [
+    'salary', 'freelance', 'business', 'assetsale', 'rental',
+  ]),
+  _IconGroup('โบนัส & พิเศษ', true, [
+    'bonus', 'overtime', 'commission', 'tip',
+  ]),
+  _IconGroup('ลงทุน & ดอกเบี้ย', true, [
+    'interest', 'pension', 'invest', 'gold', 'savings',
+  ]),
+  _IconGroup('ได้รับ & อื่นๆ', true, [
+    'prize', 'refund', 'angpao', 'welfare', 'loan',
+  ]),
+];
+
 /// Add a category by simply picking a pixel-art icon — no colour or name step.
-/// The chosen icon's Thai name + accent colour become the new category; it is
-/// appended to the end of the list. Icons already in use are shown ticked and
-/// are not selectable (tapping closes the sheet).
+/// Icons are grouped into labelled sections so they are easy to find. The
+/// chosen icon's Thai name + accent colour become the new category, appended to
+/// the end of the list. Icons already in use are shown ticked and not tappable.
 class AddCategorySheet extends ConsumerWidget {
   const AddCategorySheet({super.key, this.type = CategoryType.expense});
   final CategoryType type;
@@ -22,15 +97,14 @@ class AddCategorySheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categories =
         ref.watch(categoriesProvider).value ?? const <CategoryRow>[];
-    // Icons already used by a (non-deleted) category of this type — so we don't
-    // offer duplicates.
+    // Icons already used by a (non-deleted) category of this type.
     final used = {
       for (final c in categories)
         if (c.type == type) c.iconKey,
     };
+    final catalog = {for (final i in kPixelIconCatalog) i.id: i};
     final income = type == CategoryType.income;
-    final options =
-        kPixelIconCatalog.where((i) => i.income == income).toList();
+    final groups = _groups.where((g) => g.income == income);
 
     Future<void> add(PixelIconInfo info) async {
       // Append after the current highest sortOrder so it lands last.
@@ -52,19 +126,36 @@ class AddCategorySheet extends ConsumerWidget {
     return SheetScaffold(
       title: income ? 'เพิ่มหมวดรายรับ' : 'เพิ่มหมวดรายจ่าย',
       fullHeight: true,
-      child: GridView.count(
-        crossAxisCount: 4,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 8,
-        childAspectRatio: 0.74,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          for (final info in options)
-            _IconTile(
-              info: info,
-              added: used.contains(info.id),
-              onTap: () => add(info),
+          for (final g in groups) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 14, 4, 10),
+              child: Text(g.nameTh,
+                  style: AppTypography.heading(
+                      size: 14,
+                      weight: FontWeight.w600,
+                      color: AppColors.ink2)),
             ),
+            GridView.count(
+              crossAxisCount: 4,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 8,
+              childAspectRatio: 0.74,
+              children: [
+                for (final id in g.ids)
+                  if (catalog[id] case final info?)
+                    _IconTile(
+                      info: info,
+                      added: used.contains(id),
+                      onTap: () => add(info),
+                    ),
+              ],
+            ),
+          ],
         ],
       ),
     );
