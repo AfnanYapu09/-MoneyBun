@@ -52,10 +52,7 @@ class Money {
   /// Parse free-form user input (`"1,234.56"`, `"1234"`, `"1234.5"`) into cents.
   /// Returns `null` when the input is not a valid positive-or-zero amount.
   static int? parseToCents(String input) {
-    final cleaned = input
-        .trim()
-        .replaceAll(RegExp(r'[฿$€¥£,]'), '')
-        .trim();
+    final cleaned = input.trim().replaceAll(RegExp(r'[฿$€¥£,]'), '').trim();
     if (cleaned.isEmpty) return null;
     final value = double.tryParse(cleaned);
     if (value == null || value.isNaN || value.isInfinite) return null;

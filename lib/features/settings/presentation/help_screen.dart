@@ -232,8 +232,7 @@ class _ContactCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.body(
-                      size: 11.5,
-                      color: foreground.withValues(alpha: 0.85))),
+                      size: 11.5, color: foreground.withValues(alpha: 0.85))),
             ],
           ],
         ),

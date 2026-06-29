@@ -75,10 +75,9 @@ for (const d of defs) {
 }
 
 const out =
-`// dart format off
-// GENERATED FILE — do not edit by hand.
+`// GENERATED FILE — do not edit by hand.
 // Source: tool/bun_pixel_icons.dc.html (Claude Design handoff "Bun Pixel Icons").
-// Regenerate: node tool/gen_pixel_icons.js
+// Regenerate: node tool/gen_pixel_icons.js && dart format lib/core/widgets/pixel_icons_data.dart
 //
 // ${defs.length} pixel-art glyphs (16x16). Each PixelGlyph holds an ARGB palette
 // (index 0 is transparent) and a 16-row index grid; PixelIconPainter renders it.
