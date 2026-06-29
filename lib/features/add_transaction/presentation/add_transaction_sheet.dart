@@ -233,14 +233,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               icon: AppIcons.wallet,
               label: 'จากบัญชี',
               value: _accountName(accounts, _fromAccountId),
-              onTap: () => _pickAccount(accounts, true),
+              onTap: () => _pickAccount(true),
             ),
             const SizedBox(height: 14),
             _Row(
               icon: AppIcons.arrowDown,
               label: 'ไปยังบัญชี',
               value: _accountName(accounts, _toAccountId),
-              onTap: () => _pickAccount(accounts, false),
+              onTap: () => _pickAccount(false),
             ),
             const SizedBox(height: 14),
           ] else ...[
@@ -248,7 +248,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               icon: AppIcons.wallet,
               label: 'บัญชี',
               value: _accountName(accounts, _fromAccountId),
-              onTap: () => _pickAccount(accounts, true),
+              onTap: () => _pickAccount(true),
             ),
             const SizedBox(height: 14),
           ],
@@ -347,39 +347,97 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     }
   }
 
-  Future<void> _pickAccount(List<AccountRow> accounts, bool from) async {
+  Future<void> _pickAccount(bool from) async {
     final id = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      // Watch the accounts stream inside the sheet so the list updates live
+      // when an account is deleted from here, with no need to reopen it.
       builder: (_) => SheetScaffold(
         title: from ? 'เลือกบัญชี' : 'ไปยังบัญชี',
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-          children: [
-            for (final a in accounts)
-              ListTile(
-                leading: IconChip(
-                  icon: CategoryIcons.forKey(a.iconKey),
-                  size: 38,
-                  iconSize: 18,
-                  background: a.colorHex == null
-                      ? AppColors.terraWash
-                      : AppColors.forHex(a.colorHex!),
-                  foreground:
-                      a.colorHex == null ? AppColors.terra700 : Colors.white,
-                  circle: true,
-                ),
-                title: Text(a.name, style: AppTypography.body(size: 15)),
-                onTap: () => Navigator.pop(context, a.id),
-              ),
-          ],
+        child: Consumer(
+          builder: (context, ref, _) {
+            final accounts =
+                ref.watch(accountsProvider).value ?? const <AccountRow>[];
+            return ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              children: [
+                for (final a in accounts)
+                  ListTile(
+                    leading: IconChip(
+                      icon: CategoryIcons.forKey(a.iconKey),
+                      size: 38,
+                      iconSize: 18,
+                      background: a.colorHex == null
+                          ? AppColors.terraWash
+                          : AppColors.forHex(a.colorHex!),
+                      foreground: a.colorHex == null
+                          ? AppColors.terra700
+                          : Colors.white,
+                      circle: true,
+                    ),
+                    title: Text(a.name, style: AppTypography.body(size: 15)),
+                    trailing: IconButton(
+                      icon: const Icon(AppIcons.trash2,
+                          size: 19, color: AppColors.ink3),
+                      tooltip: 'ลบบัญชี',
+                      onPressed: () => _deleteAccount(a),
+                    ),
+                    onTap: () => Navigator.pop(context, a.id),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
     if (id != null) {
       setState(() => from ? _fromAccountId = id : _toAccountId = id);
+      _persistLive();
+    }
+  }
+
+  /// Delete an account from the picker (shared by expense / income / transfer).
+  /// Soft-deletes via the repository, keeps at least one account around, and
+  /// clears the deleted account from the form's current selection.
+  Future<void> _deleteAccount(AccountRow account) async {
+    final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
+    if (accounts.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ต้องมีบัญชีอย่างน้อย 1 บัญชี')));
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        content: Text('ต้องการลบบัญชี "${account.name}" ใช่ไหม?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('ยกเลิก')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('ลบ', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(accountRepositoryProvider).delete(account.id);
+    // Drop the deleted account from the form so we never save a stale id.
+    var changed = false;
+    if (_fromAccountId == account.id) {
+      _fromAccountId = null;
+      changed = true;
+    }
+    if (_toAccountId == account.id) {
+      _toAccountId = null;
+      changed = true;
+    }
+    if (changed) {
+      if (mounted) setState(() {});
       _persistLive();
     }
   }
