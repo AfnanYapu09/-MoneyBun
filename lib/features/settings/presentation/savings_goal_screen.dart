@@ -45,7 +45,7 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
     if (!mounted) return;
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
-    setState(() => _calcHistory = '');
+    // Keep _calcHistory as the keypad left it — it lingers until leaving the page.
   }
 
   @override

@@ -70,7 +70,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     if (!mounted) return;
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
-    setState(() => _calcHistory = '');
+    // Keep _calcHistory as the keypad left it — it lingers until the sheet closes.
   }
 
   @override

@@ -113,7 +113,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     if (!mounted) return;
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
-    setState(() => _calcHistory = '');
+    // Keep _calcHistory as the keypad left it — it lingers above the amount
+    // until the sheet is closed.
     _persistLive();
   }
 
@@ -187,7 +188,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           const SizedBox(height: 14),
           // Amount card
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             decoration: BoxDecoration(
               color: AppColors.paper,
               borderRadius: BorderRadius.circular(20),
@@ -197,9 +198,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Fixed-height slot so the card never grows when the history
-                // "2+2 =" appears after a calculation.
-                CalcHistoryLine(_calcHistory, reserveHeight: 22),
+                CalcHistoryLine(_calcHistory),
                 Row(
                   children: [
                     Icon(_directionIcon, size: 30, color: _accent),
