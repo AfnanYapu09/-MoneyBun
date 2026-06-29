@@ -11,7 +11,6 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/profile_avatar.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
@@ -236,7 +235,7 @@ class _ProfileRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 13),
       child: Row(
         children: [
-          IconChip(icon: icon, size: 38, radius: 12, iconSize: 19),
+          Icon(icon, size: 22, color: AppColors.terra700),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -276,7 +275,7 @@ class _RowDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.only(left: 52),
+      padding: EdgeInsets.only(left: 36),
       child: Divider(height: 1, thickness: 1, color: AppColors.line),
     );
   }
