@@ -47,7 +47,8 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
     final expense = txns
         .where((t) => t.type == TxnType.expense)
         .fold<int>(0, (s, t) => s + t.amountCents);
-    final saved = income - expense;
+    // Net saved this month; never show a negative "saved" — no savings = ฿0.
+    final saved = (income - expense) < 0 ? 0 : income - expense;
     final pct = goal > 0 ? (saved / goal).clamp(0.0, 1.0) : 0.0;
 
     return SubScreenScaffold(
