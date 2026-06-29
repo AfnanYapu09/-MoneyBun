@@ -143,3 +143,140 @@ class CategoryGlyph extends StatelessWidget {
     );
   }
 }
+
+/// Monochrome 1-bit pixel masks (1 = filled, 0 = transparent) for "chrome"
+/// glyphs drawn in a single tint colour on a tinted chip — the pixel-art
+/// counterpart of a font icon (vs. the full-colour category glyphs above).
+/// These are not categories, so they are not in the picker catalogue.
+const Map<String, List<List<int>>> kPixelMasks = {
+  // ย้ายเงิน — two opposing arrows (⇄).
+  'transfer': [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  // อ่านยอดเงินไม่ได้ — warning triangle with a carved "!".
+  'alert': [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+};
+
+/// Whether [key] resolves to a monochrome pixel mask.
+bool hasPixelMask(String? key) => key != null && kPixelMasks.containsKey(key);
+
+/// Paints a [kPixelMasks] glyph in a single [color] (crisp, no AA).
+class PixelMaskPainter extends CustomPainter {
+  const PixelMaskPainter(this.mask, this.color);
+  final List<List<int>> mask;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final n = mask.length;
+    if (n == 0) return;
+    final cell = size.width / n;
+    final paint = Paint()
+      ..isAntiAlias = false
+      ..color = color;
+    for (var y = 0; y < n; y++) {
+      final row = mask[y];
+      for (var x = 0; x < row.length; x++) {
+        if (row[x] == 0) continue;
+        canvas.drawRect(
+          Rect.fromLTWH(x * cell, y * cell, cell + 0.5, cell + 0.5),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant PixelMaskPainter old) =>
+      old.mask != mask || old.color != color;
+}
+
+/// Renders the mask for [maskKey] in [color] at [size]×[size].
+class PixelMaskIcon extends StatelessWidget {
+  const PixelMaskIcon(this.maskKey, {super.key, required this.color, this.size = 24});
+  final String? maskKey;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final mask = maskKey == null ? null : kPixelMasks[maskKey];
+    if (mask == null) return SizedBox(width: size, height: size);
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(painter: PixelMaskPainter(mask, color)),
+    );
+  }
+}
+
+/// A tinted chip whose glyph is a monochrome pixel mask tinted [foreground] —
+/// the pixel-art counterpart of [IconChip] for chrome icons (transfer, slip
+/// alert) that keep the app's tinted-chip look rather than the white disc.
+class PixelChip extends StatelessWidget {
+  const PixelChip({
+    super.key,
+    required this.maskKey,
+    required this.background,
+    required this.foreground,
+    this.size = 42,
+    this.radius = 14,
+    this.circle = false,
+    this.glyphScale = 0.64,
+  });
+
+  final String maskKey;
+  final Color background;
+  final Color foreground;
+  final double size;
+  final double radius;
+  final bool circle;
+  final double glyphScale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: background,
+        shape: circle ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: circle ? null : BorderRadius.circular(radius),
+      ),
+      alignment: Alignment.center,
+      child: PixelMaskIcon(maskKey, color: foreground, size: size * glyphScale),
+    );
+  }
+}

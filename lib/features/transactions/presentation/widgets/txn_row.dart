@@ -47,7 +47,15 @@ class TxnRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          if (hasPixelGlyph(iconKey))
+          if (type == TxnType.transfer)
+            const PixelChip(
+              maskKey: 'transfer',
+              background: AppColors.amberWash,
+              foreground: AppColors.amber,
+              size: 42,
+              radius: 14,
+            )
+          else if (hasPixelGlyph(iconKey))
             CategoryGlyph(
               iconKey: iconKey,
               color: iconColor ?? AppColors.terraWash,

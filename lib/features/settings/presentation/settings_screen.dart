@@ -179,7 +179,6 @@ class _NotificationsGroupState extends State<_NotificationsGroup> {
     return SettingGroup(children: [
       SettingRow(
         icon: AppIcons.bell,
-        iconKey: 'notification',
         label: 'เตือนให้จดรายการ',
         toggleValue: _logReminder,
         onToggle: (v) => setState(() => _logReminder = v),

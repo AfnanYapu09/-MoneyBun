@@ -5,7 +5,6 @@ import '../theme/typography.dart';
 import 'app_icons.dart';
 import 'app_toggle.dart';
 import 'icon_chip.dart';
-import 'pixel_icon.dart';
 
 /// Small uppercase-ish section label above a settings group.
 class SettingSectionLabel extends StatelessWidget {
@@ -53,7 +52,6 @@ class SettingRow extends StatelessWidget {
     super.key,
     required this.icon,
     required this.label,
-    this.iconKey,
     this.value,
     this.trailing,
     this.toggleValue,
@@ -64,10 +62,6 @@ class SettingRow extends StatelessWidget {
   });
 
   final IconData icon;
-
-  /// When this resolves to a pixel-art glyph, the leading chip renders the
-  /// pixel icon instead of [icon] (e.g. the notification bell).
-  final String? iconKey;
   final String label;
   final String? value;
   final Widget? trailing;
@@ -90,22 +84,14 @@ class SettingRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
         children: [
-          if (hasPixelGlyph(iconKey))
-            CategoryGlyph(
-              iconKey: iconKey,
-              color: AppColors.terraWash,
-              size: 34,
-              radius: 11,
-            )
-          else
-            IconChip(
-              icon: icon,
-              size: 34,
-              radius: 11,
-              iconSize: 18,
-              background: danger ? AppColors.dangerWash : AppColors.terraWash,
-              foreground: danger ? AppColors.danger : AppColors.terra700,
-            ),
+          IconChip(
+            icon: icon,
+            size: 34,
+            radius: 11,
+            iconSize: 18,
+            background: danger ? AppColors.dangerWash : AppColors.terraWash,
+            foreground: danger ? AppColors.danger : AppColors.terra700,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(label, style: AppTypography.body(size: 15, color: fg)),

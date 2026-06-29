@@ -415,13 +415,12 @@ class _TransferSummary extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconChip(
-            icon: AppIcons.arrowLeftRight,
+          const PixelChip(
+            maskKey: 'transfer',
+            background: AppColors.amberWash,
+            foreground: AppColors.amber,
             size: 46,
             radius: 14,
-            iconSize: 22,
-            background: AppColors.amber,
-            foreground: Colors.white,
           ),
           const SizedBox(width: 16),
           Expanded(
