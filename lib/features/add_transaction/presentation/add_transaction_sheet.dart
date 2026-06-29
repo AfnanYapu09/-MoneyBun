@@ -187,7 +187,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           const SizedBox(height: 14),
           // Amount card
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
             decoration: BoxDecoration(
               color: AppColors.paper,
               borderRadius: BorderRadius.circular(20),
@@ -197,7 +197,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CalcHistoryLine(_calcHistory),
+                // Fixed-height slot so the card never grows when the history
+                // "2+2 =" appears after a calculation.
+                CalcHistoryLine(_calcHistory, reserveHeight: 22),
                 Row(
                   children: [
                     Icon(_directionIcon, size: 30, color: _accent),

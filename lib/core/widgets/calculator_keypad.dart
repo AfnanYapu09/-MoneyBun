@@ -77,7 +77,9 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
     if (key == '=') {
       final v = Calculator.evaluate(_expr);
       if (v != null) {
-        final history = '$_expr =';
+        // Only a real calculation (it used an operator) is worth a history
+        // line; "100 =" for a plain number is just noise, so leave it blank.
+        final history = Calculator.hasOperator(_expr) ? '$_expr =' : '';
         _expr = Calculator.formatResult(v);
         widget.onChanged(_expr, history);
       }
@@ -249,25 +251,44 @@ class _KeyButton extends StatelessWidget {
 /// user presses "=". Renders nothing while [text] is empty, so screens can keep
 /// it in the tree unconditionally.
 class CalcHistoryLine extends StatelessWidget {
-  const CalcHistoryLine(this.text, {super.key});
+  const CalcHistoryLine(this.text, {super.key, this.reserveHeight});
 
   final String text;
 
+  /// When set, the line always occupies this height (showing [text] or nothing)
+  /// so the box around it never resizes as the history appears / disappears.
+  /// When null it collapses to zero height while [text] is empty.
+  final double? reserveHeight;
+
   @override
   Widget build(BuildContext context) {
+    final label = Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: AppTypography.heading(
+        size: 14,
+        weight: FontWeight.w500,
+        color: AppColors.terra,
+      ),
+    );
+    final reserved = reserveHeight;
+    if (reserved != null) {
+      return SizedBox(
+        height: reserved,
+        width: double.infinity,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: text.isEmpty ? null : label,
+        ),
+      );
+    }
     if (text.isEmpty) return const SizedBox.shrink();
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 2),
-        child: Text(
-          text,
-          style: AppTypography.heading(
-            size: 14,
-            weight: FontWeight.w500,
-            color: AppColors.terra,
-          ),
-        ),
+        child: label,
       ),
     );
   }
