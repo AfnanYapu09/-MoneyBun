@@ -1,46 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
 import '../utils/calculator.dart';
 
-/// Opens the in-app amount calculator as a bottom sheet, seeded with [initial]
-/// (the field's current text, e.g. `"1,234.56"` or `"฿200"`). Returns the
-/// computed amount as a plain edit string (`"200"`, `"200.5"`) when the user
-/// taps **เสร็จสิ้น**, or `null` if dismissed without entering anything.
+/// Opens the in-app calculator keypad as a docked bottom sheet (no display of
+/// its own — what the user presses appears live in the field via [onChanged]).
+/// Seeded with [initial] (the field's current text). Pressing `=` resolves the
+/// expression, pushes the result through [onChanged] and closes the sheet.
+///
+/// The caller resolves whatever expression is left in the field once this
+/// future completes (covers `=`, drag-down and tap-outside alike).
 ///
 /// [accent] tints the operator and `=` keys; it defaults to the app's primary
 /// colour (terracotta orange) so the keypad always follows the app theme.
-Future<String?> showAmountCalculator(
+Future<void> showAmountCalculator(
   BuildContext context, {
   required String initial,
+  required ValueChanged<String> onChanged,
   Color? accent,
 }) {
   final color = accent ?? Theme.of(context).colorScheme.primary;
-  return showModalBottomSheet<String>(
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    barrierColor: Colors.transparent,
     backgroundColor: Colors.transparent,
-    builder: (_) => _CalculatorSheet(initial: initial, accent: color),
+    builder: (_) => _CalculatorSheet(
+      initial: initial,
+      accent: color,
+      onChanged: onChanged,
+    ),
   );
 }
 
 class _CalculatorSheet extends StatefulWidget {
-  const _CalculatorSheet({required this.initial, required this.accent});
+  const _CalculatorSheet({
+    required this.initial,
+    required this.accent,
+    required this.onChanged,
+  });
 
   final String initial;
   final Color accent;
+  final ValueChanged<String> onChanged;
 
   @override
   State<_CalculatorSheet> createState() => _CalculatorSheetState();
 }
 
 class _CalculatorSheetState extends State<_CalculatorSheet> {
-  static final _money = NumberFormat('#,##0.##', 'en_US');
-
   late String _expr = _seed(widget.initial);
 
   /// Normalise the field's existing text into a starting expression. A zero or
@@ -54,53 +65,24 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
 
   void _onKey(String key) {
     HapticFeedback.selectionClick();
-    setState(() {
-      if (key == '=') {
-        final v = Calculator.evaluate(_expr);
-        if (v != null) _expr = Calculator.formatResult(v);
-      } else {
-        _expr = Calculator.input(_expr, key);
+    // "=" resolves the expression, shows the result in the field and closes.
+    if (key == '=') {
+      final v = Calculator.evaluate(_expr);
+      if (v != null) {
+        _expr = Calculator.formatResult(v);
+        widget.onChanged(_expr);
       }
-    });
-  }
-
-  void _done() {
-    final v = Calculator.evaluate(_expr);
-    Navigator.of(context).pop(v == null ? null : Calculator.formatResult(v));
+      Navigator.of(context).pop();
+      return;
+    }
+    // The sheet itself shows nothing, so no rebuild is needed — just push the
+    // updated expression into the field.
+    _expr = Calculator.input(_expr, key);
+    widget.onChanged(_expr);
   }
 
   @override
   Widget build(BuildContext context) {
-    final value = Calculator.evaluate(_expr);
-    final result = value == null ? '0' : _money.format(value);
-    final showExpr = Calculator.hasOperator(_expr);
-
-    final labelStyle = AppTypography.heading(
-      size: 13,
-      weight: FontWeight.w500,
-      color: AppColors.ink3,
-    );
-    final doneStyle = AppTypography.heading(
-      size: 16,
-      weight: FontWeight.w600,
-      color: widget.accent,
-    );
-    final exprStyle = AppTypography.heading(
-      size: 16,
-      weight: FontWeight.w500,
-      color: widget.accent,
-    );
-    final symbolStyle = AppTypography.heading(
-      size: 24,
-      weight: FontWeight.w500,
-      color: AppColors.ink3,
-    );
-    final resultStyle = AppTypography.heading(
-      size: 44,
-      weight: FontWeight.w600,
-      color: AppColors.ink,
-    );
-
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.cream,
@@ -112,50 +94,6 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const _Handle(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 2, 8, 0),
-              child: Row(
-                children: [
-                  Text('เครื่องคิดเลข', style: labelStyle),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: _done,
-                    child: Text('เสร็จสิ้น', style: doneStyle),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    showExpr ? '$_expr =' : '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: exprStyle,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text('฿', style: symbolStyle),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          result,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: resultStyle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
             CalculatorKeypad(accent: widget.accent, onKey: _onKey),
           ],
         ),
@@ -213,7 +151,7 @@ class CalculatorKeypad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

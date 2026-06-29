@@ -5,6 +5,7 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/calculator.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/calculator_keypad.dart';
@@ -95,12 +96,19 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         TxnType.expense => AppColors.terra,
       };
 
-  /// Open the orange in-app calculator and write the computed amount back into
-  /// the field (edit mode persists live, mirroring the old onChanged hook).
+  /// Open the orange in-app calculator. Keypresses appear live in the field;
+  /// on close the expression left there is resolved to a number (edit mode
+  /// then persists, mirroring the old onChanged hook).
   Future<void> _openCalculator() async {
-    final result = await showAmountCalculator(context, initial: _amount.text);
-    if (!mounted || result == null) return;
-    _amount.text = result;
+    final original = _amount.text;
+    await showAmountCalculator(
+      context,
+      initial: original,
+      onChanged: (text) => _amount.text = text,
+    );
+    if (!mounted) return;
+    final value = Calculator.evaluate(_amount.text);
+    _amount.text = value == null ? original : Calculator.formatResult(value);
     _persistLive();
   }
 

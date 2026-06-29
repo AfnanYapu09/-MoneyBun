@@ -7,6 +7,7 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/calculator.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_toggle.dart';
@@ -56,8 +57,15 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   }
 
   Future<void> _openCalculator() async {
-    final result = await showAmountCalculator(context, initial: _amount.text);
-    if (mounted && result != null) setState(() => _amount.text = result);
+    final original = _amount.text;
+    await showAmountCalculator(
+      context,
+      initial: original,
+      onChanged: (text) => _amount.text = text,
+    );
+    if (!mounted) return;
+    final value = Calculator.evaluate(_amount.text);
+    _amount.text = value == null ? original : Calculator.formatResult(value);
   }
 
   @override
