@@ -53,7 +53,8 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
     final settings = ref.watch(appSettingsProvider).value;
     if (!_init && settings != null) {
       if (settings.savingsGoalCents > 0) {
-        _amount.text = (settings.savingsGoalCents ~/ 100).toString();
+        // Keep the satang/decimal part instead of truncating with ~/ 100.
+        _amount.text = Money.toEditString(settings.savingsGoalCents);
       }
       _init = true;
     }
@@ -159,7 +160,10 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
               for (final a in const [5000, 8000, 10000, 15000]) ...[
                 Expanded(
                   child: InkWell(
-                    onTap: () => _amount.text = a.toString(),
+                    onTap: () => setState(() {
+                      _amount.text = a.toString();
+                      _calcHistory = '';
+                    }),
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 9),
@@ -193,8 +197,17 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
       .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
 
   Future<void> _save() async {
-    final cents = Money.parseToCents(_amount.text) ?? 0;
+    final cents = Money.parseToCents(_amount.text);
+    if (cents == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
+      return;
+    }
     await ref.read(settingsRepositoryProvider).setSavingsGoal(cents);
-    if (mounted) context.pop();
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('บันทึกเป้าหมายแล้ว')));
+      context.pop();
+    }
   }
 }

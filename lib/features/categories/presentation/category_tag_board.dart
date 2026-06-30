@@ -181,79 +181,127 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
 
   Future<void> _editCategory(CategoryRow c) async {
     final controller = TextEditingController(text: c.name);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('แก้ชื่อหมวดหมู่'),
-        content: TextField(controller: controller, autofocus: true),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: const Text('บันทึก')),
-        ],
-      ),
-    );
-    if (name != null && name.isNotEmpty) {
-      await ref.read(categoryRepositoryProvider).rename(c.id, name);
+    try {
+      final name = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('แก้ชื่อหมวดหมู่'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('ยกเลิก')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+                child: const Text('บันทึก')),
+          ],
+        ),
+      );
+      if (name != null && name.isNotEmpty) {
+        await ref.read(categoryRepositoryProvider).rename(c.id, name);
+      }
+    } finally {
+      controller.dispose();
     }
   }
 
   Future<void> _addTag() async {
     final controller = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('แท็กใหม่'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'ชื่อแท็ก เช่น จำเป็น'),
+    try {
+      final name = await showDialog<String>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('แท็กใหม่'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (v) => Navigator.pop(c, v.trim()),
+            decoration: const InputDecoration(hintText: 'ชื่อแท็ก เช่น จำเป็น'),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(c), child: const Text('ยกเลิก')),
+            TextButton(
+                onPressed: () => Navigator.pop(c, controller.text.trim()),
+                child: const Text('เพิ่ม')),
+          ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(c), child: const Text('ยกเลิก')),
-          TextButton(
-              onPressed: () => Navigator.pop(c, controller.text.trim()),
-              child: const Text('เพิ่ม')),
-        ],
-      ),
-    );
-    if (name != null && name.isNotEmpty) {
-      final id = await ref.read(tagRepositoryProvider).save(name: name);
-      if (mounted && !widget.manage) setState(() => _tags.add(id));
+      );
+      if (name != null && name.isNotEmpty) {
+        final id = await ref.read(tagRepositoryProvider).save(name: name);
+        if (mounted && !widget.manage) setState(() => _tags.add(id));
+      }
+    } finally {
+      controller.dispose();
     }
   }
 
   Future<void> _editTag(TagRow t) async {
     final controller = TextEditingController(text: t.name);
-    final action = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('แก้ไขแท็ก'),
-        content: TextField(controller: controller, autofocus: true),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, '__delete__'),
-            child:
-                Text('ลบ', style: TextStyle(color: context.palette.dangerFg)),
+    try {
+      final action = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('แก้ไขแท็ก'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
           ),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: const Text('บันทึก')),
-        ],
-      ),
-    );
-    if (action == null) return;
-    final repo = ref.read(tagRepositoryProvider);
-    if (action == '__delete__') {
-      await repo.delete(t.id);
-    } else if (action.isNotEmpty) {
-      await repo.save(
-          id: t.id, name: action, colorHex: t.colorHex, sortOrder: t.sortOrder);
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, '__delete__'),
+              child:
+                  Text('ลบ', style: TextStyle(color: context.palette.dangerFg)),
+            ),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('ยกเลิก')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+                child: const Text('บันทึก')),
+          ],
+        ),
+      );
+      if (action == null) return;
+      final repo = ref.read(tagRepositoryProvider);
+      if (action == '__delete__') {
+        // Deleting a tag removes it from every transaction — confirm first.
+        if (!mounted) return;
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            content: Text('ลบแท็ก "${t.name}" ใช่ไหม?\n'
+                'จะถูกนำออกจากทุกรายการที่ใช้แท็กนี้'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('ยกเลิก')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text('ลบ',
+                    style: TextStyle(color: context.palette.dangerFg)),
+              ),
+            ],
+          ),
+        );
+        if (ok == true) await repo.delete(t.id);
+      } else if (action.isNotEmpty) {
+        await repo.save(
+            id: t.id,
+            name: action,
+            colorHex: t.colorHex,
+            sortOrder: t.sortOrder);
+      }
+    } finally {
+      controller.dispose();
     }
   }
 }
@@ -529,7 +577,11 @@ class _ManagedCategoryGridState extends State<_ManagedCategoryGrid>
       wiggle: _wiggle,
       wiggleIndex: index,
       onTap: editing ? null : () => widget.onRename(category),
-      onDelete: editing ? () => widget.onDelete(category) : null,
+      // System seed categories (sys_*) can't be deleted — they back the core
+      // breakdown and only soft-delete, which would orphan their transactions.
+      onDelete: (editing && !category.id.startsWith('sys_'))
+          ? () => widget.onDelete(category)
+          : null,
     );
 
     // Long-press picks the icon up; the first grab also flips on edit mode.

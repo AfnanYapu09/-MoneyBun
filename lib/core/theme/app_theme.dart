@@ -99,6 +99,7 @@ class AppTheme {
     AppPalette palette,
   ) {
     final lineColor = palette.line;
+    final isDark = scheme.brightness == Brightness.dark;
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
@@ -145,9 +146,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: Tokens.card),
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? Colors.white : Colors.white,
-        ),
+        thumbColor: const WidgetStatePropertyAll(Colors.white),
         trackColor: WidgetStateProperty.resolveWith(
           (s) => s.contains(WidgetState.selected)
               ? scheme.primary
@@ -173,6 +172,32 @@ class AppTheme {
           borderRadius: Tokens.input,
           borderSide: BorderSide(color: scheme.primary, width: 1.5),
         ),
+      ),
+      // Keep popups that draw their own surface on-palette (warm, not the cold
+      // Material grey) and legible in dark mode.
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: isDark ? const Color(0xFF38322B) : AppColors.ink,
+        contentTextStyle: AppTypography.body(
+            size: 14, color: isDark ? palette.ink : AppColors.reverse),
+        actionTextColor: scheme.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: scheme.surface,
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: scheme.primary,
+        selectionColor: scheme.primary.withValues(alpha: 0.3),
+        selectionHandleColor: scheme.primary,
       ),
     );
   }

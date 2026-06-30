@@ -129,17 +129,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       imageQuality: 85,
     );
     if (picked == null) return;
-    final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}'
-        '${p.extension(picked.path)}';
-    final dir = await getApplicationDocumentsDirectory();
-    final dest = p.join(dir.path, name);
-    await File(picked.path).copy(dest);
-    await ref.read(settingsRepositoryProvider).setAvatarPath(dest);
-    // Best-effort cleanup of the previous photo.
-    if (old != null && old.isNotEmpty && old != dest) {
-      try {
-        File(old).deleteSync();
-      } catch (_) {}
+    try {
+      final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}'
+          '${p.extension(picked.path)}';
+      final dir = await getApplicationDocumentsDirectory();
+      final dest = p.join(dir.path, name);
+      await File(picked.path).copy(dest);
+      if (!mounted) return;
+      await ref.read(settingsRepositoryProvider).setAvatarPath(dest);
+      // Best-effort cleanup of the previous photo.
+      if (old != null && old.isNotEmpty && old != dest) {
+        try {
+          File(old).deleteSync();
+        } catch (_) {}
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('เปลี่ยนรูปไม่สำเร็จ')));
+      }
     }
   }
 }

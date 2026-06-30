@@ -30,13 +30,27 @@ class StatsScreen extends ConsumerStatefulWidget {
 }
 
 class _StatsScreenState extends ConsumerState<StatsScreen> {
-  List<Color> _paletteFor(BuildContext context) => [
-        AppColors.terra,
-        AppColors.terraDeep,
-        const Color(0xFFD98C6F),
+  /// Donut / category-bar colours. The light set is the terracotta gradient
+  /// tuned for the cream surface; on the dark surface those muddy together, so
+  /// return a brightened set in dark mode.
+  List<Color> _paletteFor(BuildContext context) {
+    if (Theme.of(context).brightness == Brightness.dark) {
+      return [
+        const Color(0xFFE0A488),
+        const Color(0xFFCB8467),
+        const Color(0xFFD9A884),
         context.palette.greenFg,
-        const Color(0xFFCDBFB0),
+        const Color(0xFFB9AE9E),
       ];
+    }
+    return [
+      AppColors.terra,
+      AppColors.terraDeep,
+      const Color(0xFFD98C6F),
+      context.palette.greenFg,
+      const Color(0xFFCDBFB0),
+    ];
+  }
 
   /// Which transaction type the screen breaks down (รายจ่าย / รายรับ / ย้ายเงิน).
   TxnType _type = TxnType.expense;
