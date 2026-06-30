@@ -37,7 +37,7 @@ class SegmentedControl<T> extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.paper2,
+        color: context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -51,7 +51,7 @@ class SegmentedControl<T> extends StatelessWidget {
   Widget _buildSegment(BuildContext context, Segment<T> s) {
     final on = s.value == value;
     final accent = s.color ?? Theme.of(context).colorScheme.primary;
-    final fg = on ? accent : AppColors.ink3;
+    final fg = on ? accent : context.palette.ink3;
     final label = Text(
       s.label,
       style: AppTypography.heading(
@@ -85,7 +85,7 @@ class SegmentedControl<T> extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: iconOverLabel ? 7 : 9),
         margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
-          color: on ? AppColors.paper : Colors.transparent,
+          color: on ? context.palette.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(11),
           boxShadow: on ? Tokens.segmentShadow : null,
         ),

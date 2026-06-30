@@ -70,33 +70,14 @@ class HelpScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
-          Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: AppColors.paper,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.line),
-            ),
-            child: Row(
-              children: [
-                const Icon(AppIcons.search, size: 18, color: AppColors.ink3),
-                const SizedBox(width: 10),
-                Text('ค้นหาคำถามที่พบบ่อย',
-                    style:
-                        AppTypography.body(size: 14.5, color: AppColors.ink3)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
           Text('คำถามที่พบบ่อย',
               style: AppTypography.heading(size: 14, weight: FontWeight.w500)),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.paper,
+              color: context.palette.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.palette.line),
             ),
             child: Column(
               children: [
@@ -135,8 +116,8 @@ class HelpScreen extends StatelessWidget {
                   icon: AppIcons.mail,
                   label: 'อีเมลซัพพอร์ต',
                   sub: _email,
-                  background: AppColors.paper,
-                  foreground: AppColors.ink,
+                  background: context.palette.surface,
+                  foreground: context.palette.ink,
                   bordered: true,
                   onTap: () => _open(
                     context,
@@ -181,7 +162,7 @@ class _FaqTile extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(answer,
                 style: AppTypography.body(
-                    size: 13.5, color: AppColors.ink2, height: 1.5)),
+                    size: 13.5, color: context.palette.ink2, height: 1.5)),
           ),
         ],
       ),
@@ -217,7 +198,7 @@ class _ContactCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(18),
-          border: bordered ? Border.all(color: AppColors.line) : null,
+          border: bordered ? Border.all(color: context.palette.line) : null,
         ),
         child: Column(
           children: [

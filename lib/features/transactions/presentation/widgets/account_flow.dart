@@ -104,9 +104,9 @@ class AccountFlowCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.paper,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.line),
       ),
       child: Row(
         children: [
@@ -121,7 +121,7 @@ class AccountFlowCard extends StatelessWidget {
                     children: [
                       Text(fromLabel,
                           style: AppTypography.body(
-                              size: 11.5, color: AppColors.ink3)),
+                              size: 11.5, color: context.palette.ink3)),
                       Text(fromName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -134,9 +134,10 @@ class AccountFlowCard extends StatelessWidget {
             ),
           ),
           if (hasTo) ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: Icon(AppIcons.arrowRight, size: 18, color: AppColors.ink3),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Icon(AppIcons.arrowRight,
+                  size: 18, color: context.palette.ink3),
             ),
             Expanded(
               child: Row(
@@ -147,7 +148,7 @@ class AccountFlowCard extends StatelessWidget {
                       children: [
                         Text(toLabel ?? '',
                             style: AppTypography.body(
-                                size: 11.5, color: AppColors.ink3)),
+                                size: 11.5, color: context.palette.ink3)),
                         Text(toName!,
                             textAlign: TextAlign.right,
                             maxLines: 1,
@@ -163,8 +164,8 @@ class AccountFlowCard extends StatelessWidget {
                     size: 36,
                     radius: 11,
                     iconSize: 18,
-                    background: AppColors.paper2,
-                    foreground: AppColors.ink2,
+                    background: context.palette.surfaceAlt,
+                    foreground: context.palette.ink2,
                   ),
                 ],
               ),
@@ -189,9 +190,9 @@ class SlipChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
-          color: AppColors.paper,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: context.palette.line),
         ),
         child: Row(
           children: [
@@ -247,8 +248,24 @@ void showSlipViewer(BuildContext context, SlipRow slip,
               child: Center(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(99),
-                  onTap: () {
-                    Navigator.pop(c);
+                  onTap: () async {
+                    // Deleting is irreversible — confirm before removing.
+                    final ok = await showDialog<bool>(
+                      context: c,
+                      builder: (d) => AlertDialog(
+                        content: const Text('ต้องการลบรายการนี้ใช่ไหม?'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(d, false),
+                              child: const Text('ยกเลิก')),
+                          TextButton(
+                              onPressed: () => Navigator.pop(d, true),
+                              child: const Text('ลบ')),
+                        ],
+                      ),
+                    );
+                    if (ok != true) return;
+                    if (c.mounted) Navigator.pop(c);
                     onDelete();
                   },
                   child: Container(

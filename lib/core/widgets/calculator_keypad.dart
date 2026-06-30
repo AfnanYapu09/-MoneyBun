@@ -95,8 +95,8 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.cream,
+      decoration: BoxDecoration(
+        color: context.palette.bg,
         borderRadius: Tokens.sheetTop,
       ),
       child: SafeArea(
@@ -222,7 +222,7 @@ class _KeyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (data.kind) {
-      _Kind.number => (AppColors.paper, AppColors.ink),
+      _Kind.number => (context.palette.surface, context.palette.ink),
       _Kind.operator => (accent.withValues(alpha: 0.12), accent),
       _Kind.equals => (accent, AppColors.reverse),
     };
@@ -305,7 +305,7 @@ class _Handle extends StatelessWidget {
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: AppColors.line,
+        color: context.palette.line,
         borderRadius: BorderRadius.circular(9),
       ),
     );

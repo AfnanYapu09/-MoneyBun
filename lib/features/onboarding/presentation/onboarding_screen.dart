@@ -17,7 +17,7 @@ class OnboardingScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 30),
@@ -31,8 +31,8 @@ class OnboardingScreen extends ConsumerWidget {
                     if (context.mounted) context.go('/home');
                   },
                   child: Text('ข้าม',
-                      style:
-                          AppTypography.body(size: 14, color: AppColors.ink3)),
+                      style: AppTypography.body(
+                          size: 14, color: context.palette.ink3)),
                 ),
               ),
               const Spacer(),
@@ -40,7 +40,7 @@ class OnboardingScreen extends ConsumerWidget {
                 width: 256,
                 height: 230,
                 decoration: BoxDecoration(
-                  color: AppColors.terraWash,
+                  color: context.palette.terraWash,
                   borderRadius: BorderRadius.circular(44),
                 ),
                 alignment: Alignment.center,
@@ -56,7 +56,7 @@ class OnboardingScreen extends ConsumerWidget {
                 'จดทุกบาทที่ใช้ แล้วดูสรุปรายรับรายจ่ายของคุณ\nแบบเข้าใจง่ายในที่เดียว',
                 textAlign: TextAlign.center,
                 style: AppTypography.body(
-                    size: 15, color: AppColors.ink2, height: 1.55),
+                    size: 15, color: context.palette.ink2, height: 1.55),
               ),
               const Spacer(),
               PrimaryButton(

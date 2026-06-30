@@ -11,14 +11,14 @@ class ProgressBar extends StatelessWidget {
     super.key,
     required this.value,
     this.color = AppColors.terra,
-    this.track = AppColors.paper2,
+    this.track,
     this.height = 8,
     this.animate = true,
   });
 
   final double value; // 0..1 (clamped)
   final Color color;
-  final Color track;
+  final Color? track;
   final double height;
   final bool animate;
 
@@ -29,7 +29,7 @@ class ProgressBar extends StatelessWidget {
       borderRadius: BorderRadius.circular(99),
       child: Container(
         height: height,
-        color: track,
+        color: track ?? context.palette.surfaceAlt,
         child: Align(
           alignment: Alignment.centerLeft,
           child: TweenAnimationBuilder<double>(
@@ -145,7 +145,7 @@ class GroupedBarChart extends StatelessWidget {
     super.key,
     required this.groups,
     this.height = 168,
-    this.incomeColor = AppColors.green,
+    this.incomeColor,
     this.expenseColor = AppColors.terra,
     this.groupWidth,
     this.onBarTap,
@@ -153,7 +153,7 @@ class GroupedBarChart extends StatelessWidget {
 
   final List<BarGroupData> groups;
   final double height;
-  final Color incomeColor;
+  final Color? incomeColor;
   final Color expenseColor;
 
   /// When set, each group is a fixed-width column and the chart scrolls
@@ -166,11 +166,13 @@ class GroupedBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final incomeC = incomeColor ?? palette.greenFg;
     final max = groups.fold<double>(
         1, (m, g) => math.max(m, math.max(g.income, g.expense)));
     final bars = [
       for (var i = 0; i < groups.length; i++)
-        _tappable(i, _group(groups[i], max)),
+        _tappable(i, _group(groups[i], max, incomeC, palette)),
     ];
     if (groupWidth == null) {
       return SizedBox(
@@ -204,7 +206,7 @@ class GroupedBarChart extends StatelessWidget {
     );
   }
 
-  Widget _group(BarGroupData g, double max) {
+  Widget _group(BarGroupData g, double max, Color incomeC, AppPalette palette) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -213,7 +215,7 @@ class GroupedBarChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _bar(g.income / max, incomeColor, g.active),
+              _bar(g.income / max, incomeC, g.active),
               const SizedBox(width: 6),
               _bar(g.expense / max, expenseColor, g.active),
             ],
@@ -224,7 +226,7 @@ class GroupedBarChart extends StatelessWidget {
             style: AppTypography.heading(
                 size: 12.5,
                 weight: g.active ? FontWeight.w500 : FontWeight.w400,
-                color: g.active ? AppColors.ink : AppColors.ink3)),
+                color: g.active ? palette.ink : palette.ink3)),
       ],
     );
   }

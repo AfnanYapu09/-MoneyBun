@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+// Re-export the theme-aware tokens so any file importing `colors.dart` can read
+// `context.palette` (light/dark) without an extra import.
+export 'palette.dart';
+
 /// MoneyBun palette — the "soft terracotta" design system.
 ///
 /// Tokens mirror the design handoff (`--terra`, `--cream`, `--ink`, …). The app

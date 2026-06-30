@@ -30,7 +30,7 @@ class PeriodChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: surface,
           borderRadius: Tokens.pill,
-          border: Tokens.hairline(),
+          border: Tokens.hairline(context.palette.line),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         child: Row(
@@ -67,7 +67,7 @@ class _Chevron extends StatelessWidget {
       radius: 18,
       child: Padding(
         padding: const EdgeInsets.all(6),
-        child: Icon(icon, size: 18, color: AppColors.ink3),
+        child: Icon(icon, size: 18, color: context.palette.ink3),
       ),
     );
   }

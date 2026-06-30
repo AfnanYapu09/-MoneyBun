@@ -9,6 +9,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
+import '../../../data/remote/auth_service.dart';
 import 'widgets/auth_field.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -22,7 +23,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _agree = true;
+  bool _agree = false;
   bool _busy = false;
 
   @override
@@ -50,23 +51,38 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           const SizedBox(height: 6),
           Center(
             child: Text('เริ่มจดเงินกับน้องบันใน 1 นาที',
-                style: AppTypography.body(size: 14.5, color: AppColors.ink2)),
+                style: AppTypography.body(
+                    size: 14.5, color: context.palette.ink2)),
           ),
           const SizedBox(height: 24),
           AuthField(
-              icon: AppIcons.userRound, hint: 'ชื่อที่แสดง', controller: _name),
+            icon: AppIcons.userRound,
+            hint: 'ชื่อที่แสดง',
+            controller: _name,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.name],
+            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+          ),
           const SizedBox(height: 12),
           AuthField(
-              icon: AppIcons.mail,
-              hint: 'อีเมล',
-              controller: _email,
-              keyboardType: TextInputType.emailAddress),
+            icon: AppIcons.mail,
+            hint: 'อีเมล',
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.email],
+            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+          ),
           const SizedBox(height: 12),
           AuthField(
-              icon: AppIcons.lock,
-              hint: 'รหัสผ่าน',
-              controller: _password,
-              obscure: true),
+            icon: AppIcons.lock,
+            hint: 'รหัสผ่าน',
+            controller: _password,
+            obscure: true,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.newPassword],
+            onSubmitted: (_) => _signup(),
+          ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,7 +98,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     borderRadius: BorderRadius.circular(6),
                     border: _agree
                         ? null
-                        : Border.all(color: AppColors.line, width: 1.5),
+                        : Border.all(color: context.palette.line, width: 1.5),
                   ),
                   child: _agree
                       ? const Icon(AppIcons.check,
@@ -96,15 +112,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   TextSpan(
                     text: 'ฉันยอมรับ ',
                     style: AppTypography.body(
-                        size: 13, color: AppColors.ink2, height: 1.5),
+                        size: 13, color: context.palette.ink2, height: 1.5),
                     children: [
                       TextSpan(
                           text: 'เงื่อนไขการใช้งาน',
-                          style: TextStyle(color: AppColors.terra)),
+                          style: AppTypography.body(
+                              size: 13, color: AppColors.terra)),
                       const TextSpan(text: ' และ '),
                       TextSpan(
                           text: 'นโยบายความเป็นส่วนตัว',
-                          style: TextStyle(color: AppColors.terra)),
+                          style: AppTypography.body(
+                              size: 13, color: AppColors.terra)),
                     ],
                   ),
                 ),
@@ -120,7 +138,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               onTap: () => context.pop(),
               child: Text.rich(TextSpan(
                 text: 'มีบัญชีแล้ว? ',
-                style: AppTypography.body(size: 14, color: AppColors.ink2),
+                style:
+                    AppTypography.body(size: 14, color: context.palette.ink2),
                 children: [
                   TextSpan(
                     text: 'เข้าสู่ระบบ',
@@ -139,8 +158,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   Future<void> _signup() async {
+    if (_busy) return;
     if (!_agree) {
       _snack('กรุณายอมรับเงื่อนไขการใช้งาน');
+      return;
+    }
+    final email = _email.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      _snack('กรอกอีเมลให้ถูกต้อง');
+      return;
+    }
+    if (_password.text.length < 6) {
+      _snack('รหัสผ่านอย่างน้อย 6 ตัว');
       return;
     }
     final auth = ref.read(authServiceProvider);
@@ -150,7 +179,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
     setState(() => _busy = true);
     try {
-      await auth.signUpWithEmail(_name.text, _email.text, _password.text);
+      await auth.signUpWithEmail(_name.text, email, _password.text);
       final repo = ref.read(settingsRepositoryProvider);
       await repo.setAuthMode('signedIn');
       if (_name.text.trim().isNotEmpty) {
@@ -158,7 +187,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
       if (mounted) context.go('/home');
     } catch (e) {
-      _snack('สมัครสมาชิกไม่สำเร็จ');
+      _snack(authErrorMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

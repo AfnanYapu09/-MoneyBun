@@ -54,7 +54,7 @@ class SheetScaffold extends StatelessWidget {
           IconButton(
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(AppIcons.x, size: 22),
-            color: AppColors.ink3,
+            color: context.palette.ink3,
           ),
         ],
       ),
@@ -66,8 +66,8 @@ class SheetScaffold extends StatelessWidget {
                 20, 4, 20, 16 + MediaQuery.of(context).padding.bottom),
             child: footer!,
           );
-    const decoration = BoxDecoration(
-      color: AppColors.cream,
+    final decoration = BoxDecoration(
+      color: context.palette.bg,
       borderRadius: Tokens.sheetTop,
     );
 
@@ -161,7 +161,7 @@ class FullSheetScaffold extends StatelessWidget {
                   IconButton(
                     onPressed: () => Navigator.of(context).maybePop(),
                     icon: const Icon(AppIcons.x, size: 26),
-                    color: AppColors.ink,
+                    color: context.palette.ink,
                   ),
                   Expanded(child: header),
                 ],
@@ -171,8 +171,8 @@ class FullSheetScaffold extends StatelessWidget {
             if (footer != null)
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: AppColors.line)),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: context.palette.line)),
                 ),
                 child: footer!,
               ),
@@ -191,7 +191,7 @@ class _DragHandle extends StatelessWidget {
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.line,
+          color: context.palette.line,
           borderRadius: BorderRadius.circular(9),
         ),
       );

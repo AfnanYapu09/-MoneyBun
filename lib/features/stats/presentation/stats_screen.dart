@@ -30,13 +30,27 @@ class StatsScreen extends ConsumerStatefulWidget {
 }
 
 class _StatsScreenState extends ConsumerState<StatsScreen> {
-  static const _palette = [
-    AppColors.terra,
-    AppColors.terraDeep,
-    Color(0xFFD98C6F),
-    AppColors.green,
-    Color(0xFFCDBFB0),
-  ];
+  /// Donut / category-bar colours. The light set is the terracotta gradient
+  /// tuned for the cream surface; on the dark surface those muddy together, so
+  /// return a brightened set in dark mode.
+  List<Color> _paletteFor(BuildContext context) {
+    if (Theme.of(context).brightness == Brightness.dark) {
+      return [
+        const Color(0xFFE0A488),
+        const Color(0xFFCB8467),
+        const Color(0xFFD9A884),
+        context.palette.greenFg,
+        const Color(0xFFB9AE9E),
+      ];
+    }
+    return [
+      AppColors.terra,
+      AppColors.terraDeep,
+      const Color(0xFFD98C6F),
+      context.palette.greenFg,
+      const Color(0xFFCDBFB0),
+    ];
+  }
 
   /// Which transaction type the screen breaks down (รายจ่าย / รายรับ / ย้ายเงิน).
   TxnType _type = TxnType.expense;
@@ -46,6 +60,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final chartColors = _paletteFor(context);
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
     final txns = ref.watch(periodTransactionsProvider).value ?? const [];
@@ -121,11 +136,11 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       badge = StatusBadge(
         icon: up ? AppIcons.arrowUpRight : AppIcons.trendingDown,
         background: isTransfer
-            ? AppColors.amberWash
-            : (good ? AppColors.greenTint : AppColors.terraWash),
+            ? context.palette.amberWash
+            : (good ? context.palette.greenTint : context.palette.terraWash),
         foreground: isTransfer
-            ? AppColors.amber
-            : (good ? AppColors.green : AppColors.terra700),
+            ? context.palette.amberFg
+            : (good ? context.palette.greenFg : context.palette.terraFg),
         label: up
             ? 'มากกว่า$prevNoun $pctChange%'
             : 'น้อยกว่า$prevNoun ${pctChange.abs()}%',
@@ -166,8 +181,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   iconOverLabel: true,
                   value: _type,
                   onChanged: (t) => setState(() => _type = t),
-                  segments: const [
-                    Segment(
+                  segments: [
+                    const Segment(
                         value: TxnType.expense,
                         label: 'รายจ่าย',
                         icon: AppIcons.arrowUpRight,
@@ -176,18 +191,18 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                         value: TxnType.income,
                         label: 'รายรับ',
                         icon: AppIcons.arrowDownLeft,
-                        color: AppColors.green),
+                        color: context.palette.greenFg),
                     Segment(
                         value: TxnType.transfer,
                         label: 'ย้ายเงิน',
                         icon: AppIcons.arrowLeftRight,
-                        color: AppColors.amber),
+                        color: context.palette.amberFg),
                   ],
                 ),
                 if (isTransfer) ...[
                   _TransferSummary(total: total, count: selected.length),
                   if (transferRows.isEmpty)
-                    _emptyBreakdown('ยังไม่มีการย้ายเงิน')
+                    _emptyBreakdown(context, 'ยังไม่มีการย้ายเงิน')
                   else
                     _TransferList(
                       rows: transferRows,
@@ -211,7 +226,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   _DonutCard(
                       ranked: ranked,
                       total: total,
-                      palette: _palette,
+                      palette: chartColors,
                       categories: categories,
                       centerLabel: donutCenter),
                   Row(
@@ -247,7 +262,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   ),
                   if (!_byTag)
                     if (ranked.isEmpty)
-                      _emptyBreakdown('ยังไม่มีข้อมูล')
+                      _emptyBreakdown(context, 'ยังไม่มีข้อมูล')
                     else
                       Column(
                         children: [
@@ -259,13 +274,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                                 cents: ranked[i].value,
                                 fraction:
                                     total == 0 ? 0 : ranked[i].value / total,
-                                color: _palette[i % _palette.length],
+                                color: chartColors[i % chartColors.length],
                               ),
                             ),
                         ],
                       )
                   else if (rankedTags.isEmpty)
-                    _emptyBreakdown('ยังไม่มีรายการที่ติดแท็ก')
+                    _emptyBreakdown(context, 'ยังไม่มีรายการที่ติดแท็ก')
                   else
                     Column(
                       children: [
@@ -278,7 +293,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                               fraction: tagTotal == 0
                                   ? 0
                                   : rankedTags[i].value / tagTotal,
-                              color: _palette[i % _palette.length],
+                              color: chartColors[i % chartColors.length],
                             ),
                           ),
                       ],
@@ -293,10 +308,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   }
 }
 
-Widget _emptyBreakdown(String message) => Padding(
+Widget _emptyBreakdown(BuildContext context, String message) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Text(message,
-          style: AppTypography.body(size: 14, color: AppColors.ink3)),
+          style: AppTypography.body(size: 14, color: context.palette.ink3)),
     );
 
 class _DonutCard extends StatelessWidget {
@@ -321,21 +336,22 @@ class _DonutCard extends StatelessWidget {
     ];
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.paper,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.line),
       ),
       padding: const EdgeInsets.symmetric(vertical: 22),
       alignment: Alignment.center,
       child: DonutChart(
         segments: segments.isEmpty
-            ? [const DonutSegment(1, AppColors.paper2)]
+            ? [DonutSegment(1, context.palette.surfaceAlt)]
             : segments,
         center: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(centerLabel,
-                style: AppTypography.body(size: 12, color: AppColors.ink3)),
+                style:
+                    AppTypography.body(size: 12, color: context.palette.ink3)),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(Money.compact(total),
@@ -370,9 +386,9 @@ class _EntryButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: AppColors.paper,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: context.palette.line),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,8 +397,8 @@ class _EntryButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconChip(icon: icon, size: 38, radius: 12, iconSize: 20),
-                const Icon(AppIcons.arrowRight,
-                    size: 18, color: AppColors.ink3),
+                Icon(AppIcons.arrowRight,
+                    size: 18, color: context.palette.ink3),
               ],
             ),
             const SizedBox(height: 10),
@@ -390,7 +406,8 @@ class _EntryButton extends StatelessWidget {
                 style:
                     AppTypography.heading(size: 15, weight: FontWeight.w500)),
             Text(sub,
-                style: AppTypography.body(size: 12, color: AppColors.ink3)),
+                style:
+                    AppTypography.body(size: 12, color: context.palette.ink3)),
           ],
         ),
       ),
@@ -409,9 +426,9 @@ class _TransferSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
-        color: AppColors.paper,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.line),
       ),
       child: Row(
         children: [
@@ -420,8 +437,8 @@ class _TransferSummary extends StatelessWidget {
             size: 46,
             radius: 14,
             iconSize: 22,
-            background: AppColors.amberWash,
-            foreground: AppColors.amber,
+            background: context.palette.amberWash,
+            foreground: context.palette.amberFg,
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -429,8 +446,8 @@ class _TransferSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('ย้ายเงินรวม',
-                    style:
-                        AppTypography.body(size: 12.5, color: AppColors.ink3)),
+                    style: AppTypography.body(
+                        size: 12.5, color: context.palette.ink3)),
                 const SizedBox(height: 2),
                 FittedBox(
                   fit: BoxFit.scaleDown,
@@ -444,7 +461,8 @@ class _TransferSummary extends StatelessWidget {
             ),
           ),
           Text('$count รายการ',
-              style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+              style:
+                  AppTypography.body(size: 12.5, color: context.palette.ink3)),
         ],
       ),
     );
@@ -470,9 +488,9 @@ class _TransferList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.paper,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.line),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Column(
@@ -485,7 +503,8 @@ class _TransferList extends StatelessWidget {
                   categories: categories,
                   accounts: accounts,
                   locale: locale,
-                  withDate: true);
+                  withDate: true,
+                  context: context);
               return TxnRow(
                 icon: d.icon,
                 title: d.title,

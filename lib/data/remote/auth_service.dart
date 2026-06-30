@@ -117,3 +117,32 @@ class AuthService {
     await _auth.signOut();
   }
 }
+
+/// Maps a sign-in error to a specific Thai message so the user can self-correct
+/// (wrong password vs. taken email vs. no network all read differently).
+String authErrorMessage(Object error) {
+  if (error is FirebaseAuthException) {
+    switch (error.code) {
+      case 'invalid-email':
+        return 'อีเมลไม่ถูกต้อง';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      case 'email-already-in-use':
+        return 'อีเมลนี้ถูกใช้ไปแล้ว';
+      case 'weak-password':
+        return 'รหัสผ่านอ่อนเกินไป (อย่างน้อย 6 ตัว)';
+      case 'network-request-failed':
+        return 'เชื่อมต่ออินเทอร์เน็ตไม่ได้';
+      case 'too-many-requests':
+        return 'พยายามหลายครั้งเกินไป ลองใหม่ภายหลัง';
+      case 'user-disabled':
+        return 'บัญชีนี้ถูกระงับการใช้งาน';
+    }
+  }
+  if (error is UnsupportedError) {
+    return error.message ?? 'ไม่รองรับวิธีนี้บนอุปกรณ์นี้';
+  }
+  return 'ไม่สำเร็จ ลองใหม่อีกครั้ง';
+}

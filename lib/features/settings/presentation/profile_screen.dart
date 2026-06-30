@@ -61,9 +61,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 20),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.paper,
+              color: context.palette.surface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.palette.line),
             ),
             child: Column(
               children: [
@@ -129,17 +129,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       imageQuality: 85,
     );
     if (picked == null) return;
-    final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}'
-        '${p.extension(picked.path)}';
-    final dir = await getApplicationDocumentsDirectory();
-    final dest = p.join(dir.path, name);
-    await File(picked.path).copy(dest);
-    await ref.read(settingsRepositoryProvider).setAvatarPath(dest);
-    // Best-effort cleanup of the previous photo.
-    if (old != null && old.isNotEmpty && old != dest) {
-      try {
-        File(old).deleteSync();
-      } catch (_) {}
+    try {
+      final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}'
+          '${p.extension(picked.path)}';
+      final dir = await getApplicationDocumentsDirectory();
+      final dest = p.join(dir.path, name);
+      await File(picked.path).copy(dest);
+      if (!mounted) return;
+      await ref.read(settingsRepositoryProvider).setAvatarPath(dest);
+      // Best-effort cleanup of the previous photo.
+      if (old != null && old.isNotEmpty && old != dest) {
+        try {
+          File(old).deleteSync();
+        } catch (_) {}
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('เปลี่ยนรูปไม่สำเร็จ')));
+      }
     }
   }
 }
@@ -162,7 +170,8 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nameStyle = AppTypography.heading(size: 20, weight: FontWeight.w600);
-    final handleStyle = AppTypography.body(size: 13, color: AppColors.ink3);
+    final handleStyle =
+        AppTypography.body(size: 13, color: context.palette.ink3);
 
     return Center(
       child: Column(
@@ -181,7 +190,7 @@ class _Header extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.terra,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.cream, width: 2),
+                      border: Border.all(color: context.palette.bg, width: 2),
                     ),
                     child: const Icon(
                       AppIcons.camera,
@@ -239,14 +248,15 @@ class _ProfileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = AppTypography.body(size: 12, color: AppColors.ink3);
+    final labelStyle =
+        AppTypography.body(size: 12, color: context.palette.ink3);
     final valueStyle = AppTypography.body(size: 15.5);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
         children: [
-          Icon(icon, size: 22, color: AppColors.terra700),
+          Icon(icon, size: 22, color: context.palette.terraFg),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -285,9 +295,9 @@ class _RowDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(left: 52),
-      child: Divider(height: 1, thickness: 1, color: AppColors.line),
+    return Padding(
+      padding: const EdgeInsets.only(left: 52),
+      child: Divider(height: 1, thickness: 1, color: context.palette.line),
     );
   }
 }

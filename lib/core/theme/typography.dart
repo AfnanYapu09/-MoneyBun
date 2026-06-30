@@ -15,10 +15,15 @@ class AppTypography {
   const AppTypography._();
 
   /// Body / content font (IBM Plex Sans Thai). Safe for Thai.
+  ///
+  /// [color] defaults to `null` so the text *inherits* the ambient
+  /// [DefaultTextStyle] colour (the theme's `onSurface`). That is what lets
+  /// every unstyled label flip to light ink in dark mode — pass an explicit
+  /// colour (or a `context.palette` token) only when a specific tone is needed.
   static TextStyle body({
     double size = 14,
     FontWeight weight = FontWeight.w400,
-    Color color = AppColors.ink,
+    Color? color,
     double? height,
     double? letterSpacing,
   }) =>
@@ -31,10 +36,12 @@ class AppTypography {
       );
 
   /// Heading / number / button / label font (Mitr). Safe for Thai.
+  ///
+  /// [color] defaults to `null` (inherits the ambient text colour) — see [body].
   static TextStyle heading({
     double size = 16,
     FontWeight weight = FontWeight.w500,
-    Color color = AppColors.ink,
+    Color? color,
     double? height,
     double? letterSpacing,
   }) =>
@@ -47,10 +54,12 @@ class AppTypography {
       );
 
   /// Wordmark font (Fraunces). Latin only — used for the `moneyBun` logo.
+  ///
+  /// [color] defaults to `null` (inherits the ambient text colour) — see [body].
   static TextStyle display({
     double size = 30,
     FontWeight weight = FontWeight.w600,
-    Color color = AppColors.ink,
+    Color? color,
     double? height,
   }) =>
       GoogleFonts.fraunces(

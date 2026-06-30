@@ -132,8 +132,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             icon: AppIcons.arrowDownLeft,
                             label: 'รายรับ',
                             amount: Money.compact(income),
-                            accent: AppColors.green,
-                            amountColor: AppColors.green,
+                            accent: context.palette.greenFg,
+                            amountColor: context.palette.greenFg,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -236,7 +236,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onTransfer: () =>
           ref.read(transactionRepositoryProvider).reclassifyAsTransfer(txn.id),
     );
-    if (pick != null) {
+    if (pick != null && mounted) {
       await ref
           .read(transactionRepositoryProvider)
           .setCategory(txn.id, pick.categoryId);
@@ -302,7 +302,8 @@ class _PullHint extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               armed ? 'ปล่อยเพื่อให้น้องบันอ่านสลิป' : 'ดึงลงเพื่ออัปเดตสลิป',
-              style: AppTypography.body(size: 13.5, color: AppColors.ink3),
+              style:
+                  AppTypography.body(size: 13.5, color: context.palette.ink3),
             ),
           ],
         ),
@@ -328,7 +329,8 @@ class _Header extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(greeting,
-                  style: AppTypography.body(size: 13, color: AppColors.ink3)),
+                  style: AppTypography.body(
+                      size: 13, color: context.palette.ink3)),
               Text(name,
                   style:
                       AppTypography.heading(size: 20, weight: FontWeight.w600)),
@@ -354,11 +356,11 @@ class _WalletButton extends StatelessWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.terraWash,
+          color: context.palette.terraWash,
           borderRadius: BorderRadius.circular(15),
         ),
         alignment: Alignment.center,
-        child: const Icon(AppIcons.wallet, size: 22, color: AppColors.terra700),
+        child: Icon(AppIcons.wallet, size: 22, color: context.palette.terraFg),
       ),
     );
   }
@@ -536,7 +538,8 @@ class _RecentList extends StatelessWidget {
                     AppTypography.heading(size: 15, weight: FontWeight.w500)),
             const SizedBox(height: 4),
             Text('ดึงลงเพื่อให้น้องบันอ่านสลิป หรือกด +',
-                style: AppTypography.body(size: 13, color: AppColors.ink3)),
+                style:
+                    AppTypography.body(size: 13, color: context.palette.ink3)),
           ],
         ),
       );

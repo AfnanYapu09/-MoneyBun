@@ -39,26 +39,26 @@ class TxnRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (sign, color) = switch (type) {
-      TxnType.income => ('+', AppColors.green),
-      TxnType.expense => ('−', AppColors.ink),
-      TxnType.transfer => ('', AppColors.amber),
+      TxnType.income => ('+', context.palette.greenFg),
+      TxnType.expense => ('−', context.palette.ink),
+      TxnType.transfer => ('', context.palette.amberFg),
     };
     final row = Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           if (type == TxnType.transfer)
-            const PixelChip(
+            PixelChip(
               maskKey: 'transfer',
-              background: AppColors.amberWash,
-              foreground: AppColors.amber,
+              background: context.palette.amberWash,
+              foreground: context.palette.amberFg,
               size: 42,
               radius: 14,
             )
           else if (hasPixelGlyph(iconKey))
             CategoryGlyph(
               iconKey: iconKey,
-              color: iconColor ?? AppColors.terraWash,
+              color: iconColor ?? context.palette.terraWash,
               size: 42,
               radius: 14,
             )
@@ -68,8 +68,9 @@ class TxnRow extends StatelessWidget {
               size: 42,
               radius: 14,
               iconSize: 20,
-              background: iconColor ?? AppColors.terraWash,
-              foreground: iconColor == null ? AppColors.terra700 : Colors.white,
+              background: iconColor ?? context.palette.terraWash,
+              foreground:
+                  iconColor == null ? context.palette.terraFg : Colors.white,
             ),
           const SizedBox(width: 14),
           Expanded(
@@ -84,8 +85,8 @@ class TxnRow extends StatelessWidget {
                 Text(sub,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        AppTypography.body(size: 12.5, color: AppColors.ink3)),
+                    style: AppTypography.body(
+                        size: 12.5, color: context.palette.ink3)),
               ],
             ),
           ),

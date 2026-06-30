@@ -59,40 +59,51 @@ class AppTheme {
   const AppTheme._();
 
   static ThemeData light({Color accent = AppColors.terra}) {
+    const palette = AppPalette.light;
     final scheme = ColorScheme.light(
       primary: accent,
       onPrimary: AppColors.reverse,
       secondary: AppColors.terraDeep,
       onSecondary: AppColors.reverse,
-      surface: AppColors.paper,
-      onSurface: AppColors.ink,
+      surface: palette.surface,
+      onSurface: palette.ink,
+      onSurfaceVariant: palette.ink2,
+      outline: palette.line,
       error: AppColors.danger,
       onError: AppColors.reverse,
     );
-    return _base(scheme, AppColors.cream, AppColors.ink);
+    return _base(scheme, palette.bg, palette.ink, palette);
   }
 
   static ThemeData dark({Color accent = AppColors.terra}) {
-    const bg = Color(0xFF1A1714);
-    const surface = Color(0xFF252019);
-    const onSurface = Color(0xFFEDE6DA);
+    const palette = AppPalette.dark;
     final scheme = ColorScheme.dark(
       primary: accent,
       onPrimary: AppColors.reverse,
       secondary: AppColors.terraTint,
-      surface: surface,
-      onSurface: onSurface,
-      error: AppColors.danger,
+      onSecondary: AppColors.ink,
+      surface: palette.surface,
+      onSurface: palette.ink,
+      onSurfaceVariant: palette.ink2,
+      outline: palette.line,
+      error: palette.dangerFg,
+      onError: AppColors.ink,
     );
-    return _base(scheme, bg, onSurface);
+    return _base(scheme, palette.bg, palette.ink, palette);
   }
 
-  static ThemeData _base(ColorScheme scheme, Color scaffold, Color onBg) {
+  static ThemeData _base(
+    ColorScheme scheme,
+    Color scaffold,
+    Color onBg,
+    AppPalette palette,
+  ) {
+    final lineColor = palette.line;
     final isDark = scheme.brightness == Brightness.dark;
-    final lineColor = isDark ? const Color(0xFF3A322A) : AppColors.line;
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      extensions: <ThemeExtension<dynamic>>[palette],
       scaffoldBackgroundColor: scaffold,
       textTheme: AppTypography.textTheme().apply(
         bodyColor: onBg,
@@ -135,20 +146,18 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: Tokens.card),
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith(
-          (s) => s.contains(WidgetState.selected) ? Colors.white : Colors.white,
-        ),
+        thumbColor: const WidgetStatePropertyAll(Colors.white),
         trackColor: WidgetStateProperty.resolveWith(
           (s) => s.contains(WidgetState.selected)
               ? scheme.primary
-              : const Color(0xFFD8D0C2),
+              : palette.toggleOff,
         ),
         trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surface,
-        hintStyle: AppTypography.body(size: 15, color: AppColors.ink3),
+        hintStyle: AppTypography.body(size: 15, color: palette.ink3),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
@@ -163,6 +172,32 @@ class AppTheme {
           borderRadius: Tokens.input,
           borderSide: BorderSide(color: scheme.primary, width: 1.5),
         ),
+      ),
+      // Keep popups that draw their own surface on-palette (warm, not the cold
+      // Material grey) and legible in dark mode.
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: isDark ? const Color(0xFF38322B) : AppColors.ink,
+        contentTextStyle: AppTypography.body(
+            size: 14, color: isDark ? palette.ink : AppColors.reverse),
+        actionTextColor: scheme.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: scheme.surface,
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: scheme.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: scheme.primary,
+        selectionColor: scheme.primary.withValues(alpha: 0.3),
+        selectionHandleColor: scheme.primary,
       ),
     );
   }

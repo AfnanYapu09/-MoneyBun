@@ -195,7 +195,7 @@ class AddCategorySheet extends ConsumerWidget {
                   style: AppTypography.heading(
                       size: 14,
                       weight: FontWeight.w600,
-                      color: AppColors.ink2)),
+                      color: context.palette.ink2)),
             ),
             GridView.count(
               crossAxisCount: 4,
@@ -265,7 +265,8 @@ class _IconTile extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.body(size: 11.5, color: AppColors.ink2)),
+                  style: AppTypography.body(
+                      size: 11.5, color: context.palette.ink2)),
             ),
           ],
         ),
@@ -282,7 +283,7 @@ class _AddedBadge extends StatelessWidget {
     return Container(
       width: 20,
       height: 20,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.green,
         shape: BoxShape.circle,
       ),

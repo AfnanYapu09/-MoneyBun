@@ -8,6 +8,7 @@ import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
+import '../../../data/remote/auth_service.dart';
 import 'widgets/auth_field.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -37,13 +38,17 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         children: [
           Text('กรอกอีเมลของคุณ แล้วเราจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้',
               style: AppTypography.body(
-                  size: 14.5, color: AppColors.ink2, height: 1.5)),
+                  size: 14.5, color: context.palette.ink2, height: 1.5)),
           const SizedBox(height: 20),
           AuthField(
-              icon: AppIcons.mail,
-              hint: 'อีเมล',
-              controller: _email,
-              keyboardType: TextInputType.emailAddress),
+            icon: AppIcons.mail,
+            hint: 'อีเมล',
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.email],
+            onSubmitted: (_) => _send(),
+          ),
           const SizedBox(height: 24),
           PrimaryButton(label: 'ส่งลิงก์', loading: _busy, onPressed: _send),
         ],
@@ -52,18 +57,24 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Future<void> _send() async {
+    if (_busy) return;
     final auth = ref.read(authServiceProvider);
     if (auth == null) {
       _snack('ยังไม่ได้ตั้งค่า Firebase');
       return;
     }
+    final email = _email.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      _snack('กรอกอีเมลให้ถูกต้อง');
+      return;
+    }
     setState(() => _busy = true);
     try {
-      await auth.sendPasswordReset(_email.text);
+      await auth.sendPasswordReset(email);
       _snack('ส่งลิงก์ไปที่อีเมลแล้ว');
       if (mounted) context.pop();
     } catch (e) {
-      _snack('ส่งไม่สำเร็จ ตรวจสอบอีเมลอีกครั้ง');
+      _snack(authErrorMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

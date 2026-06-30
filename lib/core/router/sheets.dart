@@ -54,7 +54,7 @@ Future<bool?> showAddTransactionSheet(BuildContext context, {String? editId}) {
       isScrollControlled: true,
       useSafeArea: true,
       barrierColor: _barrier,
-      backgroundColor: AppColors.cream,
+      backgroundColor: context.palette.bg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
       ),
@@ -155,7 +155,7 @@ Future<bool> confirmLogout(BuildContext context) async {
     context: context,
     barrierColor: _barrier,
     builder: (c) => Dialog(
-      backgroundColor: AppColors.cream,
+      backgroundColor: context.palette.bg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
@@ -166,11 +166,11 @@ Future<bool> confirmLogout(BuildContext context) async {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: AppColors.dangerWash,
+                color: context.palette.dangerWash,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(AppIcons.logOut,
-                  color: AppColors.danger, size: 28),
+              child: Icon(AppIcons.logOut,
+                  color: context.palette.dangerFg, size: 28),
             ),
             const SizedBox(height: 12),
             Text('ออกจากระบบ?',
@@ -179,7 +179,8 @@ Future<bool> confirmLogout(BuildContext context) async {
             const SizedBox(height: 6),
             Text('ข้อมูลของคุณถูกบันทึกไว้แล้ว เข้าสู่ระบบใหม่ได้ทุกเมื่อ',
                 textAlign: TextAlign.center,
-                style: AppTypography.body(size: 14, color: AppColors.ink2)),
+                style:
+                    AppTypography.body(size: 14, color: context.palette.ink2)),
             const SizedBox(height: 18),
             PrimaryButton(
               label: 'ออกจากระบบ',

@@ -39,6 +39,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   DateTime _occurredAt = DateTime.now();
   SlipRow? _slip;
   bool _loaded = false;
+  bool _saving = false;
   String _calcHistory = '';
 
   @override
@@ -91,7 +92,15 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     super.dispose();
   }
 
-  Color get _accent => switch (_type) {
+  Color _accentOf(BuildContext context) => switch (_type) {
+        TxnType.income => context.palette.greenFg,
+        TxnType.transfer => context.palette.amberFg,
+        TxnType.expense => AppColors.terra,
+      };
+
+  /// Solid accent for the save-button FILL (a white label sits on top), so it
+  /// stays legible in both themes — unlike the lighter foreground [_accentOf].
+  Color _fillAccentOf() => switch (_type) {
         TxnType.income => AppColors.green,
         TxnType.transfer => AppColors.amber,
         TxnType.expense => AppColors.terra,
@@ -139,8 +148,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           });
           _persistLive();
         },
-        segments: const [
-          Segment(
+        segments: [
+          const Segment(
               value: TxnType.expense,
               label: 'รายจ่าย',
               icon: AppIcons.arrowUpRight,
@@ -149,17 +158,17 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               value: TxnType.income,
               label: 'รายรับ',
               icon: AppIcons.arrowDownLeft,
-              color: AppColors.green),
+              color: context.palette.greenFg),
           Segment(
               value: TxnType.transfer,
               label: 'ย้ายเงิน',
               icon: AppIcons.arrowLeftRight,
-              color: AppColors.amber),
+              color: context.palette.amberFg),
         ],
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a
       // commit button.
-      footer: _footer(),
+      footer: _footer(context),
       child: ListView(
         shrinkWrap: true,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -173,14 +182,14 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(AppIcons.calendar,
-                      size: 18, color: AppColors.terra700),
+                  Icon(AppIcons.calendar,
+                      size: 18, color: context.palette.terraFg),
                   const SizedBox(width: 8),
                   Text(AppDate.formatDayHeader(_occurredAt, locale: locale),
                       style: AppTypography.heading(
                           size: 15,
                           weight: FontWeight.w500,
-                          color: AppColors.terra700)),
+                          color: context.palette.terraFg)),
                 ],
               ),
             ),
@@ -190,9 +199,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             decoration: BoxDecoration(
-              color: AppColors.paper,
+              color: context.palette.surface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.palette.line),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -201,7 +210,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 CalcHistoryLine(_calcHistory),
                 Row(
                   children: [
-                    Icon(_directionIcon, size: 30, color: _accent),
+                    Icon(_directionIcon, size: 30, color: _accentOf(context)),
                     const SizedBox(width: 14),
                     Expanded(
                       child: TextField(
@@ -215,7 +224,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         style: AppTypography.heading(
                             size: 40,
                             weight: FontWeight.w600,
-                            color: AppColors.ink),
+                            color: context.palette.ink),
                         decoration: InputDecoration(
                           isCollapsed: true,
                           border: InputBorder.none,
@@ -226,7 +235,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                           hintStyle: AppTypography.heading(
                               size: 40,
                               weight: FontWeight.w600,
-                              color: AppColors.ink3),
+                              color: context.palette.ink3),
                         ),
                       ),
                     ),
@@ -234,7 +243,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         style: AppTypography.heading(
                             size: 26,
                             weight: FontWeight.w500,
-                            color: AppColors.ink3)),
+                            color: context.palette.ink3)),
                   ],
                 ),
               ],
@@ -269,7 +278,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
             child: Text('เพิ่มเติม',
                 style: AppTypography.heading(
-                    size: 13, weight: FontWeight.w500, color: AppColors.ink3)),
+                    size: 13,
+                    weight: FontWeight.w500,
+                    color: context.palette.ink3)),
           ),
           const SizedBox(height: 10),
           _Row(
@@ -286,20 +297,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               child: Container(
                 height: 52,
                 decoration: BoxDecoration(
-                  color: AppColors.dangerWash,
+                  color: context.palette.dangerWash,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(AppIcons.trash2,
-                        size: 19, color: AppColors.danger),
+                    Icon(AppIcons.trash2,
+                        size: 19, color: context.palette.dangerFg),
                     const SizedBox(width: 8),
                     Text('ลบรายการนี้',
                         style: AppTypography.heading(
                             size: 16,
                             weight: FontWeight.w500,
-                            color: AppColors.danger)),
+                            color: context.palette.dangerFg)),
                   ],
                 ),
               ),
@@ -346,27 +357,32 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
   Future<void> _editNote() async {
     final controller = TextEditingController(text: _note);
-    final note = await showDialog<String>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('โน้ต'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'รายละเอียด (ไม่บังคับ)'),
+    try {
+      final note = await showDialog<String>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('โน้ต'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration:
+                const InputDecoration(hintText: 'รายละเอียด (ไม่บังคับ)'),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(c), child: const Text('ยกเลิก')),
+            TextButton(
+                onPressed: () => Navigator.pop(c, controller.text.trim()),
+                child: const Text('บันทึก')),
+          ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(c), child: const Text('ยกเลิก')),
-          TextButton(
-              onPressed: () => Navigator.pop(c, controller.text.trim()),
-              child: const Text('บันทึก')),
-        ],
-      ),
-    );
-    if (note != null) {
-      setState(() => _note = note.isEmpty ? null : note);
-      _persistLive();
+      );
+      if (note != null) {
+        setState(() => _note = note.isEmpty ? null : note);
+        _persistLive();
+      }
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -382,19 +398,21 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_occurredAt),
     );
+    // The time picker is a second async gap — bail if the sheet was dismissed.
+    if (!mounted) return;
     setState(() => _occurredAt = DateTime(date.year, date.month, date.day,
         time?.hour ?? _occurredAt.hour, time?.minute ?? _occurredAt.minute));
     _persistLive();
   }
 
   /// Add mode keeps a commit button; edit mode saves live (no button).
-  Widget? _footer() {
+  Widget? _footer(BuildContext context) {
     if (widget.editId != null) return null;
     return PrimaryButton(
       label: 'บันทึก',
-      color: _accent,
-      onPressed: _loaded ? _save : null,
-      loading: !_loaded,
+      color: _fillAccentOf(),
+      onPressed: (_loaded && !_saving) ? _save : null,
+      loading: !_loaded || _saving,
     );
   }
 
@@ -420,26 +438,36 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _save() async {
+    if (_saving) return; // guard against a fast double-tap inserting twice
     final cents = Money.parseToCents(_amount.text) ?? 0;
     if (cents <= 0) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
       return;
     }
-    final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
-    final defaultAccount = accounts.isEmpty ? null : accounts.first.id;
-    await ref.read(transactionRepositoryProvider).save(
-          id: widget.editId,
-          type: _type,
-          amountCents: cents,
-          accountId: _fromAccountId ?? defaultAccount ?? '',
-          toAccountId: _type == TxnType.transfer ? _toAccountId : null,
-          categoryId: _type == TxnType.transfer ? null : _categoryId,
-          note: _note,
-          occurredAt: _occurredAt,
-          tagIds: _type == TxnType.transfer ? const [] : _tagIds,
-        );
-    if (mounted) Navigator.of(context).pop(true);
+    setState(() => _saving = true);
+    try {
+      final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
+      final defaultAccount = accounts.isEmpty ? null : accounts.first.id;
+      await ref.read(transactionRepositoryProvider).save(
+            id: widget.editId,
+            type: _type,
+            amountCents: cents,
+            accountId: _fromAccountId ?? defaultAccount ?? '',
+            toAccountId: _type == TxnType.transfer ? _toAccountId : null,
+            categoryId: _type == TxnType.transfer ? null : _categoryId,
+            note: _note,
+            occurredAt: _occurredAt,
+            tagIds: _type == TxnType.transfer ? const [] : _tagIds,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('บันทึกไม่สำเร็จ')));
+      }
+    }
   }
 
   Future<void> _confirmDelete() async {
@@ -483,9 +511,9 @@ class _Row extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         decoration: BoxDecoration(
-          color: AppColors.paper,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: context.palette.line),
         ),
         child: Row(
           children: [
@@ -495,9 +523,11 @@ class _Row extends StatelessWidget {
               child: Text(value ?? label,
                   style: AppTypography.body(
                       size: 15,
-                      color: value == null ? AppColors.ink2 : AppColors.ink)),
+                      color: value == null
+                          ? context.palette.ink2
+                          : context.palette.ink)),
             ),
-            const Icon(AppIcons.chevronRight, size: 19, color: AppColors.ink3),
+            Icon(AppIcons.chevronRight, size: 19, color: context.palette.ink3),
           ],
         ),
       ),

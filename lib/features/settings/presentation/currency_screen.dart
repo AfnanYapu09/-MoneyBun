@@ -37,7 +37,7 @@ class CurrencyScreen extends ConsumerWidget {
                       style: AppTypography.heading(
                           size: 18,
                           weight: FontWeight.w600,
-                          color: AppColors.terra700)),
+                          color: context.palette.terraFg)),
                 ),
                 label: c.$3,
                 secondary: c.$1,
@@ -47,7 +47,8 @@ class CurrencyScreen extends ConsumerWidget {
           ]),
           const SizedBox(height: 12),
           Text('ใช้สำหรับการแสดงผลเท่านั้น ยอดเงินยังบันทึกเป็นสตางค์',
-              style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+              style:
+                  AppTypography.body(size: 12.5, color: context.palette.ink3)),
         ],
       ),
     );

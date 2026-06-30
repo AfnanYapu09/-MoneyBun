@@ -94,9 +94,9 @@ class SettingsScreen extends ConsumerWidget {
                     repo.setLocale(settings.locale == 'th' ? 'en' : 'th'),
               ),
               SettingRow(
-                icon: AppIcons.shieldCheck,
-                label: 'ความปลอดภัย',
-                onTap: () => context.push('/settings/security'),
+                icon: AppIcons.download,
+                label: 'ส่งออกข้อมูล',
+                onTap: () => context.push('/settings/export'),
               ),
               SettingRow(
                 icon: AppIcons.circleHelp,
@@ -139,7 +139,8 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             Center(
               child: Text('moneyBun v1.0.0',
-                  style: AppTypography.body(size: 12, color: AppColors.ink3)),
+                  style: AppTypography.body(
+                      size: 12, color: context.palette.ink3)),
             ),
           ],
         ),
@@ -162,32 +163,28 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-/// Notification preferences — local UI state (no notification backend yet).
-class _NotificationsGroup extends StatefulWidget {
+/// Notification preferences. The choices are persisted so they survive
+/// navigation; the actual scheduling backend is future work.
+class _NotificationsGroup extends ConsumerWidget {
   const _NotificationsGroup();
 
   @override
-  State<_NotificationsGroup> createState() => _NotificationsGroupState();
-}
-
-class _NotificationsGroupState extends State<_NotificationsGroup> {
-  bool _logReminder = true;
-  bool _weeklySummary = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings =
+        ref.watch(appSettingsProvider).value ?? const AppSettings();
+    final repo = ref.read(settingsRepositoryProvider);
     return SettingGroup(children: [
       SettingRow(
         icon: AppIcons.bell,
         label: 'เตือนให้จดรายการ',
-        toggleValue: _logReminder,
-        onToggle: (v) => setState(() => _logReminder = v),
+        toggleValue: settings.notifyLogReminder,
+        onToggle: repo.setNotifyLogReminder,
       ),
       SettingRow(
         icon: AppIcons.calendarCheck,
         label: 'สรุปรายสัปดาห์',
-        toggleValue: _weeklySummary,
-        onToggle: (v) => setState(() => _weeklySummary = v),
+        toggleValue: settings.notifyWeeklySummary,
+        onToggle: repo.setNotifyWeeklySummary,
       ),
     ]);
   }

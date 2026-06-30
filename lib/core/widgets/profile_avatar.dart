@@ -57,7 +57,7 @@ class ProfileAvatar extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: bunBackground ?? AppColors.terraWash,
+        color: bunBackground ?? context.palette.terraWash,
         borderRadius: br,
       ),
       child: BunAvatar(size: bunSize ?? size * 0.72, variant: bunVariant),

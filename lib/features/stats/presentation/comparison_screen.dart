@@ -128,8 +128,8 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                 child: _HeroCard(
                   label: 'เก็บได้${period.periodNoun(locale)}',
                   value: Money.compact(current.saved),
-                  background: AppColors.greenTint,
-                  foreground: AppColors.green,
+                  background: context.palette.greenTint,
+                  foreground: context.palette.greenFg,
                 ),
               ),
               const SizedBox(width: 12),
@@ -137,8 +137,8 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                 child: _HeroCard(
                   label: 'เฉลี่ย ${aggs.length} $unitWord',
                   value: Money.compact(avgSaved),
-                  background: AppColors.paper,
-                  foreground: AppColors.ink,
+                  background: context.palette.surface,
+                  foreground: context.palette.ink,
                   bordered: true,
                 ),
               ),
@@ -149,9 +149,9 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
           Container(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
             decoration: BoxDecoration(
-              color: AppColors.paper,
+              color: context.palette.surface,
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.palette.line),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,10 +163,11 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                         style: AppTypography.heading(
                             size: 15, weight: FontWeight.w500)),
                     Row(
-                      children: const [
-                        _Legend(color: AppColors.green, label: 'รายรับ'),
-                        SizedBox(width: 12),
-                        _Legend(color: AppColors.terra, label: 'รายจ่าย'),
+                      children: [
+                        _Legend(
+                            color: context.palette.greenFg, label: 'รายรับ'),
+                        const SizedBox(width: 12),
+                        const _Legend(color: AppColors.terra, label: 'รายจ่าย'),
                       ],
                     ),
                   ],
@@ -200,9 +201,9 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.paper,
+              color: context.palette.surface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: context.palette.line),
             ),
             child: Column(
               children: [
@@ -240,7 +241,7 @@ class _TappedSummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: AppColors.cream,
+        color: context.palette.bg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -248,11 +249,11 @@ class _TappedSummary extends StatelessWidget {
           Text(label,
               style: AppTypography.heading(size: 13, weight: FontWeight.w600)),
           const Spacer(),
-          _Stat(label: 'รายรับ', value: income, color: AppColors.green),
+          _Stat(label: 'รายรับ', value: income, color: context.palette.greenFg),
           const SizedBox(width: 12),
           _Stat(label: 'รายจ่าย', value: expense, color: AppColors.terra),
           const SizedBox(width: 12),
-          _Stat(label: 'เก็บได้', value: saved, color: AppColors.ink),
+          _Stat(label: 'เก็บได้', value: saved, color: context.palette.ink),
         ],
       ),
     );
@@ -270,7 +271,8 @@ class _Stat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(label, style: AppTypography.body(size: 10, color: AppColors.ink3)),
+        Text(label,
+            style: AppTypography.body(size: 10, color: context.palette.ink3)),
         Text(Money.compact(value),
             style: AppTypography.heading(
                 size: 12.5, weight: FontWeight.w600, color: color)),
@@ -300,7 +302,7 @@ class _HeroCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(18),
-        border: bordered ? Border.all(color: AppColors.line) : null,
+        border: bordered ? Border.all(color: context.palette.line) : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,9 +310,9 @@ class _HeroCard extends StatelessWidget {
           Text(label,
               style: AppTypography.body(
                   size: 13,
-                  color: foreground == AppColors.green
-                      ? AppColors.green
-                      : AppColors.ink2)),
+                  color: foreground == context.palette.greenFg
+                      ? context.palette.greenFg
+                      : context.palette.ink2)),
           const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -342,7 +344,8 @@ class _Legend extends StatelessWidget {
               color: color, borderRadius: BorderRadius.circular(3)),
         ),
         const SizedBox(width: 5),
-        Text(label, style: AppTypography.body(size: 12, color: AppColors.ink2)),
+        Text(label,
+            style: AppTypography.body(size: 12, color: context.palette.ink2)),
       ],
     );
   }
@@ -373,7 +376,7 @@ class _PeriodRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: active ? AppColors.terraWash : Colors.transparent,
+      color: active ? context.palette.terraWash : Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
@@ -387,10 +390,10 @@ class _PeriodRow extends StatelessWidget {
             children: [
               Text('+${Money.compact(agg.income)}',
                   style: AppTypography.heading(
-                      size: 12.5, color: AppColors.green)),
+                      size: 12.5, color: context.palette.greenFg)),
               Text('−${Money.compact(agg.expense)}',
-                  style:
-                      AppTypography.heading(size: 12.5, color: AppColors.ink2)),
+                  style: AppTypography.heading(
+                      size: 12.5, color: AppColors.terra)),
             ],
           ),
           const SizedBox(width: 16),
@@ -400,7 +403,8 @@ class _PeriodRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text('เก็บได้',
-                    style: AppTypography.body(size: 11, color: AppColors.ink3)),
+                    style: AppTypography.body(
+                        size: 11, color: context.palette.ink3)),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
