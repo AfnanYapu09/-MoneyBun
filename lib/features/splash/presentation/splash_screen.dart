@@ -26,7 +26,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final settings = await ref.read(settingsRepositoryProvider).read();
     await Future.delayed(const Duration(milliseconds: 1400));
     if (!mounted) return;
-    context.go(settings.onboardingSeen ? '/home' : '/onboarding');
+    if (!settings.onboardingSeen) {
+      context.go('/onboarding');
+      return;
+    }
+    // Cloud-only: when Firebase is configured, require a signed-in account
+    // (Firebase persists the session, so this only forces login after a
+    // sign-out). Without Firebase, fall back to local use.
+    final auth = ref.read(authServiceProvider);
+    final needLogin = auth != null && auth.currentUser == null;
+    context.go(needLogin ? '/login' : '/home');
   }
 
   @override
