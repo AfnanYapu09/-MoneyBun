@@ -1,7 +1,7 @@
 import '../enums/enums.dart';
 
 /// Result of the slip-reading pipeline: whatever could be extracted from a slip
-/// image via QR + on-device OCR (and optionally the online verify API).
+/// image via QR + on-device OCR.
 class ParsedSlip {
   const ParsedSlip({
     required this.source,
@@ -37,7 +37,7 @@ class ParsedSlip {
   final double confidence;
   final bool verified;
 
-  /// Whether there's enough to prefill the add form without forcing online verify.
+  /// Whether there's enough confidence to prefill the add form automatically.
   bool get isHighConfidence => amountCents != null && confidence >= 0.6;
 
   ParsedSlip copyWith({

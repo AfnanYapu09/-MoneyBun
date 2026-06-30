@@ -77,9 +77,6 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ]),
             const SizedBox(height: 18),
-            SettingSectionLabel(l10n.settingsNotificationsSection),
-            const _NotificationsGroup(),
-            const SizedBox(height: 18),
             SettingSectionLabel(l10n.settingsGeneralSection),
             SettingGroup(children: [
               SettingRow(
@@ -162,38 +159,6 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(authServiceProvider)?.signOut();
     await ref.read(settingsRepositoryProvider).setAuthMode('guest');
     if (context.mounted) context.go('/login');
-  }
-}
-
-/// Notification preferences — local UI state (no notification backend yet).
-class _NotificationsGroup extends StatefulWidget {
-  const _NotificationsGroup();
-
-  @override
-  State<_NotificationsGroup> createState() => _NotificationsGroupState();
-}
-
-class _NotificationsGroupState extends State<_NotificationsGroup> {
-  bool _logReminder = true;
-  bool _weeklySummary = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SettingGroup(children: [
-      SettingRow(
-        icon: AppIcons.bell,
-        label: l10n.settingsLogReminder,
-        toggleValue: _logReminder,
-        onToggle: (v) => setState(() => _logReminder = v),
-      ),
-      SettingRow(
-        icon: AppIcons.calendarCheck,
-        label: l10n.settingsWeeklySummary,
-        toggleValue: _weeklySummary,
-        onToggle: (v) => setState(() => _weeklySummary = v),
-      ),
-    ]);
   }
 }
 
