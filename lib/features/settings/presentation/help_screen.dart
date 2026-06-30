@@ -11,10 +11,14 @@ import '../../../l10n/generated/app_localizations.dart';
 
 /// A single FAQ entry: an icon plus a question/answer pair.
 class _Faq {
-  const _Faq(this.icon, this.question, this.answer);
+  const _Faq(this.icon, this.question, this.answer, {this.primary = false});
   final IconData icon;
   final String question;
   final String answer;
+
+  /// Shown on the help screen by default (the main questions). Non-primary
+  /// entries only appear once the user searches.
+  final bool primary;
 
   /// True when [query] (already lower-cased) appears in the question or answer.
   bool matches(String query) =>
@@ -47,21 +51,21 @@ class _HelpScreenState extends State<HelpScreen> {
   /// organising → settings → privacy → troubleshooting). All copy is localised.
   static List<_Faq> _faqs(AppLocalizations l10n) => [
         _Faq(AppIcons.scanLine, l10n.settingsFaqScanQuestion,
-            l10n.settingsFaqScanAnswer),
+            l10n.settingsFaqScanAnswer, primary: true),
         _Faq(AppIcons.circleHelp, l10n.settingsFaqSlipFailedQuestion,
-            l10n.settingsFaqSlipFailedAnswer),
+            l10n.settingsFaqSlipFailedAnswer, primary: true),
         _Faq(AppIcons.plus, l10n.settingsFaqAddManualQuestion,
-            l10n.settingsFaqAddManualAnswer),
+            l10n.settingsFaqAddManualAnswer, primary: true),
         _Faq(AppIcons.arrowLeftRight, l10n.settingsFaqTransferQuestion,
             l10n.settingsFaqTransferAnswer),
         _Faq(AppIcons.pencil, l10n.settingsFaqEditDeleteQuestion,
             l10n.settingsFaqEditDeleteAnswer),
         _Faq(AppIcons.layoutGrid, l10n.settingsFaqCategoriesQuestion,
-            l10n.settingsFaqCategoriesAnswer),
+            l10n.settingsFaqCategoriesAnswer, primary: true),
         _Faq(AppIcons.hash, l10n.settingsFaqTagsQuestion,
             l10n.settingsFaqTagsAnswer),
         _Faq(AppIcons.wallet, l10n.settingsFaqBudgetQuestion,
-            l10n.settingsFaqBudgetAnswer),
+            l10n.settingsFaqBudgetAnswer, primary: true),
         _Faq(AppIcons.target, l10n.settingsFaqSavingsQuestion,
             l10n.settingsFaqSavingsAnswer),
         _Faq(AppIcons.banknote, l10n.settingsFaqAccountsQuestion,
@@ -77,7 +81,7 @@ class _HelpScreenState extends State<HelpScreen> {
         _Faq(AppIcons.shieldCheck, l10n.settingsFaqSecurityQuestion,
             l10n.settingsFaqSecurityAnswer),
         _Faq(AppIcons.refreshCw, l10n.settingsFaqSyncQuestion,
-            l10n.settingsFaqSyncAnswer),
+            l10n.settingsFaqSyncAnswer, primary: true),
       ];
 
   /// Open [uri]; if no app can handle it, copy [copyText] to the clipboard so
@@ -107,7 +111,10 @@ class _HelpScreenState extends State<HelpScreen> {
     final query = _query.trim().toLowerCase();
     final searching = query.isNotEmpty;
     final faqs = _faqs(l10n);
-    final results = searching ? faqs.where((f) => f.matches(query)).toList() : faqs;
+    // Default to the main questions; searching reveals the full set.
+    final results = searching
+        ? faqs.where((f) => f.matches(query)).toList()
+        : faqs.where((f) => f.primary).toList();
 
     return SubScreenScaffold(
       title: l10n.settingsHelp,
@@ -187,6 +194,14 @@ class _HelpScreenState extends State<HelpScreen> {
                 ],
               ),
             ),
+            if (!searching) ...[
+              const SizedBox(height: 12),
+              Center(
+                child: Text(l10n.settingsFaqSearchMoreHint,
+                    style: AppTypography.body(
+                        size: 12.5, color: context.palette.ink3)),
+              ),
+            ],
           ],
           const SizedBox(height: 22),
           Text(l10n.settingsHelpContactPrompt,

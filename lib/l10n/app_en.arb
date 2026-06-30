@@ -532,5 +532,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "settingsFaqSearchMoreHint": "Search to see all questions"
 }
