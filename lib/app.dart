@@ -22,9 +22,6 @@ class MoneyBunApp extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     final settings = ref.watch(appSettingsProvider).value;
 
-    final accent = settings == null
-        ? AppColors.terra
-        : AppColors.forHex(settings.accentColor);
     final themeMode = switch (settings?.themeMode) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
@@ -38,8 +35,8 @@ class MoneyBunApp extends ConsumerWidget {
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(accent: accent),
-      darkTheme: AppTheme.dark(accent: accent),
+      theme: AppTheme.light(accent: AppColors.terra),
+      darkTheme: AppTheme.dark(accent: AppColors.terra),
       themeMode: themeMode,
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

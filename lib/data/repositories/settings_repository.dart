@@ -6,10 +6,8 @@ class AppSettings {
     this.onboardingSeen = false,
     this.authMode = 'guest',
     this.themeMode = 'system',
-    this.accentColor = 'FFC4694A',
     this.currencyCode = 'THB',
     this.locale = 'th',
-    this.hideBalance = false,
     this.savingsGoalCents = 0,
     this.lastSlipReadAt,
     this.disabledScanIds = const {},
@@ -22,10 +20,8 @@ class AppSettings {
   final bool onboardingSeen;
   final String authMode; // 'guest' | 'signedIn'
   final String themeMode; // 'light' | 'dark' | 'system'
-  final String accentColor; // ARGB hex
   final String currencyCode;
   final String locale; // 'th' | 'en'
-  final bool hideBalance;
   final int savingsGoalCents;
   final int? lastSlipReadAt;
 
@@ -45,10 +41,8 @@ class AppSettings {
       onboardingSeen: b(SettingsKeys.onboardingSeen),
       authMode: m[SettingsKeys.authMode] ?? 'guest',
       themeMode: m[SettingsKeys.themeMode] ?? 'system',
-      accentColor: m[SettingsKeys.accentColor] ?? 'FFC4694A',
       currencyCode: m[SettingsKeys.currencyCode] ?? 'THB',
       locale: m[SettingsKeys.locale] ?? 'th',
-      hideBalance: b(SettingsKeys.hideBalance),
       savingsGoalCents: i(SettingsKeys.savingsGoalCents),
       lastSlipReadAt: m[SettingsKeys.lastSlipReadAt] == null
           ? null
@@ -70,10 +64,8 @@ class SettingsKeys {
   static const onboardingSeen = 'onboardingSeen';
   static const authMode = 'authMode';
   static const themeMode = 'themeMode';
-  static const accentColor = 'accentColor';
   static const currencyCode = 'currencyCode';
   static const locale = 'locale';
-  static const hideBalance = 'hideBalance';
   static const savingsGoalCents = 'savingsGoalCents';
   static const lastSlipReadAt = 'lastSlipReadAt';
   static const disabledScanIds = 'disabledScanIds';
@@ -111,10 +103,8 @@ class SettingsRepository {
       setBool(SettingsKeys.onboardingSeen, v);
   Future<void> setAuthMode(String v) => set(SettingsKeys.authMode, v);
   Future<void> setThemeMode(String v) => set(SettingsKeys.themeMode, v);
-  Future<void> setAccentColor(String hex) => set(SettingsKeys.accentColor, hex);
   Future<void> setCurrency(String code) => set(SettingsKeys.currencyCode, code);
   Future<void> setLocale(String code) => set(SettingsKeys.locale, code);
-  Future<void> setHideBalance(bool v) => setBool(SettingsKeys.hideBalance, v);
   Future<void> setSavingsGoal(int cents) =>
       setInt(SettingsKeys.savingsGoalCents, cents);
   Future<void> setLastSlipReadAt(int ms) =>
