@@ -9,12 +9,76 @@ import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
-class HelpScreen extends StatelessWidget {
+/// A single FAQ entry: an icon plus a question/answer pair.
+class _Faq {
+  const _Faq(this.icon, this.question, this.answer);
+  final IconData icon;
+  final String question;
+  final String answer;
+
+  /// True when [query] (already lower-cased) appears in the question or answer.
+  bool matches(String query) =>
+      question.toLowerCase().contains(query) ||
+      answer.toLowerCase().contains(query);
+}
+
+class HelpScreen extends StatefulWidget {
   const HelpScreen({super.key});
 
+  @override
+  State<HelpScreen> createState() => _HelpScreenState();
+}
+
+class _HelpScreenState extends State<HelpScreen> {
   // Support contacts.
   static const _lineId = 'afnan9632';
   static const _email = 'afnanyapu09@gmail.com';
+
+  final _controller = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// The full FAQ list, in a logical order (getting started → entries →
+  /// organising → settings → privacy → troubleshooting). All copy is localised.
+  static List<_Faq> _faqs(AppLocalizations l10n) => [
+        _Faq(AppIcons.scanLine, l10n.settingsFaqScanQuestion,
+            l10n.settingsFaqScanAnswer),
+        _Faq(AppIcons.circleHelp, l10n.settingsFaqSlipFailedQuestion,
+            l10n.settingsFaqSlipFailedAnswer),
+        _Faq(AppIcons.plus, l10n.settingsFaqAddManualQuestion,
+            l10n.settingsFaqAddManualAnswer),
+        _Faq(AppIcons.arrowLeftRight, l10n.settingsFaqTransferQuestion,
+            l10n.settingsFaqTransferAnswer),
+        _Faq(AppIcons.pencil, l10n.settingsFaqEditDeleteQuestion,
+            l10n.settingsFaqEditDeleteAnswer),
+        _Faq(AppIcons.layoutGrid, l10n.settingsFaqCategoriesQuestion,
+            l10n.settingsFaqCategoriesAnswer),
+        _Faq(AppIcons.hash, l10n.settingsFaqTagsQuestion,
+            l10n.settingsFaqTagsAnswer),
+        _Faq(AppIcons.wallet, l10n.settingsFaqBudgetQuestion,
+            l10n.settingsFaqBudgetAnswer),
+        _Faq(AppIcons.target, l10n.settingsFaqSavingsQuestion,
+            l10n.settingsFaqSavingsAnswer),
+        _Faq(AppIcons.banknote, l10n.settingsFaqAccountsQuestion,
+            l10n.settingsFaqAccountsAnswer),
+        _Faq(AppIcons.banknote, l10n.settingsFaqCurrencyQuestion,
+            l10n.settingsFaqCurrencyAnswer),
+        _Faq(AppIcons.globe, l10n.settingsFaqLanguageQuestion,
+            l10n.settingsFaqLanguageAnswer),
+        _Faq(AppIcons.palette, l10n.settingsFaqThemeQuestion,
+            l10n.settingsFaqThemeAnswer),
+        _Faq(AppIcons.download, l10n.settingsFaqExportQuestion,
+            l10n.settingsFaqExportAnswer),
+        _Faq(AppIcons.shieldCheck, l10n.settingsFaqSecurityQuestion,
+            l10n.settingsFaqSecurityAnswer),
+        _Faq(AppIcons.refreshCw, l10n.settingsFaqSyncQuestion,
+            l10n.settingsFaqSyncAnswer),
+      ];
 
   /// Open [uri]; if no app can handle it, copy [copyText] to the clipboard so
   /// the user can still reach us.
@@ -37,43 +101,20 @@ class HelpScreen extends StatelessWidget {
     }
   }
 
-  static List<(IconData, String, String)> _faqs(AppLocalizations l10n) => [
-        (
-          AppIcons.scanLine,
-          l10n.settingsFaqScanQuestion,
-          l10n.settingsFaqScanAnswer,
-        ),
-        (
-          AppIcons.layoutGrid,
-          l10n.settingsFaqCategoriesQuestion,
-          l10n.settingsFaqCategoriesAnswer,
-        ),
-        (
-          AppIcons.wallet,
-          l10n.settingsFaqBudgetQuestion,
-          l10n.settingsFaqBudgetAnswer,
-        ),
-        (
-          AppIcons.shieldCheck,
-          l10n.settingsFaqSecurityQuestion,
-          l10n.settingsFaqSecurityAnswer,
-        ),
-        (
-          AppIcons.refreshCw,
-          l10n.settingsFaqSyncQuestion,
-          l10n.settingsFaqSyncAnswer,
-        ),
-      ];
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final query = _query.trim().toLowerCase();
+    final searching = query.isNotEmpty;
     final faqs = _faqs(l10n);
+    final results = searching ? faqs.where((f) => f.matches(query)).toList() : faqs;
+
     return SubScreenScaffold(
       title: l10n.settingsHelp,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
+          // Real, working FAQ search box.
           Container(
             height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -86,37 +127,71 @@ class HelpScreen extends StatelessWidget {
               children: [
                 Icon(AppIcons.search, size: 18, color: context.palette.ink3),
                 const SizedBox(width: 10),
-                Text(l10n.settingsSearchFaq,
-                    style: AppTypography.body(
-                        size: 14.5, color: context.palette.ink3)),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    onChanged: (v) => setState(() => _query = v),
+                    textInputAction: TextInputAction.search,
+                    style: AppTypography.body(size: 14.5),
+                    decoration: InputDecoration(
+                      isCollapsed: true,
+                      border: InputBorder.none,
+                      hintText: l10n.settingsSearchFaq,
+                      hintStyle: AppTypography.body(
+                          size: 14.5, color: context.palette.ink3),
+                    ),
+                  ),
+                ),
+                if (searching)
+                  GestureDetector(
+                    onTap: () {
+                      _controller.clear();
+                      setState(() => _query = '');
+                      FocusScope.of(context).unfocus();
+                    },
+                    child: Icon(AppIcons.x,
+                        size: 18, color: context.palette.ink3),
+                  ),
               ],
             ),
           ),
           const SizedBox(height: 18),
-          Text(l10n.settingsFaqTitle,
+          if (results.isEmpty)
+            _NoResults(query: _query.trim())
+          else ...[
+            Text(l10n.settingsFaqTitle,
+                style:
+                    AppTypography.heading(size: 14, weight: FontWeight.w500)),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(
+                color: context.palette.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: context.palette.line),
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < results.length; i++) ...[
+                    if (i > 0)
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                    _FaqTile(
+                      // Re-key on the search state so a match opens its answer
+                      // straight away while searching.
+                      key: ValueKey('${results[i].question}|$searching'),
+                      icon: results[i].icon,
+                      question: results[i].question,
+                      answer: results[i].answer,
+                      initiallyExpanded: searching,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 22),
+          Text(l10n.settingsHelpContactPrompt,
               style: AppTypography.heading(size: 14, weight: FontWeight.w500)),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: context.palette.surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: context.palette.line),
-            ),
-            child: Column(
-              children: [
-                for (var i = 0; i < faqs.length; i++) ...[
-                  if (i > 0)
-                    const Divider(height: 1, indent: 16, endIndent: 16),
-                  _FaqTile(
-                    icon: faqs[i].$1,
-                    question: faqs[i].$2,
-                    answer: faqs[i].$3,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
@@ -163,18 +238,56 @@ class HelpScreen extends StatelessWidget {
   }
 }
 
+/// Shown when a search matches no FAQ.
+class _NoResults extends StatelessWidget {
+  const _NoResults({required this.query});
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 18),
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.palette.line),
+      ),
+      child: Column(
+        children: [
+          Icon(AppIcons.search, size: 26, color: context.palette.ink3),
+          const SizedBox(height: 10),
+          Text(
+            l10n.settingsFaqNoResults(query),
+            textAlign: TextAlign.center,
+            style: AppTypography.body(size: 14, color: context.palette.ink2),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FaqTile extends StatelessWidget {
-  const _FaqTile(
-      {required this.icon, required this.question, required this.answer});
+  const _FaqTile({
+    super.key,
+    required this.icon,
+    required this.question,
+    required this.answer,
+    this.initiallyExpanded = false,
+  });
   final IconData icon;
   final String question;
   final String answer;
+  final bool initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
+        initiallyExpanded: initiallyExpanded,
         shape: const Border(),
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),

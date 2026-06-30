@@ -501,5 +501,36 @@
   "logoutBody": "Your data is saved. You can sign back in anytime.",
   "bunReadingSlips": "Bun is reading slips",
   "releaseToScan": "Release to let Bun read slips",
-  "pullToScan": "Pull down to refresh slips"
+  "pullToScan": "Pull down to refresh slips",
+  "settingsFaqAddManualQuestion": "How do I add income or expense manually?",
+  "settingsFaqAddManualAnswer": "Tap the + button in the middle of the bottom bar, pick the Expense, Income, or Transfer tab, enter the amount with the calculator keypad, choose a category, then tap Save. You can also add a note or tags.",
+  "settingsFaqEditDeleteQuestion": "How do I edit or delete a transaction?",
+  "settingsFaqEditDeleteAnswer": "Tap a transaction to open it, change any field and tap Save, or scroll to the bottom and tap Delete to remove it.",
+  "settingsFaqTransferQuestion": "How do I record a transfer between accounts?",
+  "settingsFaqTransferAnswer": "When adding a transaction, choose the ‘Transfer’ tab. It is recorded as a money move and is not counted as income or expense in your stats.",
+  "settingsFaqTagsQuestion": "What are tags for?",
+  "settingsFaqTagsAnswer": "Tags group transactions across categories, e.g. #ChiangMaiTrip. Pick tags when adding or editing a transaction, then view totals by tag on the Stats screen.",
+  "settingsFaqSavingsQuestion": "How do I set a savings goal?",
+  "settingsFaqSavingsAnswer": "Go to Settings → Savings Goal, set how much you want to save each month, and the app shows your progress toward that goal.",
+  "settingsFaqAccountsQuestion": "How do I manage accounts and which banks are scanned?",
+  "settingsFaqAccountsAnswer": "Open the Accounts/Wallets panel to turn the banks Bun reads slips for on or off. Turn off banks you don't use so their slip albums aren't scanned.",
+  "settingsFaqLanguageQuestion": "How do I switch between Thai and English?",
+  "settingsFaqLanguageAnswer": "Go to Settings → Language and tap to switch between ไทย and English. The whole app changes language right away.",
+  "settingsFaqThemeQuestion": "How do I change the light or dark theme?",
+  "settingsFaqThemeAnswer": "Go to Settings → Theme and choose Light, Dark, or System. System follows your device setting automatically.",
+  "settingsFaqCurrencyQuestion": "How do I change the currency?",
+  "settingsFaqCurrencyAnswer": "Go to Settings → Currency and pick one. This changes how amounts are displayed in the app.",
+  "settingsFaqExportQuestion": "How do I export my data as CSV?",
+  "settingsFaqExportAnswer": "Go to Settings → Export Data and tap Export as CSV. The file is copied to the clipboard and saved on your device, ready to open in Excel or Google Sheets.",
+  "settingsFaqSlipFailedQuestion": "What if a slip can't be read?",
+  "settingsFaqSlipFailedAnswer": "Make sure the slip image is clear and in your device gallery, then pull down on the home page to scan again. If it still fails, you can always add the entry manually with the + button.",
+  "settingsHelpContactPrompt": "Didn't find your answer? Get in touch.",
+  "settingsFaqNoResults": "No FAQs match “{query}”",
+  "@settingsFaqNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  }
 }
