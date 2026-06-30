@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/date_period.dart';
 import '../data/local/database.dart';
 import '../data/remote/auth_service.dart';
+import '../data/remote/sync_controller.dart';
 import '../data/remote/sync_engine.dart';
 import '../data/repositories/account_repository.dart';
 import '../data/repositories/category_repository.dart';
@@ -66,6 +67,23 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
       ref.watch(databaseProvider), FirebaseFirestore.instance, auth);
 });
 
+/// Owns automatic sync (on sign-in, app launch, resume, and after edits).
+/// Watch it once (in the app root) to keep it alive for the app's lifetime.
+final syncControllerProvider = Provider<SyncController?>((ref) {
+  final engine = ref.watch(syncEngineProvider);
+  final auth = ref.watch(authServiceProvider);
+  if (engine == null || auth == null) return null;
+  final controller = SyncController(engine, auth);
+  // Upload pending changes shortly after any local data change.
+  ref.listen(allTransactionsProvider, (_, __) => controller.nudgePush());
+  ref.listen(accountsProvider, (_, __) => controller.nudgePush());
+  ref.listen(categoriesProvider, (_, __) => controller.nudgePush());
+  ref.listen(tagsProvider, (_, __) => controller.nudgePush());
+  ref.listen(budgetsProvider, (_, __) => controller.nudgePush());
+  ref.onDispose(controller.dispose);
+  return controller;
+});
+
 final authStateProvider = StreamProvider<User?>((ref) {
   final auth = ref.watch(authServiceProvider);
   if (auth == null) return Stream<User?>.value(null);
@@ -90,6 +108,7 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     slips: ref.watch(slipRepositoryProvider),
     transactions: ref.watch(transactionRepositoryProvider),
     importedAssetIds: db.importedAssetIds,
+    importedSlipRefs: db.importedSlipRefs,
     // Banks turned off in the accounts sheet (their scan-catalog ids).
     disabledScanIds: () async =>
         (await ref.read(settingsRepositoryProvider).read()).disabledScanIds,

@@ -21,6 +21,10 @@ class MoneyBunApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeProvider);
     final settings = ref.watch(appSettingsProvider).value;
+    // Keep the automatic-sync controller alive for the app's lifetime (it
+    // syncs on sign-in, launch, resume, and after edits). Null until Firebase
+    // is configured + the user is signed in.
+    ref.watch(syncControllerProvider);
 
     final themeMode = switch (settings?.themeMode) {
       'light' => ThemeMode.light,

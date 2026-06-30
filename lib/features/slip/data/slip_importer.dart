@@ -49,17 +49,24 @@ class SlipImporter {
     required SlipRepository slips,
     required TransactionRepository transactions,
     required Future<Set<String>> Function() importedAssetIds,
+    required Future<Set<String>> Function() importedSlipRefs,
     required Future<Set<String>> Function() disabledScanIds,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
         _importedAssetIds = importedAssetIds,
+        _importedSlipRefs = importedSlipRefs,
         _disabledScanIds = disabledScanIds;
 
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
   final TransactionRepository _txns;
   final Future<Set<String>> Function() _importedAssetIds;
+
+  /// Bank transaction references already imported. A second dedup key (besides
+  /// the gallery asset id) so the same slip isn't re-imported after a cloud
+  /// restore, where the asset id may be missing.
+  final Future<Set<String>> Function() _importedSlipRefs;
 
   /// Scan-catalog ids the user turned off (their albums are skipped this scan).
   final Future<Set<String>> Function() _disabledScanIds;
@@ -185,6 +192,7 @@ class SlipImporter {
       );
       if (paths.isEmpty) return const ScanResult();
       final already = await _importedAssetIds();
+      final knownRefs = await _importedSlipRefs();
       // Only look at the past week; asset-id dedup (not a moving watermark)
       // skips photos already imported, so a just-saved slip is always found
       // once indexed, while re-scans stay cheap.
@@ -207,7 +215,7 @@ class SlipImporter {
         final assets = await album.getAssetListRange(start: 0, end: end);
         acc.albumCount += assets.length;
         final fresh = assets.where(inWindow).toList();
-        await _ingest(fresh, already, acc, requireSlipLook: false);
+        await _ingest(fresh, already, knownRefs, acc, requireSlipLook: false);
       }
 
       // 2) Fallback: recent photos of the whole gallery that look like slips
@@ -222,7 +230,7 @@ class SlipImporter {
       final recent = await all.getAssetListRange(start: 0, end: end);
       acc.albumCount += recent.length;
       final fresh = recent.where(inWindow).toList();
-      await _ingest(fresh, already, acc, requireSlipLook: true);
+      await _ingest(fresh, already, knownRefs, acc, requireSlipLook: true);
 
       return ScanResult(
         albumCount: acc.albumCount,
@@ -240,6 +248,7 @@ class SlipImporter {
   Future<void> _ingest(
     List<AssetEntity> assets,
     Set<String> already,
+    Set<String> knownRefs,
     _ScanAcc acc, {
     required bool requireSlipLook,
   }) async {
@@ -252,8 +261,17 @@ class SlipImporter {
         final parsed = (await _pipeline.process(file.path))
             .copyWith(imagePath: file.path, assetId: asset.id);
         if (requireSlipLook && !_looksLikeSlip(parsed)) continue;
+        // Skip if this exact slip (by bank transaction reference) was already
+        // imported — guards against a re-import when the asset id differs
+        // (e.g. after restoring data from the cloud).
+        final ref = parsed.transRef;
+        if (ref != null && ref.isNotEmpty && knownRefs.contains(ref)) {
+          already.add(asset.id);
+          continue;
+        }
         await _persist(parsed, asset.createDateTime);
         already.add(asset.id); // avoid a 2nd import via the fallback pass
+        if (ref != null && ref.isNotEmpty) knownRefs.add(ref);
         acc.imported++;
       } catch (_) {
         // One unreadable photo shouldn't abort the whole scan.

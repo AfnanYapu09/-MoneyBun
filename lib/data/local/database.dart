@@ -179,6 +179,11 @@ class AppDatabase extends _$AppDatabase {
     return (select(categories)..where((c) => c.deleted.equals(false))).get();
   }
 
+  /// Unfiltered single-row fetch (includes soft-deleted rows) — used by sync's
+  /// last-write-wins check so a local delete isn't resurrected by a pull.
+  Future<CategoryRow?> getCategory(String id) =>
+      (select(categories)..where((c) => c.id.equals(id))).getSingleOrNull();
+
   Future<void> upsertCategory(CategoriesCompanion row) =>
       into(categories).insertOnConflictUpdate(row);
 
@@ -285,6 +290,21 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((r) => r.read(slips.assetId)).whereType<String>().toSet();
   }
 
+  /// Stable bank transaction references already imported. Used as a second
+  /// dedup key so the same slip is not re-imported after a cloud restore (where
+  /// the gallery asset id may be missing or differ).
+  Future<Set<String>> importedSlipRefs() async {
+    final query = selectOnly(slips)
+      ..addColumns([slips.transRef])
+      ..where(slips.transRef.isNotNull() & slips.deleted.equals(false));
+    final rows = await query.get();
+    return rows
+        .map((r) => r.read(slips.transRef))
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .toSet();
+  }
+
   // ---- Budgets -----------------------------------------------------------
 
   Stream<List<BudgetRow>> watchBudgets() {
@@ -339,6 +359,28 @@ class AppDatabase extends _$AppDatabase {
       (update(slips)..where((s) => s.id.equals(id)))
           .write(const SlipsCompanion(syncStatus: Value(SyncStatus.synced)));
 
+  Future<List<BudgetRow>> pendingBudgets() => (select(budgets)
+        ..where((b) => b.syncStatus.isNotValue(SyncStatus.synced.index)))
+      .get();
+
+  Future<BudgetRow?> getBudget(String id) =>
+      (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
+
+  Future<void> markBudgetSynced(String id) =>
+      (update(budgets)..where((b) => b.id.equals(id)))
+          .write(const BudgetsCompanion(syncStatus: Value(SyncStatus.synced)));
+
+  Future<List<TagRow>> pendingTags() => (select(tags)
+        ..where((t) => t.syncStatus.isNotValue(SyncStatus.synced.index)))
+      .get();
+
+  Future<TagRow?> getTag(String id) =>
+      (select(tags)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<void> markTagSynced(String id) =>
+      (update(tags)..where((t) => t.id.equals(id)))
+          .write(const TagsCompanion(syncStatus: Value(SyncStatus.synced)));
+
   // ---- Tags (local-only) -------------------------------------------------
 
   Stream<List<TagRow>> watchTags() => (select(tags)
@@ -353,8 +395,17 @@ class AppDatabase extends _$AppDatabase {
       into(tags).insertOnConflictUpdate(row);
 
   Future<void> deleteTagCascade(String id) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
     await (delete(transactionTags)..where((l) => l.tagId.equals(id))).go();
-    await (delete(tags)..where((t) => t.id.equals(id))).go();
+    // Soft-delete (not hard) so the deletion syncs as a tombstone and the tag
+    // isn't resurrected by the next pull from the cloud.
+    await (update(tags)..where((t) => t.id.equals(id))).write(
+      TagsCompanion(
+        deleted: const Value(true),
+        syncStatus: const Value(SyncStatus.pendingDelete),
+        updatedAt: Value(now),
+      ),
+    );
   }
 
   // ---- Transaction ↔ Tag links (local-only) ------------------------------

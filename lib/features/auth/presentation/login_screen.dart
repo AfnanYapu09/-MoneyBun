@@ -141,7 +141,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await action();
       await ref.read(settingsRepositoryProvider).setAuthMode('signedIn');
-      await ref.read(syncEngineProvider)?.sync();
+      // Enter the app immediately; SyncController kicks off the first sync in
+      // the background on the auth-state change, so login no longer blocks on a
+      // full push+pull.
       if (mounted) context.go('/home');
     } catch (e) {
       _snack(AppLocalizations.of(context).authLoginFailed);
