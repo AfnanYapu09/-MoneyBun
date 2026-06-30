@@ -291,6 +291,9 @@
     }
   },
   "homeScanFailed": "Scan failed, please try again",
+  "homeScanNoNew": "No new slips found",
+  "homeScanNoAlbum": "No bank slip album found — Bun only reads photos saved by your banking apps",
+  "homeScanLimited": "Only selected photos are shared. Allow access to all photos so Bun can find your bank slip album.",
   "homePhotoPermissionTitle": "Photo access permission",
   "homePhotoPermissionBody": "MoneyBun needs access to your photos to read slips from the gallery.\n\nIf you previously tapped \"Don't allow\", open Settings → Permissions → Photos and videos → Allow",
   "homeOpenSettings": "Open settings",

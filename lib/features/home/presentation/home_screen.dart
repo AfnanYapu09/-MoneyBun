@@ -201,8 +201,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           next.error == null &&
           next.result != null) {
         final r = next.result!;
+        // Always give feedback when a scan finishes — a silent "nothing
+        // happened" looks like a bug. Distinguish "no bank album on this
+        // device" from "album(s) found but no new slips".
         if (r.imported > 0) {
           _snack(l10n.homeScanImported(r.imported));
+        } else if (next.limited) {
+          // Only selected photos shared (Android 14 partial grant) — the bank
+          // album is likely hidden, so explain how to widen access.
+          _snack(l10n.homeScanLimited);
+        } else if (r.matchedAlbums == 0) {
+          _snack(l10n.homeScanNoAlbum);
+        } else {
+          _snack(l10n.homeScanNoNew);
         }
       } else if (next.error != null && prev?.error != next.error) {
         _snack(l10n.homeScanFailed);
