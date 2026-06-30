@@ -8,6 +8,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/utils/calculator.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_toggle.dart';
@@ -77,6 +78,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -129,7 +131,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                           Text(l10n.category,
                               style: AppTypography.body(
                                   size: 12.5, color: context.palette.ink3)),
-                          Text(cat?.name ?? l10n.selectCategory,
+                          Text(cat?.displayName(locale) ?? l10n.selectCategory,
                               style: AppTypography.heading(
                                   size: 15, weight: FontWeight.w500)),
                         ],

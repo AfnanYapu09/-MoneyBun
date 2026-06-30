@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/bank_codes.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/typography.dart';
+import '../../../../core/utils/account_l10n.dart';
 import '../../../../core/widgets/app_icons.dart';
 import '../../../../core/widgets/icon_chip.dart';
 import '../../../../core/widgets/slip_image.dart';
@@ -27,11 +28,13 @@ Widget accountFlowFor({
   required TxnType type,
   required Map<String, AccountRow> accounts,
   required AppLocalizations l10n,
+  required String locale,
   String? accountId,
   String? toAccountId,
   SlipRow? slip,
 }) {
-  final account = accountId == null ? null : accounts[accountId]?.name;
+  final account =
+      accountId == null ? null : accounts[accountId]?.displayName(locale);
 
   final fromBank = BankCodes.byCode(slip?.senderBank)?.nameTh;
   final toBank = BankCodes.byCode(slip?.receiverBank)?.nameTh;
@@ -56,7 +59,9 @@ Widget accountFlowFor({
         fromLabel: l10n.txnFlowPaidFrom,
         fromName: account ?? l10n.txnFlowAccount,
         toLabel: l10n.txnFlowTo,
-        toName: (toAccountId == null ? null : accounts[toAccountId]?.name) ??
+        toName: (toAccountId == null
+                ? null
+                : accounts[toAccountId]?.displayName(locale)) ??
             l10n.txnFlowAccount,
       );
     case TxnType.income:
