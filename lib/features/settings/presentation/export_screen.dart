@@ -128,8 +128,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(savedPath == null
-              ? 'คัดลอกข้อมูล CSV ไปยังคลิปบอร์ดแล้ว'
-              : 'คัดลอกไปคลิปบอร์ดแล้ว · บันทึกไฟล์ที่ $savedPath'),
+              ? 'คัดลอกข้อมูล CSV แล้ว — วางในแอป Sheets / อีเมลได้เลย'
+              : 'คัดลอกข้อมูล CSV ไปยังคลิปบอร์ดแล้ว — '
+                  'วางในแอป Sheets / อีเมลได้เลย'),
           duration: const Duration(seconds: 4),
         ),
       );

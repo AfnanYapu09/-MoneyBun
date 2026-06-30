@@ -13,6 +13,10 @@ class AuthField extends StatefulWidget {
     required this.controller,
     this.obscure = false,
     this.keyboardType,
+    this.textInputAction,
+    this.onSubmitted,
+    this.focusNode,
+    this.autofillHints,
   });
 
   final IconData icon;
@@ -20,6 +24,10 @@ class AuthField extends StatefulWidget {
   final TextEditingController controller;
   final bool obscure;
   final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final FocusNode? focusNode;
+  final Iterable<String>? autofillHints;
 
   @override
   State<AuthField> createState() => _AuthFieldState();
@@ -45,8 +53,14 @@ class _AuthFieldState extends State<AuthField> {
           Expanded(
             child: TextField(
               controller: widget.controller,
+              focusNode: widget.focusNode,
               obscureText: _hidden,
               keyboardType: widget.keyboardType,
+              textInputAction: widget.textInputAction,
+              onSubmitted: widget.onSubmitted,
+              autocorrect: false,
+              enableSuggestions: !widget.obscure,
+              autofillHints: widget.autofillHints,
               style: AppTypography.body(size: 15),
               decoration: InputDecoration(
                 isCollapsed: true,

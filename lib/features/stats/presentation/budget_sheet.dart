@@ -10,7 +10,6 @@ import '../../../core/utils/app_date.dart';
 import '../../../core/utils/calculator.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/app_toggle.dart';
 import '../../../core/widgets/calculator_keypad.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/pixel_icon.dart';
@@ -37,7 +36,6 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   String? _categoryId;
   final _amount = TextEditingController();
   BudgetPeriod _period = BudgetPeriod.monthly;
-  bool _alert80 = true;
   String _calcHistory = '';
 
   @override
@@ -233,31 +231,6 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                 Segment(value: BudgetPeriod.monthly, label: 'รายเดือน'),
                 Segment(value: BudgetPeriod.yearly, label: 'รายปี'),
               ],
-            ),
-            const SizedBox(height: 14),
-            // Alert-at-80% toggle.
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-              decoration: BoxDecoration(
-                color: context.palette.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: context.palette.line),
-              ),
-              child: Row(
-                children: [
-                  Icon(AppIcons.bellRing,
-                      size: 19, color: context.palette.terraFg),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text('เตือนเมื่อใช้ถึง 80%',
-                        style: AppTypography.body(size: 14.5)),
-                  ),
-                  AppToggle(
-                    value: _alert80,
-                    onChanged: (v) => setState(() => _alert80 = v),
-                  ),
-                ],
-              ),
             ),
             if (widget.budget != null) ...[
               const SizedBox(height: 18),

@@ -393,7 +393,7 @@ class _PeriodRow extends StatelessWidget {
                       size: 12.5, color: context.palette.greenFg)),
               Text('−${Money.compact(agg.expense)}',
                   style: AppTypography.heading(
-                      size: 12.5, color: context.palette.ink2)),
+                      size: 12.5, color: AppColors.terra)),
             ],
           ),
           const SizedBox(width: 16),
