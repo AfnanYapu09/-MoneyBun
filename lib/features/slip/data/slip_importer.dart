@@ -38,11 +38,11 @@ class ScanResult {
 /// slip into an entry — fully automatic, no album picking.
 ///
 /// Thai banking apps save slips into their own gallery album (K PLUS, Krungthai
-/// NEXT, TrueMoney, …), so a scan: (1) imports **every** image in albums whose
-/// name matches a known bank/e-wallet, and (2) also checks the most recent
-/// [_scanCap] photos of the whole gallery, importing those that look like slips
-/// (QR or an amount) — to catch slips saved as screenshots/downloads. Dedups by
-/// gallery asset id. Android-only.
+/// NEXT, TrueMoney, …), so a scan imports **every** image in albums whose name
+/// matches a known bank/e-wallet. Photos outside a bank album (screenshots /
+/// downloads) are intentionally NOT read — for privacy and accuracy, only the
+/// bank albums are scanned. Dedups by gallery asset id (and slip transRef).
+/// Android-only.
 class SlipImporter {
   SlipImporter({
     required SlipPipeline pipeline,
@@ -76,9 +76,6 @@ class SlipImporter {
 
   /// Scan-catalog ids the user turned off (their albums are skipped this scan).
   final Future<Set<String>> Function() _disabledScanIds;
-
-  /// Cap on how many recent "all photos" the fallback pass inspects.
-  static const _scanCap = 150;
 
   /// Cap on images read per bank album (protects a long slip history).
   static const _albumCap = 300;
@@ -187,8 +184,10 @@ class SlipImporter {
   /// after a previous denial (where the prompt no longer re-appears).
   Future<void> openSettings() => PhotoManager.openSetting();
 
-  /// Scan bank albums + recent photos for slips. Dedups by gallery asset id, so
-  /// an already-imported photo is never imported twice. Returns a [ScanResult].
+  /// Scan recognised bank/e-wallet albums for slips. Dedups by gallery asset id
+  /// (and the slip's transRef), so an already-imported photo is never imported
+  /// twice. Photos outside a bank album (screenshots / downloads) are NOT read.
+  /// Returns a [ScanResult].
   Future<ScanResult> scanNew() async {
     final scanStart = DateTime.now();
     try {
@@ -216,8 +215,9 @@ class SlipImporter {
 
       final acc = _ScanAcc();
 
-      // 1) Bank/e-wallet albums: import slips from the window (they are all
-      //    slips). Already-imported ones are skipped cheaply via [already].
+      // Import slips from recognised bank/e-wallet albums (every image in such
+      // an album is a slip). Already-imported ones are skipped via [already]
+      // and the transRef dedup inside _ingest.
       for (final album in paths) {
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
         final scanId = albumScanId(album.name);
@@ -228,22 +228,8 @@ class SlipImporter {
         final assets = await album.getAssetListRange(start: 0, end: end);
         acc.albumCount += assets.length;
         final fresh = assets.where(inWindow).toList();
-        await _ingest(fresh, already, knownRefs, acc, requireSlipLook: false);
+        await _ingest(fresh, already, knownRefs, acc);
       }
-
-      // 2) Fallback: recent photos of the whole gallery that look like slips
-      //    (screenshots / downloaded slips not in a bank album). Only those
-      //    created within the window are inspected.
-      final all = paths.firstWhere(
-        (p) => p.isAll,
-        orElse: () => paths.first,
-      );
-      final total = await all.assetCountAsync;
-      final end = total < _scanCap ? total : _scanCap;
-      final recent = await all.getAssetListRange(start: 0, end: end);
-      acc.albumCount += recent.length;
-      final fresh = recent.where(inWindow).toList();
-      await _ingest(fresh, already, knownRefs, acc, requireSlipLook: true);
 
       return ScanResult(
         albumCount: acc.albumCount,
@@ -262,9 +248,8 @@ class SlipImporter {
     List<AssetEntity> assets,
     Set<String> already,
     Set<String> knownRefs,
-    _ScanAcc acc, {
-    required bool requireSlipLook,
-  }) async {
+    _ScanAcc acc,
+  ) async {
     for (final asset in assets) {
       if (already.contains(asset.id)) continue;
       try {
@@ -273,7 +258,6 @@ class SlipImporter {
         acc.inspected++;
         final parsed = (await _pipeline.process(file.path))
             .copyWith(imagePath: file.path, assetId: asset.id);
-        if (requireSlipLook && !_looksLikeSlip(parsed)) continue;
         // Skip if this exact slip (by bank transaction reference) was already
         // imported — guards against a re-import when the asset id differs
         // (e.g. after restoring data from the cloud).
@@ -283,7 +267,8 @@ class SlipImporter {
           continue;
         }
         await _persist(parsed, asset.createDateTime);
-        already.add(asset.id); // avoid a 2nd import via the fallback pass
+        // Avoid a 2nd import if the photo also appears in another matched album.
+        already.add(asset.id);
         if (ref != null && ref.isNotEmpty) knownRefs.add(ref);
         acc.imported++;
       } catch (_) {
@@ -292,12 +277,6 @@ class SlipImporter {
       }
     }
   }
-
-  /// A photo is treated as a slip if it carries a Thai slip-verify QR, or OCR
-  /// found a money amount (`\d+.\d{2}`). Used for the recent-photos fallback —
-  /// bank-album images are imported unconditionally.
-  bool _looksLikeSlip(ParsedSlip p) =>
-      p.qrPayload != null || p.amountCents != null;
 
   /// occurredAt comes from the slip itself (OCR); if unreadable, fall back to
   /// when the photo was saved — never the scan time — so entries land on the
