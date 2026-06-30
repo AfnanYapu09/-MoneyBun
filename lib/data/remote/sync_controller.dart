@@ -28,6 +28,15 @@ class SyncController with WidgetsBindingObserver {
 
   StreamSubscription<void>? _authSub;
   Timer? _debounce;
+  final Completer<void> _initialSync = Completer<void>();
+
+  /// Resolves once the first cloud sync has finished (success or failure), or
+  /// immediately when the user isn't signed in. The slip scanner awaits this so
+  /// it never reads slips that are about to be pulled from the cloud.
+  Future<void> awaitInitialSync() {
+    if (!_auth.isSignedIn) return Future<void>.value();
+    return _initialSync.future;
+  }
 
   /// Push pending local changes after a (debounced) delay. Push-only does no
   /// reads, and markSynced leaves nothing pending, so repeated triggers
@@ -42,6 +51,9 @@ class SyncController with WidgetsBindingObserver {
       await _engine.sync();
     } catch (_) {
       // Best-effort; a failed sync is retried on the next trigger.
+    } finally {
+      // Unblock the slip scanner after the first sync, even if it failed.
+      if (!_initialSync.isCompleted) _initialSync.complete();
     }
   }
 

@@ -145,6 +145,16 @@ class ScanController extends Notifier<ScanState> {
   Future<void> autoScanOnce() async {
     if (_autoScanned) return;
     _autoScanned = true;
+    // When signed in, wait for the first cloud sync to finish so the restored
+    // slips + watermark exist before scanning — otherwise the scan would
+    // re-read slips that are about to arrive from the cloud (creating dupes).
+    // Bounded so an offline/slow sync can't block the scan indefinitely.
+    final sync = ref.read(syncControllerProvider);
+    if (sync != null) {
+      await sync
+          .awaitInitialSync()
+          .timeout(const Duration(seconds: 25), onTimeout: () {});
+    }
     await scan();
   }
 
