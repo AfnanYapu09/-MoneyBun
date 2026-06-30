@@ -30,27 +30,13 @@ class StatsScreen extends ConsumerStatefulWidget {
 }
 
 class _StatsScreenState extends ConsumerState<StatsScreen> {
-  /// Donut / category-bar colours. The light set is the terracotta gradient
-  /// tuned for the cream surface; on the dark surface those muddy together, so
-  /// return a brightened set in dark mode.
-  List<Color> _paletteFor(BuildContext context) {
-    if (Theme.of(context).brightness == Brightness.dark) {
-      return [
-        const Color(0xFFE0A488),
-        const Color(0xFFCB8467),
-        const Color(0xFFD9A884),
+  List<Color> _paletteFor(BuildContext context) => [
+        AppColors.terra,
+        AppColors.terraDeep,
+        const Color(0xFFD98C6F),
         context.palette.greenFg,
-        const Color(0xFFB9AE9E),
+        const Color(0xFFCDBFB0),
       ];
-    }
-    return [
-      AppColors.terra,
-      AppColors.terraDeep,
-      const Color(0xFFD98C6F),
-      context.palette.greenFg,
-      const Color(0xFFCDBFB0),
-    ];
-  }
 
   /// Which transaction type the screen breaks down (รายจ่าย / รายรับ / ย้ายเงิน).
   TxnType _type = TxnType.expense;
@@ -269,12 +255,17 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           for (var i = 0; i < ranked.length; i++)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 16),
-                              child: _CategoryBar(
-                                category: categories[ranked[i].key],
-                                cents: ranked[i].value,
-                                fraction:
-                                    total == 0 ? 0 : ranked[i].value / total,
-                                color: chartColors[i % chartColors.length],
+                              child: InkWell(
+                                onTap: () => context.push(
+                                    '/transactions?categoryId=${Uri.encodeComponent(ranked[i].key)}'),
+                                borderRadius: BorderRadius.circular(12),
+                                child: _CategoryBar(
+                                  category: categories[ranked[i].key],
+                                  cents: ranked[i].value,
+                                  fraction:
+                                      total == 0 ? 0 : ranked[i].value / total,
+                                  color: chartColors[i % chartColors.length],
+                                ),
                               ),
                             ),
                         ],
@@ -287,13 +278,18 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                         for (var i = 0; i < rankedTags.length; i++)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: _TagBar(
-                              tag: tags[rankedTags[i].key],
-                              cents: rankedTags[i].value,
-                              fraction: tagTotal == 0
-                                  ? 0
-                                  : rankedTags[i].value / tagTotal,
-                              color: chartColors[i % chartColors.length],
+                            child: InkWell(
+                              onTap: () => context.push(
+                                  '/transactions?tagId=${Uri.encodeComponent(rankedTags[i].key)}'),
+                              borderRadius: BorderRadius.circular(12),
+                              child: _TagBar(
+                                tag: tags[rankedTags[i].key],
+                                cents: rankedTags[i].value,
+                                fraction: tagTotal == 0
+                                    ? 0
+                                    : rankedTags[i].value / tagTotal,
+                                color: chartColors[i % chartColors.length],
+                              ),
                             ),
                           ),
                       ],

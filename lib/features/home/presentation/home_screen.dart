@@ -236,7 +236,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onTransfer: () =>
           ref.read(transactionRepositoryProvider).reclassifyAsTransfer(txn.id),
     );
-    if (pick != null && mounted) {
+    if (pick != null) {
       await ref
           .read(transactionRepositoryProvider)
           .setCategory(txn.id, pick.categoryId);

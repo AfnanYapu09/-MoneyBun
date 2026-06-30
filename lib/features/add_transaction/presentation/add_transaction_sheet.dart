@@ -39,7 +39,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   DateTime _occurredAt = DateTime.now();
   SlipRow? _slip;
   bool _loaded = false;
-  bool _saving = false;
   String _calcHistory = '';
 
   @override
@@ -357,32 +356,27 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
   Future<void> _editNote() async {
     final controller = TextEditingController(text: _note);
-    try {
-      final note = await showDialog<String>(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: const Text('โน้ต'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration:
-                const InputDecoration(hintText: 'รายละเอียด (ไม่บังคับ)'),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(c), child: const Text('ยกเลิก')),
-            TextButton(
-                onPressed: () => Navigator.pop(c, controller.text.trim()),
-                child: const Text('บันทึก')),
-          ],
+    final note = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('โน้ต'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'รายละเอียด (ไม่บังคับ)'),
         ),
-      );
-      if (note != null) {
-        setState(() => _note = note.isEmpty ? null : note);
-        _persistLive();
-      }
-    } finally {
-      controller.dispose();
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c), child: const Text('ยกเลิก')),
+          TextButton(
+              onPressed: () => Navigator.pop(c, controller.text.trim()),
+              child: const Text('บันทึก')),
+        ],
+      ),
+    );
+    if (note != null) {
+      setState(() => _note = note.isEmpty ? null : note);
+      _persistLive();
     }
   }
 
@@ -398,8 +392,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_occurredAt),
     );
-    // The time picker is a second async gap — bail if the sheet was dismissed.
-    if (!mounted) return;
     setState(() => _occurredAt = DateTime(date.year, date.month, date.day,
         time?.hour ?? _occurredAt.hour, time?.minute ?? _occurredAt.minute));
     _persistLive();
@@ -411,8 +403,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     return PrimaryButton(
       label: 'บันทึก',
       color: _fillAccentOf(),
-      onPressed: (_loaded && !_saving) ? _save : null,
-      loading: !_loaded || _saving,
+      onPressed: _loaded ? _save : null,
+      loading: !_loaded,
     );
   }
 
@@ -438,36 +430,26 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _save() async {
-    if (_saving) return; // guard against a fast double-tap inserting twice
     final cents = Money.parseToCents(_amount.text) ?? 0;
     if (cents <= 0) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
       return;
     }
-    setState(() => _saving = true);
-    try {
-      final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
-      final defaultAccount = accounts.isEmpty ? null : accounts.first.id;
-      await ref.read(transactionRepositoryProvider).save(
-            id: widget.editId,
-            type: _type,
-            amountCents: cents,
-            accountId: _fromAccountId ?? defaultAccount ?? '',
-            toAccountId: _type == TxnType.transfer ? _toAccountId : null,
-            categoryId: _type == TxnType.transfer ? null : _categoryId,
-            note: _note,
-            occurredAt: _occurredAt,
-            tagIds: _type == TxnType.transfer ? const [] : _tagIds,
-          );
-      if (mounted) Navigator.of(context).pop(true);
-    } catch (_) {
-      if (mounted) {
-        setState(() => _saving = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('บันทึกไม่สำเร็จ')));
-      }
-    }
+    final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
+    final defaultAccount = accounts.isEmpty ? null : accounts.first.id;
+    await ref.read(transactionRepositoryProvider).save(
+          id: widget.editId,
+          type: _type,
+          amountCents: cents,
+          accountId: _fromAccountId ?? defaultAccount ?? '',
+          toAccountId: _type == TxnType.transfer ? _toAccountId : null,
+          categoryId: _type == TxnType.transfer ? null : _categoryId,
+          note: _note,
+          occurredAt: _occurredAt,
+          tagIds: _type == TxnType.transfer ? const [] : _tagIds,
+        );
+    if (mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _confirmDelete() async {

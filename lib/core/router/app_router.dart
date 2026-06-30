@@ -66,7 +66,10 @@ GoRouter buildRouter(Ref ref) {
       // Transactions
       GoRoute(
         path: '/transactions',
-        pageBuilder: (c, s) => slidePage(const AllTransactionsScreen()),
+        pageBuilder: (c, s) => slidePage(AllTransactionsScreen(
+          categoryId: s.uri.queryParameters['categoryId'],
+          tagId: s.uri.queryParameters['tagId'],
+        )),
       ),
       GoRoute(
         path: '/search',

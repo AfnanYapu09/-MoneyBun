@@ -248,24 +248,8 @@ void showSlipViewer(BuildContext context, SlipRow slip,
               child: Center(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(99),
-                  onTap: () async {
-                    // Deleting is irreversible — confirm before removing.
-                    final ok = await showDialog<bool>(
-                      context: c,
-                      builder: (d) => AlertDialog(
-                        content: const Text('ต้องการลบรายการนี้ใช่ไหม?'),
-                        actions: [
-                          TextButton(
-                              onPressed: () => Navigator.pop(d, false),
-                              child: const Text('ยกเลิก')),
-                          TextButton(
-                              onPressed: () => Navigator.pop(d, true),
-                              child: const Text('ลบ')),
-                        ],
-                      ),
-                    );
-                    if (ok != true) return;
-                    if (c.mounted) Navigator.pop(c);
+                  onTap: () {
+                    Navigator.pop(c);
                     onDelete();
                   },
                   child: Container(
