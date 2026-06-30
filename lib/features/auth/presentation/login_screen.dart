@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../data/remote/auth_service.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -22,20 +21,17 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _passwordFocus = FocusNode();
   bool _busy = false;
 
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
-    _passwordFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authServiceProvider);
     return Scaffold(
       backgroundColor: context.palette.bg,
       body: SafeArea(
@@ -54,25 +50,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 30),
             AuthField(
-              icon: AppIcons.mail,
-              hint: 'อีเมล',
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.email],
-              onSubmitted: (_) => _passwordFocus.requestFocus(),
-            ),
+                icon: AppIcons.mail,
+                hint: 'อีเมล',
+                controller: _email,
+                keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 12),
             AuthField(
-              icon: AppIcons.lock,
-              hint: 'รหัสผ่าน',
-              controller: _password,
-              obscure: true,
-              focusNode: _passwordFocus,
-              textInputAction: TextInputAction.done,
-              autofillHints: const [AutofillHints.password],
-              onSubmitted: (_) => _login(),
-            ),
+                icon: AppIcons.lock,
+                hint: 'รหัสผ่าน',
+                controller: _password,
+                obscure: true),
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
@@ -102,18 +89,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 22),
             Row(children: [
               SocialButton(
-                  icon: AppIcons.google,
-                  label: 'Google',
-                  onPressed: _busy ? null : _google),
-              // Apple Sign-In only works on iOS/macOS — hide it elsewhere so it
-              // isn't a guaranteed-to-fail button.
-              if (auth?.supportsApple ?? false) ...[
-                const SizedBox(width: 12),
-                SocialButton(
-                    icon: AppIcons.apple,
-                    label: 'Apple',
-                    onPressed: _busy ? null : _apple),
-              ],
+                  icon: AppIcons.google, label: 'Google', onPressed: _google),
+              const SizedBox(width: 12),
+              SocialButton(
+                  icon: AppIcons.apple, label: 'Apple', onPressed: _apple),
             ]),
             const SizedBox(height: 24),
             Center(
@@ -138,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 8),
             Center(
               child: TextButton(
-                onPressed: _continueAsGuest,
+                onPressed: () => context.go('/home'),
                 child: Text('ใช้งานต่อแบบไม่ล็อกอิน',
                     style: AppTypography.body(
                         size: 13, color: context.palette.ink3)),
@@ -151,7 +130,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _run(Future<void> Function() action) async {
-    if (_busy) return; // ignore re-entry from a fast keyboard/button double-tap
     final auth = ref.read(authServiceProvider);
     if (auth == null) {
       _snack('ยังไม่ได้ตั้งค่า Firebase — ใช้งานแบบไม่ล็อกอินได้เลย');
@@ -164,33 +142,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(syncEngineProvider)?.sync();
       if (mounted) context.go('/home');
     } catch (e) {
-      _snack(authErrorMessage(e));
+      _snack('เข้าสู่ระบบไม่สำเร็จ');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _continueAsGuest() async {
-    await ref.read(settingsRepositoryProvider).setAuthMode('guest');
-    if (mounted) context.go('/home');
-  }
-
-  Future<void> _login() async {
-    final email = _email.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      _snack('กรอกอีเมลให้ถูกต้อง');
-      return;
-    }
-    if (_password.text.isEmpty) {
-      _snack('กรอกรหัสผ่าน');
-      return;
-    }
-    await _run(() async {
-      await ref
-          .read(authServiceProvider)!
-          .signInWithEmail(email, _password.text);
-    });
-  }
+  Future<void> _login() => _run(() async {
+        final auth = ref.read(authServiceProvider)!;
+        await auth.signInWithEmail(_email.text, _password.text);
+      });
 
   Future<void> _google() => _run(() async {
         await ref.read(authServiceProvider)!.signInWithGoogle();

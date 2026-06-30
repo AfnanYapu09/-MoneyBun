@@ -108,15 +108,11 @@ class AppPalette extends ThemeExtension<AppPalette> {
     ink: Color(0xFFEDE6DA),
     ink2: Color(0xFFB3A99A),
     ink3: Color(0xFF8A8174),
-    // Hairlines need to read against bg/surface — a near-surface line is
-    // invisible and the flat-card look collapses, so keep it a step lighter.
-    line: Color(0xFF4D4338),
+    line: Color(0xFF3A322A),
     toggleOff: Color(0xFF4A4136),
-    // The category pixel-art glyphs carry their own dark outlines (authored for
-    // a light disc), so the tile must stay light enough for those outlines to
-    // read — a fully dark disc makes the icons lose their silhouette. This is a
-    // muted warm off-white: dimmer than the light-mode cream, still legible.
-    pixelTile: Color(0xFFCDC2B0),
+    // A warm dark disc behind category pixel-art so the tiles sit in the dark
+    // theme instead of glowing as bright cream dots.
+    pixelTile: Color(0xFF37302A),
     terraWash: Color(0xFF3B2A22),
     terraFg: Color(0xFFE0A488),
     greenTint: Color(0xFF21302A),

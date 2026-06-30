@@ -70,6 +70,25 @@ class HelpScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
+          Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: context.palette.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: context.palette.line),
+            ),
+            child: Row(
+              children: [
+                Icon(AppIcons.search, size: 18, color: context.palette.ink3),
+                const SizedBox(width: 10),
+                Text('ค้นหาคำถามที่พบบ่อย',
+                    style: AppTypography.body(
+                        size: 14.5, color: context.palette.ink3)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
           Text('คำถามที่พบบ่อย',
               style: AppTypography.heading(size: 14, weight: FontWeight.w500)),
           const SizedBox(height: 10),

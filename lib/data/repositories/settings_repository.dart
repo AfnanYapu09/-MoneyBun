@@ -17,8 +17,6 @@ class AppSettings {
     this.pinEnabled = false,
     this.pinHash,
     this.biometricEnabled = false,
-    this.notifyLogReminder = true,
-    this.notifyWeeklySummary = false,
     this.savingsGoalCents = 0,
     this.lastSlipReadAt,
     this.disabledScanIds = const {},
@@ -38,8 +36,6 @@ class AppSettings {
   final bool pinEnabled;
   final String? pinHash;
   final bool biometricEnabled;
-  final bool notifyLogReminder;
-  final bool notifyWeeklySummary;
   final int savingsGoalCents;
   final int? lastSlipReadAt;
 
@@ -66,8 +62,6 @@ class AppSettings {
       pinEnabled: b(SettingsKeys.pinEnabled),
       pinHash: m[SettingsKeys.pinHash],
       biometricEnabled: b(SettingsKeys.biometricEnabled),
-      notifyLogReminder: b(SettingsKeys.notifyLogReminder, true),
-      notifyWeeklySummary: b(SettingsKeys.notifyWeeklySummary),
       savingsGoalCents: i(SettingsKeys.savingsGoalCents),
       lastSlipReadAt: m[SettingsKeys.lastSlipReadAt] == null
           ? null
@@ -96,8 +90,6 @@ class SettingsKeys {
   static const pinEnabled = 'pinEnabled';
   static const pinHash = 'pinHash';
   static const biometricEnabled = 'biometricEnabled';
-  static const notifyLogReminder = 'notifyLogReminder';
-  static const notifyWeeklySummary = 'notifyWeeklySummary';
   static const savingsGoalCents = 'savingsGoalCents';
   static const lastSlipReadAt = 'lastSlipReadAt';
   static const disabledScanIds = 'disabledScanIds';
@@ -145,10 +137,6 @@ class SettingsRepository {
   Future<void> setHideBalance(bool v) => setBool(SettingsKeys.hideBalance, v);
   Future<void> setBiometricEnabled(bool v) =>
       setBool(SettingsKeys.biometricEnabled, v);
-  Future<void> setNotifyLogReminder(bool v) =>
-      setBool(SettingsKeys.notifyLogReminder, v);
-  Future<void> setNotifyWeeklySummary(bool v) =>
-      setBool(SettingsKeys.notifyWeeklySummary, v);
   Future<void> setSavingsGoal(int cents) =>
       setInt(SettingsKeys.savingsGoalCents, cents);
   Future<void> setLastSlipReadAt(int ms) =>

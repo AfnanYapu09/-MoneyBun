@@ -26,17 +26,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _runQuery(String v) {
     setState(() => _query = v);
-    _remember(v);
-  }
-
-  /// Record a query in the recent list (deduped, newest first, capped at 6).
-  void _remember(String v) {
     final t = v.trim();
-    if (t.isEmpty) return;
-    _recent
-      ..remove(t)
-      ..insert(0, t);
-    if (_recent.length > 6) _recent.removeLast();
+    if (t.isNotEmpty) {
+      _recent
+        ..remove(t)
+        ..insert(0, t);
+      if (_recent.length > 6) _recent.removeLast();
+    }
   }
 
   @override
@@ -145,64 +141,40 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         setState(() => _query = s);
                       },
                     )
-                  : results.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(40),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(AppIcons.search,
-                                    size: 40, color: context.palette.ink3),
-                                const SizedBox(height: 12),
-                                Text('ไม่พบรายการที่ตรงกับ "$q"',
-                                    textAlign: TextAlign.center,
-                                    style: AppTypography.body(
-                                        size: 14, color: context.palette.ink2)),
-                              ],
-                            ),
-                          ),
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                  'ผลการค้นหา · ${results.length} รายการ',
-                                  style: AppTypography.heading(
-                                      size: 14, weight: FontWeight.w500)),
-                            ),
-                            for (var i = 0; i < results.length; i++) ...[
-                              if (i > 0) const Divider(height: 1),
-                              Builder(builder: (context) {
-                                final t = results[i];
-                                final d = txnDisplay(t,
-                                    categories: categories,
-                                    accounts: accounts,
-                                    locale: locale,
-                                    withDate: true,
-                                    context: context);
-                                return TxnRow(
-                                  icon: d.icon,
-                                  title: d.title,
-                                  sub: d.sub,
-                                  iconColor: d.color,
-                                  iconKey: d.iconKey,
-                                  amountCents: t.amountCents,
-                                  type: t.type,
-                                  onTap: () {
-                                    // Remember the query once the user acts on a
-                                    // result, so "ค้นหาล่าสุด" is real.
-                                    _remember(_query);
-                                    showAddTransactionSheet(context,
-                                        editId: t.id);
-                                  },
-                                );
-                              }),
-                            ],
-                          ],
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text('ผลการค้นหา · ${results.length} รายการ',
+                              style: AppTypography.heading(
+                                  size: 14, weight: FontWeight.w500)),
                         ),
+                        for (var i = 0; i < results.length; i++) ...[
+                          if (i > 0) const Divider(height: 1),
+                          Builder(builder: (context) {
+                            final t = results[i];
+                            final d = txnDisplay(t,
+                                categories: categories,
+                                accounts: accounts,
+                                locale: locale,
+                                withDate: true,
+                                context: context);
+                            return TxnRow(
+                              icon: d.icon,
+                              title: d.title,
+                              sub: d.sub,
+                              iconColor: d.color,
+                              iconKey: d.iconKey,
+                              amountCents: t.amountCents,
+                              type: t.type,
+                              onTap: () => showAddTransactionSheet(context,
+                                  editId: t.id),
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
             ),
           ],
         ),
