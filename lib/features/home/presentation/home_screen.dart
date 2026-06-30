@@ -206,6 +206,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // device" from "album(s) found but no new slips".
         if (r.imported > 0) {
           _snack(l10n.homeScanImported(r.imported));
+          // If the newest import lands outside the month currently shown
+          // (an older slip, or a date read from the slip itself), snap the
+          // period onto it so the imports are never invisible.
+          final ms = r.newestImportedAt;
+          if (ms != null) {
+            final period = ref.read(selectedPeriodProvider);
+            if (ms < period.start || ms > period.end) {
+              ref
+                  .read(selectedPeriodProvider.notifier)
+                  .setMonth(DateTime.fromMillisecondsSinceEpoch(ms));
+            }
+          }
         } else if (next.limited) {
           // Only selected photos shared (Android 14 partial grant) — the bank
           // album is likely hidden, so explain how to widen access.

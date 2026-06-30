@@ -16,6 +16,7 @@ class ScanResult {
     this.inspected = 0,
     this.imported = 0,
     this.errors = 0,
+    this.newestImportedAt,
   });
 
   /// Total candidate images considered (bank albums + recent fallback).
@@ -32,6 +33,11 @@ class ScanResult {
 
   /// Images whose read threw (decode / ML Kit failure) and were skipped.
   final int errors;
+
+  /// The `occurredAt` (epoch ms) of the newest entry imported this scan, or
+  /// null when nothing was imported. The Home screen uses it to snap the
+  /// visible month onto the imports so they never land off-screen.
+  final int? newestImportedAt;
 }
 
 /// Reads slip images straight from the phone gallery and turns each genuine
@@ -237,6 +243,7 @@ class SlipImporter {
         inspected: acc.inspected,
         imported: acc.imported,
         errors: acc.errors,
+        newestImportedAt: acc.newestImportedAt,
       );
     } finally {
       // Release the reusable QR controller + ML Kit recognizer once per scan.
@@ -266,11 +273,15 @@ class SlipImporter {
           already.add(asset.id);
           continue;
         }
-        await _persist(parsed, asset.createDateTime);
+        final occurredAt = await _persist(parsed, asset.createDateTime);
         // Avoid a 2nd import if the photo also appears in another matched album.
         already.add(asset.id);
         if (ref != null && ref.isNotEmpty) knownRefs.add(ref);
         acc.imported++;
+        final ms = occurredAt.millisecondsSinceEpoch;
+        if (acc.newestImportedAt == null || ms > acc.newestImportedAt!) {
+          acc.newestImportedAt = ms;
+        }
       } catch (_) {
         // One unreadable photo shouldn't abort the whole scan.
         acc.errors++;
@@ -281,18 +292,20 @@ class SlipImporter {
   /// occurredAt comes from the slip itself (OCR); if unreadable, fall back to
   /// when the photo was saved — never the scan time — so entries land on the
   /// day of the slip.
-  Future<void> _persist(ParsedSlip parsed, DateTime fallbackDate) async {
+  Future<DateTime> _persist(ParsedSlip parsed, DateTime fallbackDate) async {
     // fallbackDate is the photo's gallery creation time — store it as the
     // slip's photoTakenAt so it can advance the scan watermark.
     final slipId = await _slips.save(parsed, photoTakenAt: fallbackDate);
+    final occurredAt = parsed.occurredAt ?? fallbackDate;
     // A slip now yields only an amount, so every import is recorded as an
     // expense; the user can change the type per-transaction when needed.
     await _txns.save(
       type: TxnType.expense,
       amountCents: parsed.amountCents ?? 0,
-      occurredAt: parsed.occurredAt ?? fallbackDate,
+      occurredAt: occurredAt,
       slipId: slipId,
     );
+    return occurredAt;
   }
 }
 
@@ -303,4 +316,5 @@ class _ScanAcc {
   int inspected = 0;
   int imported = 0;
   int errors = 0;
+  int? newestImportedAt;
 }

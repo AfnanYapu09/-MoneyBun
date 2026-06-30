@@ -69,7 +69,15 @@ class SlipExtractor {
     final month = int.tryParse(m.group(2)!);
     var year = int.tryParse(m.group(3)!);
     if (day == null || month == null || year == null) return null;
-    if (year < 100) year += 2000; // 2-digit year
+    if (year < 100) {
+      // 2-digit year. Thai slips usually print the Buddhist year, so a value
+      // like 69 means พ.ศ.2569 (= 2026), while 26 means ค.ศ.2026. Buddhist
+      // short years are currently in the 60s+, Gregorian ones in the 20s, so
+      // map 60–99 onto the 2500s (Buddhist) and 00–59 onto the 2000s — then
+      // normalizeYear strips the era. Without this, 69 became 2069 (far in the
+      // future) and the slip's entry fell outside every visible month.
+      year += year >= 60 ? 2500 : 2000;
+    }
     year = AppDate.normalizeYear(year); // strip Buddhist era if present
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
     final hour = int.tryParse(m.group(4) ?? '') ?? 0;
