@@ -10,6 +10,7 @@ import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'auth_errors.dart';
 import 'widgets/auth_field.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -164,7 +165,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
       if (mounted) context.go('/home');
     } catch (e) {
-      _snack(AppLocalizations.of(context).authSignUpFailed);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      _snack(authErrorMessage(e, l10n, fallback: l10n.authSignUpFailed));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -514,5 +514,13 @@
       }
     }
   },
-  "settingsFaqSearchMoreHint": "พิมพ์ค้นหาเพื่อดูคำถามทั้งหมด"
+  "settingsFaqSearchMoreHint": "พิมพ์ค้นหาเพื่อดูคำถามทั้งหมด",
+  "authErrEmailInUse": "อีเมลนี้ถูกใช้สมัครแล้ว ลองเข้าสู่ระบบแทน",
+  "authErrInvalidEmail": "รูปแบบอีเมลไม่ถูกต้อง",
+  "authErrWeakPassword": "รหัสผ่านสั้นเกินไป (อย่างน้อย 6 ตัวอักษร)",
+  "authErrWrongCredentials": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+  "authErrUserDisabled": "บัญชีนี้ถูกระงับการใช้งาน",
+  "authErrTooManyRequests": "พยายามหลายครั้งเกินไป โปรดลองใหม่ภายหลัง",
+  "authErrNetwork": "เชื่อมต่ออินเทอร์เน็ตไม่ได้ ตรวจสอบการเชื่อมต่อ",
+  "authErrOperationNotAllowed": "ยังไม่ได้เปิดวิธีนี้ใน Firebase (Email/Password)"
 }

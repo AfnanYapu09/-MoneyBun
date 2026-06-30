@@ -9,6 +9,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'auth_errors.dart';
 import 'widgets/auth_field.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -66,7 +67,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       _snack(AppLocalizations.of(context).authResetLinkSent);
       if (mounted) context.pop();
     } catch (e) {
-      _snack(AppLocalizations.of(context).authResetLinkFailed);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      _snack(authErrorMessage(e, l10n, fallback: l10n.authResetLinkFailed));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

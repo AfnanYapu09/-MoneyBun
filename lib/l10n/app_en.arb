@@ -514,5 +514,13 @@
       }
     }
   },
-  "settingsFaqSearchMoreHint": "Search to see all questions"
+  "settingsFaqSearchMoreHint": "Search to see all questions",
+  "authErrEmailInUse": "This email is already registered. Try logging in instead.",
+  "authErrInvalidEmail": "Invalid email address.",
+  "authErrWeakPassword": "Password is too short (at least 6 characters).",
+  "authErrWrongCredentials": "Incorrect email or password.",
+  "authErrUserDisabled": "This account has been disabled.",
+  "authErrTooManyRequests": "Too many attempts. Please try again later.",
+  "authErrNetwork": "No internet connection. Check your network.",
+  "authErrOperationNotAllowed": "This sign-in method isn't enabled in Firebase (Email/Password)."
 }
