@@ -52,12 +52,12 @@ class ScannedTxnRow extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.dangerWash,
+                  color: context.palette.dangerWash,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: const PixelMaskIcon('alert',
-                    color: AppColors.danger, size: 24),
+                child: PixelMaskIcon('alert',
+                    color: context.palette.dangerFg, size: 24),
               ),
             )
           else
@@ -65,7 +65,7 @@ class ScannedTxnRow extends StatelessWidget {
               onTap: onCategorize,
               customBorder: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
-              child: const DashedBorder(
+              child: DashedBorder(
                 radius: 14,
                 strokeWidth: 2,
                 child: SizedBox(
@@ -73,7 +73,7 @@ class ScannedTxnRow extends StatelessWidget {
                   height: 42,
                   child: Center(
                     child: Icon(AppIcons.plus,
-                        size: 20, color: AppColors.terra700),
+                        size: 20, color: context.palette.terraFg),
                   ),
                 ),
               ),
@@ -96,8 +96,9 @@ class ScannedTxnRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.body(
                         size: 12.5,
-                        color:
-                            needsAmount ? AppColors.danger : AppColors.ink3)),
+                        color: needsAmount
+                            ? context.palette.dangerFg
+                            : context.palette.ink3)),
               ],
             ),
           ),

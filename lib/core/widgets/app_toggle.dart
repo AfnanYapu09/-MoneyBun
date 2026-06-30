@@ -23,7 +23,7 @@ class AppToggle extends StatelessWidget {
         height: 27,
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
-          color: value ? AppColors.terra : AppColors.toggleOff,
+          color: value ? AppColors.terra : context.palette.toggleOff,
           borderRadius: BorderRadius.circular(99),
         ),
         alignment: value ? Alignment.centerRight : Alignment.centerLeft,

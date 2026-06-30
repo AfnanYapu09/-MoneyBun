@@ -49,18 +49,19 @@ class AccountsSheet extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text('ปิดธนาคารที่ไม่ต้องการให้อ่านสลิปจากอัลบั้ม',
-                style: AppTypography.body(size: 13.5, color: AppColors.ink3)),
+                style: AppTypography.body(
+                    size: 13.5, color: context.palette.ink3)),
           ),
           _ToggleRow(
             leading: Container(
               width: 42,
               height: 42,
-              decoration: const BoxDecoration(
-                color: AppColors.terraWash,
+              decoration: BoxDecoration(
+                color: context.palette.terraWash,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(AppIcons.wallet,
-                  size: 20, color: AppColors.terra700),
+              child: Icon(AppIcons.wallet,
+                  size: 20, color: context.palette.terraFg),
             ),
             name: 'ทุกธนาคาร',
             on: allOn,

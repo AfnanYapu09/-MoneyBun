@@ -16,7 +16,9 @@ class SettingSectionLabel extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
         child: Text(text,
             style: AppTypography.heading(
-                size: 13, weight: FontWeight.w500, color: AppColors.ink3)),
+                size: 13,
+                weight: FontWeight.w500,
+                color: context.palette.ink3)),
       );
 }
 
@@ -38,7 +40,7 @@ class SettingGroup extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.line),
       ),
       child: Column(children: rows),
     );
@@ -76,7 +78,7 @@ class SettingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = danger ? AppColors.danger : AppColors.ink;
+    final fg = danger ? context.palette.dangerFg : context.palette.ink;
     final Widget? trailingWidget = toggleValue != null
         ? AppToggle(value: toggleValue!, onChanged: onToggle)
         : trailing;
@@ -89,8 +91,10 @@ class SettingRow extends StatelessWidget {
             size: 34,
             radius: 11,
             iconSize: 18,
-            background: danger ? AppColors.dangerWash : AppColors.terraWash,
-            foreground: danger ? AppColors.danger : AppColors.terra700,
+            background:
+                danger ? context.palette.dangerWash : context.palette.terraWash,
+            foreground:
+                danger ? context.palette.dangerFg : context.palette.terraFg,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -100,12 +104,13 @@ class SettingRow extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 8),
               child: Text(value!,
-                  style: AppTypography.body(size: 14, color: AppColors.ink3)),
+                  style: AppTypography.body(
+                      size: 14, color: context.palette.ink3)),
             ),
           if (trailingWidget != null) trailingWidget,
           if (trailingWidget == null && onTap != null && showChevron) ...[
             const SizedBox(width: 4),
-            const Icon(AppIcons.chevronRight, size: 19, color: AppColors.ink3),
+            Icon(AppIcons.chevronRight, size: 19, color: context.palette.ink3),
           ],
         ],
       ),
@@ -152,7 +157,7 @@ class SelectRow extends StatelessWidget {
                   if (secondary != null)
                     Text(secondary!,
                         style: AppTypography.body(
-                            size: 12.5, color: AppColors.ink3)),
+                            size: 12.5, color: context.palette.ink3)),
                 ],
               ),
             ),
@@ -163,7 +168,8 @@ class SelectRow extends StatelessWidget {
                     height: 20,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.line, width: 1.5),
+                      border:
+                          Border.all(color: context.palette.line, width: 1.5),
                     ),
                   ),
           ],

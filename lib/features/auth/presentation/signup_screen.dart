@@ -50,7 +50,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           const SizedBox(height: 6),
           Center(
             child: Text('เริ่มจดเงินกับน้องบันใน 1 นาที',
-                style: AppTypography.body(size: 14.5, color: AppColors.ink2)),
+                style: AppTypography.body(
+                    size: 14.5, color: context.palette.ink2)),
           ),
           const SizedBox(height: 24),
           AuthField(
@@ -82,7 +83,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     borderRadius: BorderRadius.circular(6),
                     border: _agree
                         ? null
-                        : Border.all(color: AppColors.line, width: 1.5),
+                        : Border.all(color: context.palette.line, width: 1.5),
                   ),
                   child: _agree
                       ? const Icon(AppIcons.check,
@@ -96,7 +97,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   TextSpan(
                     text: 'ฉันยอมรับ ',
                     style: AppTypography.body(
-                        size: 13, color: AppColors.ink2, height: 1.5),
+                        size: 13, color: context.palette.ink2, height: 1.5),
                     children: [
                       TextSpan(
                           text: 'เงื่อนไขการใช้งาน',
@@ -120,7 +121,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               onTap: () => context.pop(),
               child: Text.rich(TextSpan(
                 text: 'มีบัญชีแล้ว? ',
-                style: AppTypography.body(size: 14, color: AppColors.ink2),
+                style:
+                    AppTypography.body(size: 14, color: context.palette.ink2),
                 children: [
                   TextSpan(
                     text: 'เข้าสู่ระบบ',

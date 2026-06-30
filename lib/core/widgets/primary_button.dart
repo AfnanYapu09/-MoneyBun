@@ -89,7 +89,7 @@ class SecondaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? Theme.of(context).colorScheme.onSurface;
-    final border = color ?? AppColors.line;
+    final border = color ?? context.palette.line;
     return SizedBox(
       width: double.infinity,
       height: height,
@@ -153,13 +153,13 @@ class SocialButton extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                border: Tokens.hairline(),
+                border: Tokens.hairline(context.palette.line),
               ),
               child: Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, size: 18, color: AppColors.ink),
+                    Icon(icon, size: 18, color: context.palette.ink),
                     const SizedBox(width: 9),
                     Text(label,
                         style: AppTypography.heading(

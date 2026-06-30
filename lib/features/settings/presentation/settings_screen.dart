@@ -139,7 +139,8 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             Center(
               child: Text('moneyBun v1.0.0',
-                  style: AppTypography.body(size: 12, color: AppColors.ink3)),
+                  style: AppTypography.body(
+                      size: 12, color: context.palette.ink3)),
             ),
           ],
         ),

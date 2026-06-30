@@ -26,7 +26,7 @@ class MonthChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: surface,
           borderRadius: Tokens.pill,
-          border: Tokens.hairline(),
+          border: Tokens.hairline(context.palette.line),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         child: Row(
@@ -59,7 +59,7 @@ class _Chevron extends StatelessWidget {
       radius: 18,
       child: Padding(
         padding: const EdgeInsets.all(6),
-        child: Icon(icon, size: 18, color: AppColors.ink3),
+        child: Icon(icon, size: 18, color: context.palette.ink3),
       ),
     );
   }
@@ -89,7 +89,7 @@ class Pill extends StatelessWidget {
         color: selected ? scheme.primary : scheme.surface,
         borderRadius: Tokens.pill,
         border: Border.all(
-          color: selected ? scheme.primary : AppColors.line,
+          color: selected ? scheme.primary : context.palette.line,
           width: 1.5,
         ),
       ),
@@ -97,7 +97,7 @@ class Pill extends StatelessWidget {
         style: AppTypography.heading(
           size: 14,
           weight: FontWeight.w500,
-          color: selected ? AppColors.reverse : AppColors.ink2,
+          color: selected ? AppColors.reverse : context.palette.ink2,
         ),
         child: child,
       ),
@@ -113,30 +113,33 @@ class StatusBadge extends StatelessWidget {
     super.key,
     required this.label,
     this.icon,
-    this.background = AppColors.greenTint,
-    this.foreground = AppColors.green,
+    this.background,
+    this.foreground,
   });
 
   final String label;
   final IconData? icon;
-  final Color background;
-  final Color foreground;
+  final Color? background;
+  final Color? foreground;
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+    final bg = background ?? palette.greenTint;
+    final fg = foreground ?? palette.greenFg;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-      decoration: BoxDecoration(color: background, borderRadius: Tokens.pill),
+      decoration: BoxDecoration(color: bg, borderRadius: Tokens.pill),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 15, color: foreground),
+            Icon(icon, size: 15, color: fg),
             const SizedBox(width: 5),
           ],
           Text(label,
               style: AppTypography.heading(
-                  size: 12.5, weight: FontWeight.w500, color: foreground)),
+                  size: 12.5, weight: FontWeight.w500, color: fg)),
         ],
       ),
     );

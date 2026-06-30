@@ -51,9 +51,9 @@ class WeekStrip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
       decoration: BoxDecoration(
-        color: AppColors.paper,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.line),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -92,8 +92,8 @@ class _DayColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final barColor = cents == 0
-        ? AppColors.paper2
-        : (isToday ? AppColors.terra : AppColors.terraWash);
+        ? context.palette.surfaceAlt
+        : (isToday ? AppColors.terra : context.palette.terraWash);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: Column(
@@ -106,7 +106,8 @@ class _DayColumn extends StatelessWidget {
               maxLines: 1,
               style: AppTypography.body(
                   size: 9.5,
-                  color: cents == 0 ? AppColors.ink3 : AppColors.ink2),
+                  color:
+                      cents == 0 ? context.palette.ink3 : context.palette.ink2),
             ),
           ),
           const SizedBox(height: 4),
@@ -133,14 +134,14 @@ class _DayColumn extends StatelessWidget {
               style: AppTypography.heading(
                 size: 11.5,
                 weight: FontWeight.w500,
-                color: isToday ? AppColors.reverse : AppColors.ink2,
+                color: isToday ? AppColors.reverse : context.palette.ink2,
               ),
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: AppTypography.body(size: 10, color: AppColors.ink3),
+            style: AppTypography.body(size: 10, color: context.palette.ink3),
           ),
         ],
       ),

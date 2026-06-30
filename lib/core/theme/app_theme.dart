@@ -59,40 +59,50 @@ class AppTheme {
   const AppTheme._();
 
   static ThemeData light({Color accent = AppColors.terra}) {
+    const palette = AppPalette.light;
     final scheme = ColorScheme.light(
       primary: accent,
       onPrimary: AppColors.reverse,
       secondary: AppColors.terraDeep,
       onSecondary: AppColors.reverse,
-      surface: AppColors.paper,
-      onSurface: AppColors.ink,
+      surface: palette.surface,
+      onSurface: palette.ink,
+      onSurfaceVariant: palette.ink2,
+      outline: palette.line,
       error: AppColors.danger,
       onError: AppColors.reverse,
     );
-    return _base(scheme, AppColors.cream, AppColors.ink);
+    return _base(scheme, palette.bg, palette.ink, palette);
   }
 
   static ThemeData dark({Color accent = AppColors.terra}) {
-    const bg = Color(0xFF1A1714);
-    const surface = Color(0xFF252019);
-    const onSurface = Color(0xFFEDE6DA);
+    const palette = AppPalette.dark;
     final scheme = ColorScheme.dark(
       primary: accent,
       onPrimary: AppColors.reverse,
       secondary: AppColors.terraTint,
-      surface: surface,
-      onSurface: onSurface,
-      error: AppColors.danger,
+      onSecondary: AppColors.ink,
+      surface: palette.surface,
+      onSurface: palette.ink,
+      onSurfaceVariant: palette.ink2,
+      outline: palette.line,
+      error: palette.dangerFg,
+      onError: AppColors.ink,
     );
-    return _base(scheme, bg, onSurface);
+    return _base(scheme, palette.bg, palette.ink, palette);
   }
 
-  static ThemeData _base(ColorScheme scheme, Color scaffold, Color onBg) {
-    final isDark = scheme.brightness == Brightness.dark;
-    final lineColor = isDark ? const Color(0xFF3A322A) : AppColors.line;
+  static ThemeData _base(
+    ColorScheme scheme,
+    Color scaffold,
+    Color onBg,
+    AppPalette palette,
+  ) {
+    final lineColor = palette.line;
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      extensions: <ThemeExtension<dynamic>>[palette],
       scaffoldBackgroundColor: scaffold,
       textTheme: AppTypography.textTheme().apply(
         bodyColor: onBg,
@@ -141,14 +151,14 @@ class AppTheme {
         trackColor: WidgetStateProperty.resolveWith(
           (s) => s.contains(WidgetState.selected)
               ? scheme.primary
-              : const Color(0xFFD8D0C2),
+              : palette.toggleOff,
         ),
         trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surface,
-        hintStyle: AppTypography.body(size: 15, color: AppColors.ink3),
+        hintStyle: AppTypography.body(size: 15, color: palette.ink3),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(

@@ -37,7 +37,9 @@ class ThemeScreen extends ConsumerWidget {
         children: [
           Text('โหมดการแสดงผล',
               style: AppTypography.heading(
-                  size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
+                  size: 14,
+                  weight: FontWeight.w500,
+                  color: context.palette.ink3)),
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -58,7 +60,9 @@ class ThemeScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           Text('สีหลัก',
               style: AppTypography.heading(
-                  size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
+                  size: 14,
+                  weight: FontWeight.w500,
+                  color: context.palette.ink3)),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -133,7 +137,7 @@ class _ModeSwatch extends StatelessWidget {
                     : null,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: selected ? AppColors.terra : AppColors.line,
+                  color: selected ? AppColors.terra : context.palette.line,
                   width: 2,
                 ),
               ),
@@ -155,7 +159,8 @@ class _ModeSwatch extends StatelessWidget {
         Text(label,
             style: AppTypography.body(
                 size: 13,
-                color: selected ? AppColors.terra700 : AppColors.ink2)),
+                color:
+                    selected ? context.palette.terraFg : context.palette.ink2)),
       ],
     );
   }

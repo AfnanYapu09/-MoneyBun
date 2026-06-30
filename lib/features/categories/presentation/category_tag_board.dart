@@ -70,11 +70,11 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppColors.terraWash,
+                  color: context.palette.terraWash,
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: const Icon(AppIcons.hash,
-                    size: 17, color: AppColors.terra700),
+                child: Icon(AppIcons.hash,
+                    size: 17, color: context.palette.terraFg),
               ),
               for (final t in tags)
                 _TagChip(
@@ -117,7 +117,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
                   Expanded(
                     child: Text('ลากไอคอนเพื่อจัดเรียง · แตะ − เพื่อลบ',
                         style: AppTypography.body(
-                            size: 13, color: AppColors.ink3)),
+                            size: 13, color: context.palette.ink3)),
                   ),
                   TextButton(
                     onPressed: () => setState(() => _editing = false),
@@ -143,8 +143,8 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
               const SizedBox(height: 12),
               Center(
                 child: Text('กดค้างที่ไอคอนเพื่อจัดเรียงหรือลบ',
-                    style:
-                        AppTypography.body(size: 12.5, color: AppColors.ink3)),
+                    style: AppTypography.body(
+                        size: 12.5, color: context.palette.ink3)),
               ),
             ],
           ],
@@ -165,7 +165,8 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
               child: const Text('ยกเลิก')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ลบ', style: TextStyle(color: AppColors.danger)),
+            child:
+                Text('ลบ', style: TextStyle(color: context.palette.dangerFg)),
           ),
         ],
       ),
@@ -235,7 +236,8 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, '__delete__'),
-            child: const Text('ลบ', style: TextStyle(color: AppColors.danger)),
+            child:
+                Text('ลบ', style: TextStyle(color: context.palette.dangerFg)),
           ),
           TextButton(
               onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
@@ -276,13 +278,14 @@ class _TagChip extends StatelessWidget {
           color: selected ? AppColors.terra : Colors.transparent,
           borderRadius: BorderRadius.circular(11),
           border: Border.all(
-              color: selected ? AppColors.terra : AppColors.line, width: 1.5),
+              color: selected ? AppColors.terra : context.palette.line,
+              width: 1.5),
         ),
         child: Text('#$label',
             style: AppTypography.heading(
                 size: 14,
                 weight: FontWeight.w500,
-                color: selected ? AppColors.reverse : AppColors.ink)),
+                color: selected ? AppColors.reverse : context.palette.ink)),
       ),
     );
   }
@@ -303,7 +306,7 @@ class _AddTagChip extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: AppColors.line, width: 1.5),
+          border: Border.all(color: context.palette.line, width: 1.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -391,7 +394,8 @@ class _CategoryButton extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: AppTypography.body(size: 12, color: AppColors.ink2)),
+                style:
+                    AppTypography.body(size: 12, color: context.palette.ink2)),
           ),
         ],
       ),

@@ -37,7 +37,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         children: [
           Text('กรอกอีเมลของคุณ แล้วเราจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้',
               style: AppTypography.body(
-                  size: 14.5, color: AppColors.ink2, height: 1.5)),
+                  size: 14.5, color: context.palette.ink2, height: 1.5)),
           const SizedBox(height: 20),
           AuthField(
               icon: AppIcons.mail,

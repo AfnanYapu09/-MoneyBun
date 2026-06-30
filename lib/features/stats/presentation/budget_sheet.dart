@@ -100,9 +100,9 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                 decoration: BoxDecoration(
-                  color: AppColors.paper,
+                  color: context.palette.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.line),
+                  border: Border.all(color: context.palette.line),
                 ),
                 child: Row(
                   children: [
@@ -126,15 +126,15 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                         children: [
                           Text('หมวดหมู่',
                               style: AppTypography.body(
-                                  size: 12.5, color: AppColors.ink3)),
+                                  size: 12.5, color: context.palette.ink3)),
                           Text(cat?.name ?? 'เลือกหมวดหมู่',
                               style: AppTypography.heading(
                                   size: 15, weight: FontWeight.w500)),
                         ],
                       ),
                     ),
-                    const Icon(AppIcons.chevronRight,
-                        size: 19, color: AppColors.ink3),
+                    Icon(AppIcons.chevronRight,
+                        size: 19, color: context.palette.ink3),
                   ],
                 ),
               ),
@@ -144,16 +144,16 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.paper,
+                color: context.palette.surface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.palette.line),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('จำนวนงบ',
                       style: AppTypography.body(
-                          size: 12.5, color: AppColors.ink3)),
+                          size: 12.5, color: context.palette.ink3)),
                   CalcHistoryLine(_calcHistory),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -177,7 +177,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                             hintStyle: AppTypography.heading(
                                 size: 38,
                                 weight: FontWeight.w600,
-                                color: AppColors.ink3),
+                                color: context.palette.ink3),
                           ),
                         ),
                       ),
@@ -185,7 +185,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                           style: AppTypography.heading(
                               size: 24,
                               weight: FontWeight.w500,
-                              color: AppColors.ink3)),
+                              color: context.palette.ink3)),
                     ],
                   ),
                 ],
@@ -204,15 +204,15 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                         padding: const EdgeInsets.symmetric(vertical: 9),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: AppColors.paper,
+                          color: context.palette.surface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.line),
+                          border: Border.all(color: context.palette.line),
                         ),
                         child: Text('฿${_fmt(a)}',
                             style: AppTypography.heading(
                                 size: 13,
                                 weight: FontWeight.w500,
-                                color: AppColors.ink2)),
+                                color: context.palette.ink2)),
                       ),
                     ),
                   ),
@@ -222,7 +222,8 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
             ),
             const SizedBox(height: 16),
             Text('รอบงบประมาณ',
-                style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+                style: AppTypography.body(
+                    size: 12.5, color: context.palette.ink3)),
             const SizedBox(height: 8),
             SegmentedControl<BudgetPeriod>(
               value: _period,
@@ -238,14 +239,14 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
               decoration: BoxDecoration(
-                color: AppColors.paper,
+                color: context.palette.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.palette.line),
               ),
               child: Row(
                 children: [
-                  const Icon(AppIcons.bellRing,
-                      size: 19, color: AppColors.terra700),
+                  Icon(AppIcons.bellRing,
+                      size: 19, color: context.palette.terraFg),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text('เตือนเมื่อใช้ถึง 80%',
@@ -266,20 +267,20 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                 child: Container(
                   height: 52,
                   decoration: BoxDecoration(
-                    color: AppColors.dangerWash,
+                    color: context.palette.dangerWash,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(AppIcons.trash2,
-                          size: 19, color: AppColors.danger),
+                      Icon(AppIcons.trash2,
+                          size: 19, color: context.palette.dangerFg),
                       const SizedBox(width: 8),
                       Text('ลบงบประมาณนี้',
                           style: AppTypography.heading(
                               size: 16,
                               weight: FontWeight.w500,
-                              color: AppColors.danger)),
+                              color: context.palette.dangerFg)),
                     ],
                   ),
                 ),

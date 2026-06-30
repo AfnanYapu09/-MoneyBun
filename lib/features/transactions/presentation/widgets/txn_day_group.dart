@@ -65,21 +65,24 @@ class TxnDayGroup extends StatelessWidget {
                       AppTypography.heading(size: 15, weight: FontWeight.w600)),
               const SizedBox(width: 8),
               Text(AppDate.formatWeekday(day, locale: locale),
-                  style: AppTypography.body(size: 12.5, color: AppColors.ink3)),
+                  style: AppTypography.body(
+                      size: 12.5, color: context.palette.ink3)),
               const Spacer(),
               Text(netStr,
                   style: AppTypography.heading(
                       size: 13.5,
                       weight: FontWeight.w500,
-                      color: net > 0 ? AppColors.green : AppColors.ink2)),
+                      color: net > 0
+                          ? context.palette.greenFg
+                          : context.palette.ink2)),
             ],
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.paper,
+            color: context.palette.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: context.palette.line),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Column(
@@ -107,7 +110,10 @@ class TxnDayGroup extends StatelessWidget {
       );
     }
     final d = txnDisplay(t,
-        categories: categories, accounts: accounts, locale: locale);
+        categories: categories,
+        accounts: accounts,
+        locale: locale,
+        context: context);
     return TxnRow(
       icon: d.icon,
       title: d.title,

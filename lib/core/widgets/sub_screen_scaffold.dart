@@ -38,7 +38,7 @@ class SubScreenScaffold extends StatelessWidget {
                   IconButton(
                     onPressed: onBack ?? () => Navigator.of(context).maybePop(),
                     icon: const Icon(AppIcons.arrowLeft, size: 24),
-                    color: AppColors.ink,
+                    color: context.palette.ink,
                   ),
                   Expanded(
                     child: Text(title,

@@ -130,15 +130,16 @@ class BudgetScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text('ยังไม่มีงบรายหมวด',
-                  style: AppTypography.body(size: 14, color: AppColors.ink3)),
+                  style: AppTypography.body(
+                      size: 14, color: context.palette.ink3)),
             )
           else
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.paper,
+                color: context.palette.surface,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.line),
+                border: Border.all(color: context.palette.line),
               ),
               child: Column(
                 children: [
@@ -184,8 +185,8 @@ class _BudgetBar extends StatelessWidget {
     final pct = limit == 0 ? 0.0 : spent / limit;
     final over = pct > 1.0;
     final color = over
-        ? AppColors.danger
-        : (pct > 0.85 ? AppColors.terra : AppColors.green);
+        ? context.palette.dangerFg
+        : (pct > 0.85 ? AppColors.terra : context.palette.greenFg);
     return Row(
       children: [
         if (category == null)
@@ -225,12 +226,12 @@ class _BudgetBar extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.paper2,
+                            color: context.palette.surfaceAlt,
                             borderRadius: BorderRadius.circular(99),
                           ),
                           child: Text(periodLabel,
                               style: AppTypography.body(
-                                  size: 10.5, color: AppColors.ink3)),
+                                  size: 10.5, color: context.palette.ink3)),
                         ),
                       ],
                     ),
@@ -241,12 +242,14 @@ class _BudgetBar extends StatelessWidget {
                       style: AppTypography.heading(
                           size: 13,
                           weight: FontWeight.w500,
-                          color: over ? AppColors.danger : AppColors.ink),
+                          color: over
+                              ? context.palette.dangerFg
+                              : context.palette.ink),
                       children: [
                         TextSpan(
                           text: ' / ${Money.compact(limit)}',
                           style: AppTypography.body(
-                              size: 13, color: AppColors.ink3),
+                              size: 13, color: context.palette.ink3),
                         ),
                       ],
                     ),

@@ -18,14 +18,14 @@ class SlipImage extends StatelessWidget {
     final path = slip?.imagePath;
     if (path != null && path.isNotEmpty) {
       return Image.file(File(path),
-          fit: fit, errorBuilder: (_, __, ___) => _placeholder());
+          fit: fit, errorBuilder: (_, __, ___) => _placeholder(context));
     }
-    return _placeholder();
+    return _placeholder(context);
   }
 
-  Widget _placeholder() => Container(
-        color: AppColors.terraWash,
+  Widget _placeholder(BuildContext context) => Container(
+        color: context.palette.terraWash,
         alignment: Alignment.center,
-        child: const Icon(AppIcons.receiptText, color: AppColors.terra700),
+        child: Icon(AppIcons.receiptText, color: context.palette.terraFg),
       );
 }

@@ -42,9 +42,9 @@ class _BunScanningBlockState extends State<BunScanningBlock>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.paper,
+        color: context.palette.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.line),
       ),
       child: Row(
         children: [
@@ -57,8 +57,8 @@ class _BunScanningBlockState extends State<BunScanningBlock>
             child: Container(
               width: 44,
               height: 44,
-              decoration: const BoxDecoration(
-                color: AppColors.terraWash,
+              decoration: BoxDecoration(
+                color: context.palette.terraWash,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
@@ -133,7 +133,7 @@ class _MiniSlip extends StatelessWidget {
       height: 56,
       padding: const EdgeInsets.all(7),
       decoration: BoxDecoration(
-        color: AppColors.paper2,
+        color: context.palette.surfaceAlt,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Stack(
@@ -141,14 +141,14 @@ class _MiniSlip extends StatelessWidget {
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              _SlipLine(widthFactor: 0.70, color: AppColors.terraTint),
-              SizedBox(height: 4),
-              _SlipLine(widthFactor: 0.95, color: AppColors.line),
-              SizedBox(height: 4),
-              _SlipLine(widthFactor: 0.85, color: AppColors.line),
-              Spacer(),
-              _SlipLine(widthFactor: 0.55, color: AppColors.terraTint),
+            children: [
+              const _SlipLine(widthFactor: 0.70, color: AppColors.terraTint),
+              const SizedBox(height: 4),
+              _SlipLine(widthFactor: 0.95, color: context.palette.line),
+              const SizedBox(height: 4),
+              _SlipLine(widthFactor: 0.85, color: context.palette.line),
+              const Spacer(),
+              const _SlipLine(widthFactor: 0.55, color: AppColors.terraTint),
             ],
           ),
           AnimatedBuilder(
@@ -215,7 +215,7 @@ class PullHint extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             armed ? 'ปล่อยเพื่อให้น้องบันอ่านสลิป' : 'ดึงลงเพื่ออัปเดตสลิป',
-            style: AppTypography.body(size: 13.5, color: AppColors.ink3),
+            style: AppTypography.body(size: 13.5, color: context.palette.ink3),
           ),
         ],
       ),

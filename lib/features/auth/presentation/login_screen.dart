@@ -33,7 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: context.palette.bg,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(28, 36, 28, 30),
@@ -45,7 +45,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 8),
             Center(
               child: Text('เข้าสู่ระบบเพื่อจดเงินต่อ',
-                  style: AppTypography.body(size: 14, color: AppColors.ink2)),
+                  style: AppTypography.body(
+                      size: 14, color: context.palette.ink2)),
             ),
             const SizedBox(height: 30),
             AuthField(
@@ -76,13 +77,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 label: 'เข้าสู่ระบบ', loading: _busy, onPressed: _login),
             const SizedBox(height: 22),
             Row(children: [
-              const Expanded(child: Divider(color: AppColors.line)),
+              Expanded(child: Divider(color: context.palette.line)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text('หรือ',
-                    style: AppTypography.body(size: 13, color: AppColors.ink3)),
+                    style: AppTypography.body(
+                        size: 13, color: context.palette.ink3)),
               ),
-              const Expanded(child: Divider(color: AppColors.line)),
+              Expanded(child: Divider(color: context.palette.line)),
             ]),
             const SizedBox(height: 22),
             Row(children: [
@@ -98,7 +100,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onTap: () => context.push('/signup'),
                 child: Text.rich(TextSpan(
                   text: 'ยังไม่มีบัญชี? ',
-                  style: AppTypography.body(size: 14, color: AppColors.ink2),
+                  style:
+                      AppTypography.body(size: 14, color: context.palette.ink2),
                   children: [
                     TextSpan(
                       text: 'สมัครเลย',
@@ -116,7 +119,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: TextButton(
                 onPressed: () => context.go('/home'),
                 child: Text('ใช้งานต่อแบบไม่ล็อกอิน',
-                    style: AppTypography.body(size: 13, color: AppColors.ink3)),
+                    style: AppTypography.body(
+                        size: 13, color: context.palette.ink3)),
               ),
             ),
           ],

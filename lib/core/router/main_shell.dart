@@ -53,7 +53,7 @@ class MainShell extends ConsumerWidget {
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          border: const Border(top: BorderSide(color: AppColors.line)),
+          border: Border(top: BorderSide(color: context.palette.line)),
         ),
         child: Row(
           children: [
@@ -100,7 +100,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.terra : AppColors.ink3;
+    final color = selected ? AppColors.terra : context.palette.ink3;
     return Expanded(
       child: InkResponse(
         onTap: onTap,

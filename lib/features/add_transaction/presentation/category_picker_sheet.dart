@@ -131,18 +131,20 @@ class _ActionButton extends StatelessWidget {
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.paper,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: context.palette.line),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 18, color: AppColors.terra700),
+            Icon(icon, size: 18, color: context.palette.terraFg),
             const SizedBox(width: 8),
             Text(label,
                 style: AppTypography.heading(
-                    size: 14.5, weight: FontWeight.w500, color: AppColors.ink)),
+                    size: 14.5,
+                    weight: FontWeight.w500,
+                    color: context.palette.ink)),
           ],
         ),
       ),

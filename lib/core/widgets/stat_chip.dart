@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/colors.dart';
+import '../theme/palette.dart';
 import '../theme/typography.dart';
 import 'app_card.dart';
 
@@ -35,7 +35,8 @@ class StatChip extends StatelessWidget {
               Icon(icon, size: 17, color: accent),
               const SizedBox(width: 8),
               Text(label,
-                  style: AppTypography.body(size: 13, color: AppColors.ink2)),
+                  style: AppTypography.body(
+                      size: 13, color: context.palette.ink2)),
             ],
           ),
           const SizedBox(height: 4),
@@ -43,7 +44,7 @@ class StatChip extends StatelessWidget {
               style: AppTypography.heading(
                   size: 19,
                   weight: FontWeight.w500,
-                  color: amountColor ?? AppColors.ink)),
+                  color: amountColor ?? context.palette.ink)),
         ],
       ),
     );

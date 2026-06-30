@@ -133,7 +133,7 @@ class CategoryGlyph extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppColors.pixelTile,
+        color: context.palette.pixelTile,
         shape: circle ? BoxShape.circle : BoxShape.rectangle,
         borderRadius: circle ? null : BorderRadius.circular(radius),
       ),

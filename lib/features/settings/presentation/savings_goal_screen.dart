@@ -77,15 +77,15 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
           Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: AppColors.greenTint,
+              color: context.palette.greenTint,
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('เดือนนี้เก็บได้แล้ว',
-                    style:
-                        AppTypography.body(size: 13, color: AppColors.green)),
+                    style: AppTypography.body(
+                        size: 13, color: context.palette.greenFg)),
                 const SizedBox(height: 2),
                 Text(
                   goal > 0
@@ -94,14 +94,14 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                   style: AppTypography.heading(
                       size: 28,
                       weight: FontWeight.w600,
-                      color: AppColors.green),
+                      color: context.palette.greenFg),
                 ),
                 if (goal > 0) ...[
                   const SizedBox(height: 12),
                   ProgressBar(
                     value: pct,
-                    color: AppColors.green,
-                    track: AppColors.green.withValues(alpha: 0.2),
+                    color: context.palette.greenFg,
+                    track: context.palette.greenFg.withValues(alpha: 0.2),
                     height: 8,
                   ),
                   const SizedBox(height: 8),
@@ -130,7 +130,7 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                   else
                     Text('ถึงเป้า ${(pct * 100).round()}%',
                         style: AppTypography.body(
-                            size: 12.5, color: AppColors.green)),
+                            size: 12.5, color: context.palette.greenFg)),
                 ],
               ],
             ),
@@ -138,7 +138,9 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
           const SizedBox(height: 20),
           Text('เป้าหมายต่อเดือน',
               style: AppTypography.heading(
-                  size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
+                  size: 14,
+                  weight: FontWeight.w500,
+                  color: context.palette.ink3)),
           const SizedBox(height: 8),
           CalcHistoryLine(_calcHistory),
           TextField(
@@ -163,15 +165,15 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: AppColors.paper,
+                        color: context.palette.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.line),
+                        border: Border.all(color: context.palette.line),
                       ),
                       child: Text('฿${_fmt(a)}',
                           style: AppTypography.heading(
                               size: 13,
                               weight: FontWeight.w500,
-                              color: AppColors.ink2)),
+                              color: context.palette.ink2)),
                     ),
                   ),
                 ),

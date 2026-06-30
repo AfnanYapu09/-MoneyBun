@@ -44,7 +44,7 @@ class AllTransactionsScreen extends ConsumerWidget {
       title: 'รายการทั้งหมด',
       action: IconButton(
         onPressed: () => context.push('/search'),
-        icon: const Icon(AppIcons.search, size: 21, color: AppColors.ink2),
+        icon: Icon(AppIcons.search, size: 21, color: context.palette.ink2),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 28),
@@ -61,7 +61,8 @@ class AllTransactionsScreen extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 60),
               child: Center(
                 child: Text('ยังไม่มีรายการ${period.periodNoun(locale)}',
-                    style: AppTypography.body(size: 14, color: AppColors.ink3)),
+                    style: AppTypography.body(
+                        size: 14, color: context.palette.ink3)),
               ),
             ),
           for (final day in days)

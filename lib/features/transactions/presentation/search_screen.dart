@@ -83,14 +83,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       height: 44,
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        color: AppColors.paper,
+                        color: context.palette.surface,
                         borderRadius: BorderRadius.circular(13),
                         border: Border.all(color: AppColors.terra, width: 1.5),
                       ),
                       child: Row(
                         children: [
-                          const Icon(AppIcons.search,
-                              size: 18, color: AppColors.ink3),
+                          Icon(AppIcons.search,
+                              size: 18, color: context.palette.ink3),
                           const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
@@ -117,8 +117,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 _controller.clear();
                                 setState(() => _query = '');
                               },
-                              child: const Icon(AppIcons.x,
-                                  size: 18, color: AppColors.ink3),
+                              child: Icon(AppIcons.x,
+                                  size: 18, color: context.palette.ink3),
                             ),
                         ],
                       ),
@@ -158,7 +158,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 categories: categories,
                                 accounts: accounts,
                                 locale: locale,
-                                withDate: true);
+                                withDate: true,
+                                context: context);
                             return TxnRow(
                               icon: d.icon,
                               title: d.title,
@@ -193,7 +194,7 @@ class _RecentSearches extends StatelessWidget {
     if (recent.isEmpty) {
       return Center(
         child: Text('พิมพ์เพื่อค้นหารายการ',
-            style: AppTypography.body(size: 14, color: AppColors.ink3)),
+            style: AppTypography.body(size: 14, color: context.palette.ink3)),
       );
     }
     return ListView(
@@ -203,7 +204,9 @@ class _RecentSearches extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 10),
           child: Text('ค้นหาล่าสุด',
               style: AppTypography.heading(
-                  size: 13, weight: FontWeight.w500, color: AppColors.ink3)),
+                  size: 13,
+                  weight: FontWeight.w500,
+                  color: context.palette.ink3)),
         ),
         Wrap(
           spacing: 8,
@@ -217,19 +220,19 @@ class _RecentSearches extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                   decoration: BoxDecoration(
-                    color: AppColors.paper,
+                    color: context.palette.surface,
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.line),
+                    border: Border.all(color: context.palette.line),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(AppIcons.clock,
-                          size: 14, color: AppColors.ink3),
+                      Icon(AppIcons.clock,
+                          size: 14, color: context.palette.ink3),
                       const SizedBox(width: 6),
                       Text(r,
                           style: AppTypography.body(
-                              size: 13.5, color: AppColors.ink2)),
+                              size: 13.5, color: context.palette.ink2)),
                     ],
                   ),
                 ),

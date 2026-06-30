@@ -31,11 +31,11 @@ class SecurityScreen extends ConsumerWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: AppColors.terraWash,
+                color: context.palette.terraWash,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(AppIcons.shieldCheck,
-                  size: 30, color: AppColors.terra700),
+              child: Icon(AppIcons.shieldCheck,
+                  size: 30, color: context.palette.terraFg),
             ),
           ),
           const SizedBox(height: 8),
@@ -45,7 +45,8 @@ class SecurityScreen extends ConsumerWidget {
               child: Text(
                 'ล็อกแอปด้วย PIN หรือไบโอเมตริก เพื่อปกป้องข้อมูลการเงินของคุณ',
                 textAlign: TextAlign.center,
-                style: AppTypography.body(size: 13.5, color: AppColors.ink2),
+                style:
+                    AppTypography.body(size: 13.5, color: context.palette.ink2),
               ),
             ),
           ),

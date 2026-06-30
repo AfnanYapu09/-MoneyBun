@@ -378,11 +378,11 @@ class _RoundIcon extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: AppColors.paper,
+          color: context.palette.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.line),
+          border: Border.all(color: context.palette.line),
         ),
-        child: Icon(icon, size: 18, color: AppColors.ink2),
+        child: Icon(icon, size: 18, color: context.palette.ink2),
       ),
     );
   }
@@ -406,17 +406,17 @@ class _PickTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = selected ? AppColors.reverse : AppColors.ink;
+    final fg = selected ? AppColors.reverse : context.palette.ink;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.terra : AppColors.paper,
+          color: selected ? AppColors.terra : context.palette.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.terra : AppColors.line,
+            color: selected ? AppColors.terra : context.palette.line,
           ),
         ),
         alignment: alignStart ? Alignment.centerLeft : Alignment.center,
@@ -440,7 +440,7 @@ class _PickTile extends StatelessWidget {
                   size: 12,
                   color: selected
                       ? AppColors.reverse.withValues(alpha: 0.85)
-                      : AppColors.ink3,
+                      : context.palette.ink3,
                 ),
               ),
             ],
@@ -465,12 +465,14 @@ class _TodayButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: AppColors.terraWash,
+          color: context.palette.terraWash,
           borderRadius: BorderRadius.circular(99),
         ),
         child: Text('เดือนนี้',
             style: AppTypography.heading(
-                size: 13, weight: FontWeight.w500, color: AppColors.terra700)),
+                size: 13,
+                weight: FontWeight.w500,
+                color: context.palette.terraFg)),
       ),
     );
   }
