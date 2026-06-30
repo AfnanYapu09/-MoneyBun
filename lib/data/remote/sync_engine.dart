@@ -132,81 +132,105 @@ class SyncEngine {
 
   Future<void> _pullAccounts(String uid) async {
     final snap = await _col(uid, 'accounts').get();
+    if (snap.docs.isEmpty) return;
+    final localUpdated = await _db.accountsUpdatedAt();
+    final rows = <AccountsCompanion>[];
     for (final doc in snap.docs) {
-      final local = await _db.getAccount(doc.id);
       final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
-      if (local == null || remoteUpdated > local.updatedAt) {
-        await _db
-            .upsertAccount(FirestoreMappers.accountFromMap(doc.id, doc.data()));
+      final localUpdatedAt = localUpdated[doc.id];
+      if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
+        rows.add(FirestoreMappers.accountFromMap(doc.id, doc.data()));
       }
     }
+    if (rows.isNotEmpty) await _db.batchUpsertAccounts(rows);
   }
 
   Future<void> _pullCategories(String uid) async {
     final snap = await _col(uid, 'categories').get();
+    if (snap.docs.isEmpty) return;
+    final localUpdated = await _db.categoriesUpdatedAt();
+    final rows = <CategoriesCompanion>[];
     for (final doc in snap.docs) {
-      final local = await _db.getCategory(doc.id);
       final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
-      if (local == null || remoteUpdated > local.updatedAt) {
-        await _db.upsertCategory(
-            FirestoreMappers.categoryFromMap(doc.id, doc.data()));
+      final localUpdatedAt = localUpdated[doc.id];
+      if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
+        rows.add(FirestoreMappers.categoryFromMap(doc.id, doc.data()));
       }
     }
+    if (rows.isNotEmpty) await _db.batchUpsertCategories(rows);
   }
 
   Future<void> _pullTags(String uid) async {
     final snap = await _col(uid, 'tags').get();
+    if (snap.docs.isEmpty) return;
+    final localUpdated = await _db.tagsUpdatedAt();
+    final rows = <TagsCompanion>[];
     for (final doc in snap.docs) {
-      final local = await _db.getTag(doc.id);
       final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
-      if (local == null || remoteUpdated > local.updatedAt) {
-        await _db.upsertTag(FirestoreMappers.tagFromMap(doc.id, doc.data()));
+      final localUpdatedAt = localUpdated[doc.id];
+      if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
+        rows.add(FirestoreMappers.tagFromMap(doc.id, doc.data()));
       }
     }
+    if (rows.isNotEmpty) await _db.batchUpsertTags(rows);
   }
 
   Future<void> _pullTransactions(String uid) async {
     final snap = await _col(uid, 'transactions').get();
+    if (snap.docs.isEmpty) return;
+    // One query for all local updatedAt instead of a read per row.
+    final localUpdated = await _db.transactionsUpdatedAt();
+    final rows = <TransactionsCompanion>[];
+    final tagWrites = <MapEntry<String, List<String>>>[];
     for (final doc in snap.docs) {
       final data = doc.data();
-      final local = await _db.getTransaction(doc.id);
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
-      if (local == null || remoteUpdated > local.updatedAt) {
-        await _db.upsertTransaction(
-            FirestoreMappers.transactionFromMap(doc.id, data));
+      final localUpdatedAt = localUpdated[doc.id];
+      if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
+        rows.add(FirestoreMappers.transactionFromMap(doc.id, data));
         final tagIds =
             (data['tagIds'] as List?)?.whereType<String>().toList() ??
                 const <String>[];
-        // A brand-new local row has no links to clear, so skip the link write
-        // when there are no tags (the common case) — a big speed-up on the
-        // first pull. For updates, always set so tag removals propagate.
-        if (tagIds.isNotEmpty || local != null) {
-          await _db.setTransactionTags(doc.id, tagIds);
+        // New rows have no links to clear, so only write links when there are
+        // tags or the row already existed (so tag removals still propagate).
+        if (tagIds.isNotEmpty || localUpdatedAt != null) {
+          tagWrites.add(MapEntry(doc.id, tagIds));
         }
       }
+    }
+    if (rows.isNotEmpty) await _db.batchUpsertTransactions(rows);
+    for (final w in tagWrites) {
+      await _db.setTransactionTags(w.key, w.value);
     }
   }
 
   Future<void> _pullBudgets(String uid) async {
     final snap = await _col(uid, 'budgets').get();
+    if (snap.docs.isEmpty) return;
+    final localUpdated = await _db.budgetsUpdatedAt();
+    final rows = <BudgetsCompanion>[];
     for (final doc in snap.docs) {
-      final local = await _db.getBudget(doc.id);
       final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
-      if (local == null || remoteUpdated > local.updatedAt) {
-        await _db
-            .upsertBudget(FirestoreMappers.budgetFromMap(doc.id, doc.data()));
+      final localUpdatedAt = localUpdated[doc.id];
+      if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
+        rows.add(FirestoreMappers.budgetFromMap(doc.id, doc.data()));
       }
     }
+    if (rows.isNotEmpty) await _db.batchUpsertBudgets(rows);
   }
 
   Future<void> _pullSlips(String uid) async {
     final snap = await _col(uid, 'slips').get();
+    if (snap.docs.isEmpty) return;
+    final localUpdated = await _db.slipsUpdatedAt();
+    final rows = <SlipsCompanion>[];
     for (final doc in snap.docs) {
-      final local = await _db.getSlip(doc.id);
       final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
-      if (local == null || remoteUpdated > local.updatedAt) {
-        await _db.upsertSlip(FirestoreMappers.slipFromMap(doc.id, doc.data()));
+      final localUpdatedAt = localUpdated[doc.id];
+      if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
+        rows.add(FirestoreMappers.slipFromMap(doc.id, doc.data()));
       }
     }
+    if (rows.isNotEmpty) await _db.batchUpsertSlips(rows);
   }
 }

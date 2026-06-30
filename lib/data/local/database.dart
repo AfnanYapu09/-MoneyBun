@@ -400,6 +400,88 @@ class AppDatabase extends _$AppDatabase {
       (update(tags)..where((t) => t.id.equals(id)))
           .write(const TagsCompanion(syncStatus: Value(SyncStatus.synced)));
 
+  // ---- Bulk pull helpers (write a whole collection in one batch) ----------
+
+  /// Local updatedAt keyed by transaction id — one query, so the pull doesn't
+  /// read every row individually before deciding what to upsert.
+  Future<Map<String, int>> transactionsUpdatedAt() async {
+    final q = selectOnly(transactions)
+      ..addColumns([transactions.id, transactions.updatedAt]);
+    final rows = await q.get();
+    return {
+      for (final r in rows)
+        r.read(transactions.id)!: r.read(transactions.updatedAt) ?? 0
+    };
+  }
+
+  // Each of these selects every row (including soft-deleted ones) so the pull
+  // can decide what to upsert from a single query instead of one read per
+  // remote doc — and a locally-deleted row isn't resurrected, since its
+  // tombstone's updatedAt is still in the map.
+  Future<Map<String, int>> accountsUpdatedAt() async {
+    final q = selectOnly(accounts)
+      ..addColumns([accounts.id, accounts.updatedAt]);
+    final rows = await q.get();
+    return {
+      for (final r in rows)
+        r.read(accounts.id)!: r.read(accounts.updatedAt) ?? 0
+    };
+  }
+
+  Future<Map<String, int>> categoriesUpdatedAt() async {
+    final q = selectOnly(categories)
+      ..addColumns([categories.id, categories.updatedAt]);
+    final rows = await q.get();
+    return {
+      for (final r in rows)
+        r.read(categories.id)!: r.read(categories.updatedAt) ?? 0
+    };
+  }
+
+  Future<Map<String, int>> tagsUpdatedAt() async {
+    final q = selectOnly(tags)..addColumns([tags.id, tags.updatedAt]);
+    final rows = await q.get();
+    return {
+      for (final r in rows) r.read(tags.id)!: r.read(tags.updatedAt) ?? 0
+    };
+  }
+
+  Future<Map<String, int>> budgetsUpdatedAt() async {
+    final q = selectOnly(budgets)..addColumns([budgets.id, budgets.updatedAt]);
+    final rows = await q.get();
+    return {
+      for (final r in rows) r.read(budgets.id)!: r.read(budgets.updatedAt) ?? 0
+    };
+  }
+
+  Future<Map<String, int>> slipsUpdatedAt() async {
+    final q = selectOnly(slips)..addColumns([slips.id, slips.updatedAt]);
+    final rows = await q.get();
+    return {
+      for (final r in rows) r.read(slips.id)!: r.read(slips.updatedAt) ?? 0
+    };
+  }
+
+  // insertAllOnConflictUpdate only writes the provided columns, so columns the
+  // sync mappers omit (e.g. a slip's local imagePath) are preserved.
+  Future<void> batchUpsertTransactions(List<TransactionsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(transactions, rows));
+
+  Future<void> batchUpsertAccounts(List<AccountsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(accounts, rows));
+
+  Future<void> batchUpsertCategories(List<CategoriesCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(categories, rows));
+
+  Future<void> batchUpsertTags(List<TagsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(tags, rows));
+
+  Future<void> batchUpsertBudgets(List<BudgetsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(budgets, rows));
+
+  Future<void> batchUpsertSlips(List<SlipsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(slips, rows));
+
   // ---- Tags (local-only) -------------------------------------------------
 
   Stream<List<TagRow>> watchTags() => (select(tags)
