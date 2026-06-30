@@ -55,24 +55,25 @@ class SyncEngine {
     }
   }
 
-  Future<void> _pushAll(String uid) async {
-    await _pushTransactions(uid);
-    await _pushAccounts(uid);
-    await _pushCategories(uid);
-    await _pushSlips(uid);
-    await _pushBudgets(uid);
-    await _pushTags(uid);
-  }
+  // Run the collections concurrently — each is an independent network call, so
+  // the whole sync takes about as long as the slowest one instead of the sum.
+  Future<void> _pushAll(String uid) => Future.wait([
+        _pushTransactions(uid),
+        _pushAccounts(uid),
+        _pushCategories(uid),
+        _pushSlips(uid),
+        _pushBudgets(uid),
+        _pushTags(uid),
+      ]);
 
-  Future<void> _pullAll(String uid) async {
-    // Pull referenced rows (accounts/categories/tags) before transactions.
-    await _pullAccounts(uid);
-    await _pullCategories(uid);
-    await _pullTags(uid);
-    await _pullTransactions(uid);
-    await _pullBudgets(uid);
-    await _pullSlips(uid);
-  }
+  Future<void> _pullAll(String uid) => Future.wait([
+        _pullAccounts(uid),
+        _pullCategories(uid),
+        _pullTags(uid),
+        _pullTransactions(uid),
+        _pullBudgets(uid),
+        _pullSlips(uid),
+      ]);
 
   // ---- Push (a soft-deleted row carries deleted:true in its map) ----------
 
@@ -176,7 +177,12 @@ class SyncEngine {
         final tagIds =
             (data['tagIds'] as List?)?.whereType<String>().toList() ??
                 const <String>[];
-        await _db.setTransactionTags(doc.id, tagIds);
+        // A brand-new local row has no links to clear, so skip the link write
+        // when there are no tags (the common case) — a big speed-up on the
+        // first pull. For updates, always set so tag removals propagate.
+        if (tagIds.isNotEmpty || local != null) {
+          await _db.setTransactionTags(doc.id, tagIds);
+        }
       }
     }
   }
