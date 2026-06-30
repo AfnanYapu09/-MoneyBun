@@ -7,6 +7,7 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/pixel_icon.dart';
@@ -157,10 +158,11 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
 
   Future<void> _confirmDeleteCategory(CategoryRow c) async {
     final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        content: Text(l10n.catConfirmDelete(c.name)),
+        content: Text(l10n.catConfirmDelete(c.displayName(locale))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -349,6 +351,7 @@ class _CategoryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).languageCode;
     Widget glyph = CategoryGlyph(
       iconKey: category.iconKey,
       color: AppColors.forHex(category.colorHex),
@@ -396,7 +399,7 @@ class _CategoryButton extends StatelessWidget {
           icon,
           const SizedBox(height: 7),
           Flexible(
-            child: Text(category.name,
+            child: Text(category.displayName(locale),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

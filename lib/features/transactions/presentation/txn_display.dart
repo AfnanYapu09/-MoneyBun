@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../core/theme/colors.dart';
+import '../../../core/utils/account_l10n.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/utils/category_l10n.dart';
 import '../../../core/widgets/app_icons.dart';
@@ -54,8 +55,8 @@ TxnDisplay txnDisplay(
 
   switch (t.type) {
     case TxnType.transfer:
-      final from = accounts[t.accountId]?.name ?? accountWord;
-      final to = accounts[t.toAccountId]?.name ?? accountWord;
+      final from = accounts[t.accountId]?.displayName(locale) ?? accountWord;
+      final to = accounts[t.toAccountId]?.displayName(locale) ?? accountWord;
       final transferWord = isThai ? 'ย้ายเงิน' : 'Transfer';
       return TxnDisplay(AppIcons.arrowLeftRight, transferWord, '$date$from → $to',
           color: context?.palette.amberFg ?? AppColors.amber);

@@ -137,7 +137,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           ? _recent
                           : categories.values
                               .take(3)
-                              .map((c) => c.name)
+                              .map((c) => c.displayName(locale))
                               .toList(),
                       onTap: (s) {
                         _controller.text = s;
