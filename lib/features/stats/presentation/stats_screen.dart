@@ -255,12 +255,17 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           for (var i = 0; i < ranked.length; i++)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 16),
-                              child: _CategoryBar(
-                                category: categories[ranked[i].key],
-                                cents: ranked[i].value,
-                                fraction:
-                                    total == 0 ? 0 : ranked[i].value / total,
-                                color: chartColors[i % chartColors.length],
+                              child: InkWell(
+                                onTap: () => context.push(
+                                    '/transactions?categoryId=${Uri.encodeComponent(ranked[i].key)}'),
+                                borderRadius: BorderRadius.circular(12),
+                                child: _CategoryBar(
+                                  category: categories[ranked[i].key],
+                                  cents: ranked[i].value,
+                                  fraction:
+                                      total == 0 ? 0 : ranked[i].value / total,
+                                  color: chartColors[i % chartColors.length],
+                                ),
                               ),
                             ),
                         ],
@@ -273,13 +278,18 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                         for (var i = 0; i < rankedTags.length; i++)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: _TagBar(
-                              tag: tags[rankedTags[i].key],
-                              cents: rankedTags[i].value,
-                              fraction: tagTotal == 0
-                                  ? 0
-                                  : rankedTags[i].value / tagTotal,
-                              color: chartColors[i % chartColors.length],
+                            child: InkWell(
+                              onTap: () => context.push(
+                                  '/transactions?tagId=${Uri.encodeComponent(rankedTags[i].key)}'),
+                              borderRadius: BorderRadius.circular(12),
+                              child: _TagBar(
+                                tag: tags[rankedTags[i].key],
+                                cents: rankedTags[i].value,
+                                fraction: tagTotal == 0
+                                    ? 0
+                                    : rankedTags[i].value / tagTotal,
+                                color: chartColors[i % chartColors.length],
+                              ),
                             ),
                           ),
                       ],

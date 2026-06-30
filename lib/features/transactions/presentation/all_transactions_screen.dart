@@ -17,13 +17,18 @@ import 'widgets/txn_day_group.dart';
 
 /// Full-screen list of all transactions for the selected month, grouped by day.
 class AllTransactionsScreen extends ConsumerWidget {
-  const AllTransactionsScreen({super.key});
+  const AllTransactionsScreen({super.key, this.categoryId, this.tagId});
+
+  /// When set, the list is filtered to a single category / tag — opened by
+  /// tapping a row in the Stats breakdown. Mutually exclusive.
+  final String? categoryId;
+  final String? tagId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
-    final txns = ref.watch(periodTransactionsProvider).value ?? const [];
+    var txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -34,6 +39,27 @@ class AllTransactionsScreen extends ConsumerWidget {
         a.id: a
     };
 
+    // Optional single-category / single-tag filter (opened from Stats).
+    String? filterName;
+    if (categoryId != null) {
+      txns = txns
+          .where((t) => (t.categoryId ?? 'sys_other') == categoryId)
+          .toList();
+      filterName = categories[categoryId]?.name ?? 'อื่นๆ';
+    } else if (tagId != null) {
+      final taggedIds = (ref.watch(allTransactionTagsProvider).value ??
+              const <TransactionTagRow>[])
+          .where((l) => l.tagId == tagId)
+          .map((l) => l.transactionId)
+          .toSet();
+      txns = txns.where((t) => taggedIds.contains(t.id)).toList();
+      final tags = {
+        for (final tg in ref.watch(tagsProvider).value ?? const <TagRow>[])
+          tg.id: tg
+      };
+      filterName = tags[tagId]?.name;
+    }
+
     final byDay = groupBy<TransactionRow, DateTime>(
       txns,
       (t) => AppDate.startOfDay(AppDate.fromMillis(t.occurredAt)),
@@ -41,7 +67,7 @@ class AllTransactionsScreen extends ConsumerWidget {
     final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return SubScreenScaffold(
-      title: 'รายการทั้งหมด',
+      title: filterName ?? 'รายการทั้งหมด',
       action: IconButton(
         onPressed: () => context.push('/search'),
         icon: Icon(AppIcons.search, size: 21, color: context.palette.ink2),
