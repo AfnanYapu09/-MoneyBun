@@ -44,7 +44,9 @@ class PrimaryButton extends StatelessWidget {
                     width: 22,
                     height: 22,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2.4, color: foreground),
+                      strokeWidth: 2.4,
+                      color: foreground,
+                    ),
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
@@ -53,11 +55,14 @@ class PrimaryButton extends StatelessWidget {
                         Icon(icon, size: 20, color: foreground),
                         const SizedBox(width: 8),
                       ],
-                      Text(label,
-                          style: AppTypography.heading(
-                              size: 17,
-                              weight: FontWeight.w500,
-                              color: foreground)),
+                      Text(
+                        label,
+                        style: AppTypography.heading(
+                          size: 17,
+                          weight: FontWeight.w500,
+                          color: foreground,
+                        ),
+                      ),
                     ],
                   ),
           ),
@@ -112,9 +117,14 @@ class SecondaryButton extends StatelessWidget {
                     Icon(icon, size: 20, color: c),
                     const SizedBox(width: 8),
                   ],
-                  Text(label,
-                      style: AppTypography.heading(
-                          size: 16, weight: FontWeight.w500, color: c)),
+                  Text(
+                    label,
+                    style: AppTypography.heading(
+                      size: 16,
+                      weight: FontWeight.w500,
+                      color: c,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -161,9 +171,13 @@ class SocialButton extends StatelessWidget {
                   children: [
                     Icon(icon, size: 18, color: context.palette.ink),
                     const SizedBox(width: 9),
-                    Text(label,
-                        style: AppTypography.heading(
-                            size: 14, weight: FontWeight.w500)),
+                    Text(
+                      label,
+                      style: AppTypography.heading(
+                        size: 14,
+                        weight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),

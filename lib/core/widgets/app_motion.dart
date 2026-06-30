@@ -23,8 +23,10 @@ class _RiseInState extends State<RiseIn> with SingleTickerProviderStateMixin {
     vsync: this,
     duration: const Duration(milliseconds: 480),
   );
-  late final Animation<double> _curve =
-      CurvedAnimation(parent: _c, curve: const Cubic(0.22, 1, 0.36, 1));
+  late final Animation<double> _curve = CurvedAnimation(
+    parent: _c,
+    curve: const Cubic(0.22, 1, 0.36, 1),
+  );
 
   @override
   void initState() {
@@ -82,10 +84,7 @@ class StaggeredColumn extends StatelessWidget {
     final items = <Widget>[];
     for (var i = 0; i < children.length; i++) {
       if (i > 0) items.add(SizedBox(height: spacing));
-      items.add(RiseIn(
-        delay: base + step * i,
-        child: children[i],
-      ));
+      items.add(RiseIn(delay: base + step * i, child: children[i]));
     }
     return Column(crossAxisAlignment: crossAxisAlignment, children: items);
   }

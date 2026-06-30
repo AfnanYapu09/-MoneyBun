@@ -62,11 +62,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 const SizedBox(height: 26),
                 const Wordmark(size: 44, color: AppColors.reverse),
                 const SizedBox(height: 10),
-                Text(l10n.splashTagline,
-                    style: TextStyle(
-                      color: AppColors.reverse.withValues(alpha: 0.82),
-                      fontSize: 15,
-                    )),
+                Text(
+                  l10n.splashTagline,
+                  style: TextStyle(
+                    color: AppColors.reverse.withValues(alpha: 0.82),
+                    fontSize: 15,
+                  ),
+                ),
               ],
             ),
           ),
@@ -84,8 +86,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 3.5),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color:
-                        AppColors.reverse.withValues(alpha: i == 0 ? 1 : 0.4),
+                    color: AppColors.reverse.withValues(
+                      alpha: i == 0 ? 1 : 0.4,
+                    ),
                   ),
                 ),
               ),

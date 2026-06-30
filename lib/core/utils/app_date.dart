@@ -39,9 +39,9 @@ class AppDate {
       startOfDay(d).subtract(Duration(days: d.weekday % 7));
 
   /// End of the week (Saturday 23:59:59.999) containing [d].
-  static DateTime endOfWeek(DateTime d) => startOfWeek(d)
-      .add(const Duration(days: 7))
-      .subtract(const Duration(milliseconds: 1));
+  static DateTime endOfWeek(DateTime d) => startOfWeek(
+        d,
+      ).add(const Duration(days: 7)).subtract(const Duration(milliseconds: 1));
 
   static DateTime addWeeks(DateTime d, int weeks) =>
       d.add(Duration(days: 7 * weeks));

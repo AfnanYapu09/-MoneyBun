@@ -77,23 +77,36 @@ class TxnRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.heading(
-                        size: 15, weight: FontWeight.w500)),
-                Text(sub,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.body(
-                        size: 12.5, color: context.palette.ink3)),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.heading(
+                    size: 15,
+                    weight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  sub,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.body(
+                    size: 12.5,
+                    color: context.palette.ink3,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Text('$sign${Money.compact(amountCents.abs())}',
-              style: AppTypography.heading(
-                  size: 15, weight: FontWeight.w500, color: color)),
+          Text(
+            '$sign${Money.compact(amountCents.abs())}',
+            style: AppTypography.heading(
+              size: 15,
+              weight: FontWeight.w500,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

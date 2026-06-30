@@ -53,16 +53,21 @@ class _AuthFieldState extends State<AuthField> {
                 filled: false,
                 border: InputBorder.none,
                 hintText: widget.hint,
-                hintStyle:
-                    AppTypography.body(size: 15, color: context.palette.ink3),
+                hintStyle: AppTypography.body(
+                  size: 15,
+                  color: context.palette.ink3,
+                ),
               ),
             ),
           ),
           if (widget.obscure)
             InkWell(
               onTap: () => setState(() => _hidden = !_hidden),
-              child: Icon(_hidden ? AppIcons.eye : AppIcons.eyeOff,
-                  size: 19, color: context.palette.ink3),
+              child: Icon(
+                _hidden ? AppIcons.eye : AppIcons.eyeOff,
+                size: 19,
+                color: context.palette.ink3,
+              ),
             ),
         ],
       ),

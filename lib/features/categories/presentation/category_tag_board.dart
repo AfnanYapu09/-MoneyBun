@@ -76,8 +76,11 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
                   color: context.palette.terraWash,
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: Icon(AppIcons.hash,
-                    size: 17, color: context.palette.terraFg),
+                child: Icon(
+                  AppIcons.hash,
+                  size: 17,
+                  color: context.palette.terraFg,
+                ),
               ),
               for (final t in tags)
                 _TagChip(
@@ -85,9 +88,11 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
                   selected: !widget.manage && _tags.contains(t.id),
                   onTap: () => widget.manage
                       ? _editTag(t)
-                      : setState(() => _tags.contains(t.id)
-                          ? _tags.remove(t.id)
-                          : _tags.add(t.id)),
+                      : setState(
+                          () => _tags.contains(t.id)
+                              ? _tags.remove(t.id)
+                              : _tags.add(t.id),
+                        ),
                 ),
               _AddTagChip(onAdd: _addTag),
             ],
@@ -118,17 +123,24 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(l10n.catReorderHint,
-                        style: AppTypography.body(
-                            size: 13, color: context.palette.ink3)),
+                    child: Text(
+                      l10n.catReorderHint,
+                      style: AppTypography.body(
+                        size: 13,
+                        color: context.palette.ink3,
+                      ),
+                    ),
                   ),
                   TextButton(
                     onPressed: () => setState(() => _editing = false),
-                    child: Text(l10n.catDone,
-                        style: AppTypography.heading(
-                            size: 15,
-                            weight: FontWeight.w600,
-                            color: AppColors.terra)),
+                    child: Text(
+                      l10n.catDone,
+                      style: AppTypography.heading(
+                        size: 15,
+                        weight: FontWeight.w600,
+                        color: AppColors.terra,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -145,9 +157,13 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
             if (!editing) ...[
               const SizedBox(height: 12),
               Center(
-                child: Text(l10n.catLongPressHint,
-                    style: AppTypography.body(
-                        size: 12.5, color: context.palette.ink3)),
+                child: Text(
+                  l10n.catLongPressHint,
+                  style: AppTypography.body(
+                    size: 12.5,
+                    color: context.palette.ink3,
+                  ),
+                ),
               ),
             ],
           ],
@@ -165,12 +181,15 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         content: Text(l10n.catConfirmDelete(c.displayName(locale))),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.delete,
-                style: TextStyle(color: context.palette.dangerFg)),
+            child: Text(
+              l10n.delete,
+              style: TextStyle(color: context.palette.dangerFg),
+            ),
           ),
         ],
       ),
@@ -193,10 +212,13 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         content: TextField(controller: controller, autofocus: true),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: Text(l10n.save)),
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(l10n.save),
+          ),
         ],
       ),
     );
@@ -219,10 +241,13 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c), child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(c),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(c, controller.text.trim()),
-              child: Text(l10n.catAdd)),
+            onPressed: () => Navigator.pop(c, controller.text.trim()),
+            child: Text(l10n.catAdd),
+          ),
         ],
       ),
     );
@@ -243,14 +268,19 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, '__delete__'),
-            child: Text(l10n.delete,
-                style: TextStyle(color: context.palette.dangerFg)),
+            child: Text(
+              l10n.delete,
+              style: TextStyle(color: context.palette.dangerFg),
+            ),
           ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: Text(l10n.save)),
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(l10n.save),
+          ),
         ],
       ),
     );
@@ -260,14 +290,21 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
       await repo.delete(t.id);
     } else if (action.isNotEmpty) {
       await repo.save(
-          id: t.id, name: action, colorHex: t.colorHex, sortOrder: t.sortOrder);
+        id: t.id,
+        name: action,
+        colorHex: t.colorHex,
+        sortOrder: t.sortOrder,
+      );
     }
   }
 }
 
 class _TagChip extends StatelessWidget {
-  const _TagChip(
-      {required this.label, required this.selected, required this.onTap});
+  const _TagChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -285,14 +322,18 @@ class _TagChip extends StatelessWidget {
           color: selected ? AppColors.terra : Colors.transparent,
           borderRadius: BorderRadius.circular(11),
           border: Border.all(
-              color: selected ? AppColors.terra : context.palette.line,
-              width: 1.5),
+            color: selected ? AppColors.terra : context.palette.line,
+            width: 1.5,
+          ),
         ),
-        child: Text('#$label',
-            style: AppTypography.heading(
-                size: 14,
-                weight: FontWeight.w500,
-                color: selected ? AppColors.reverse : context.palette.ink)),
+        child: Text(
+          '#$label',
+          style: AppTypography.heading(
+            size: 14,
+            weight: FontWeight.w500,
+            color: selected ? AppColors.reverse : context.palette.ink,
+          ),
+        ),
       ),
     );
   }
@@ -321,9 +362,10 @@ class _AddTagChip extends StatelessWidget {
           children: [
             const Icon(AppIcons.plus, size: 16, color: AppColors.terra),
             const SizedBox(width: 6),
-            Text(l10n.tagAddChip,
-                style:
-                    AppTypography.heading(size: 14, weight: FontWeight.w400)),
+            Text(
+              l10n.tagAddChip,
+              style: AppTypography.heading(size: 14, weight: FontWeight.w400),
+            ),
           ],
         ),
       ),
@@ -382,11 +424,7 @@ class _CategoryButton extends StatelessWidget {
         children: [
           glyph,
           if (editing && onDelete != null)
-            Positioned(
-              left: 0,
-              top: 0,
-              child: _DeleteBadge(onTap: onDelete!),
-            ),
+            Positioned(left: 0, top: 0, child: _DeleteBadge(onTap: onDelete!)),
         ],
       ),
     );
@@ -399,12 +437,13 @@ class _CategoryButton extends StatelessWidget {
           icon,
           const SizedBox(height: 7),
           Flexible(
-            child: Text(category.displayName(locale),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style:
-                    AppTypography.body(size: 12, color: context.palette.ink2)),
+            child: Text(
+              category.displayName(locale),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.body(size: 12, color: context.palette.ink2),
+            ),
           ),
         ],
       ),
@@ -438,11 +477,13 @@ class _AddCategoryButton extends StatelessWidget {
           ),
           const SizedBox(height: 7),
           Flexible(
-            child: Text(l10n.catAdd,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.body(size: 12, color: AppColors.terra)),
+            child: Text(
+              l10n.catAdd,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.body(size: 12, color: AppColors.terra),
+            ),
           ),
         ],
       ),

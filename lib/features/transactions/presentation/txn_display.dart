@@ -58,8 +58,12 @@ TxnDisplay txnDisplay(
       final from = accounts[t.accountId]?.displayName(locale) ?? accountWord;
       final to = accounts[t.toAccountId]?.displayName(locale) ?? accountWord;
       final transferWord = isThai ? 'ย้ายเงิน' : 'Transfer';
-      return TxnDisplay(AppIcons.arrowLeftRight, transferWord, '$date$from → $to',
-          color: context?.palette.amberFg ?? AppColors.amber);
+      return TxnDisplay(
+        AppIcons.arrowLeftRight,
+        transferWord,
+        '$date$from → $to',
+        color: context?.palette.amberFg ?? AppColors.amber,
+      );
     case TxnType.income:
       final categoryName = category?.displayName(locale);
       final title = (t.note != null && t.note!.isNotEmpty)
@@ -71,14 +75,22 @@ TxnDisplay txnDisplay(
       final icon = category != null
           ? CategoryIcons.forKey(category.iconKey)
           : AppIcons.banknote;
-      return TxnDisplay(icon, title, sub,
-          color: categoryColor, iconKey: category?.iconKey);
+      return TxnDisplay(
+        icon,
+        title,
+        sub,
+        color: categoryColor,
+        iconKey: category?.iconKey,
+      );
     case TxnType.expense:
       if (t.categoryId == null) {
         final fromSlip = isThai ? 'รายการใหม่จากสลิป' : 'New item from slip';
         final uncategorized = isThai ? 'ยังไม่จัดหมวด' : 'Uncategorized';
-        return TxnDisplay(AppIcons.receiptText, fromSlip,
-            '$date$uncategorized · $time');
+        return TxnDisplay(
+          AppIcons.receiptText,
+          fromSlip,
+          '$date$uncategorized · $time',
+        );
       }
       final categoryName = category?.displayName(locale);
       final itemWord = isThai ? 'รายการ' : 'Item';
@@ -87,7 +99,12 @@ TxnDisplay txnDisplay(
           : (categoryName ?? itemWord);
       final sub =
           '$date${categoryName ?? otherWord}${withTime ? ' · $time' : ''}';
-      return TxnDisplay(CategoryIcons.forKey(category?.iconKey), title, sub,
-          color: categoryColor, iconKey: category?.iconKey);
+      return TxnDisplay(
+        CategoryIcons.forKey(category?.iconKey),
+        title,
+        sub,
+        color: categoryColor,
+        iconKey: category?.iconKey,
+      );
   }
 }

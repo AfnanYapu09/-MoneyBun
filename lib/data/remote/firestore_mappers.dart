@@ -34,8 +34,9 @@ class FirestoreMappers {
         bankCode: Value(m['bankCode'] as String?),
         iconKey: Value(m['iconKey'] as String?),
         colorHex: Value(m['colorHex'] as String?),
-        openingBalanceCents:
-            Value((m['openingBalanceCents'] as num?)?.toInt() ?? 0),
+        openingBalanceCents: Value(
+          (m['openingBalanceCents'] as num?)?.toInt() ?? 0,
+        ),
         currency: Value(m['currency'] as String? ?? 'THB'),
         sortOrder: Value((m['sortOrder'] as num?)?.toInt() ?? 0),
         archived: Value(m['archived'] == true),
@@ -64,7 +65,9 @@ class FirestoreMappers {
       };
 
   static CategoriesCompanion categoryFromMap(
-          String id, Map<String, dynamic> m) =>
+    String id,
+    Map<String, dynamic> m,
+  ) =>
       CategoriesCompanion(
         id: Value(id),
         name: Value(m['name'] as String? ?? ''),
@@ -100,7 +103,9 @@ class FirestoreMappers {
       };
 
   static TransactionsCompanion transactionFromMap(
-          String id, Map<String, dynamic> m) =>
+    String id,
+    Map<String, dynamic> m,
+  ) =>
       TransactionsCompanion(
         id: Value(id),
         type: Value(_enum(TxnType.values, m['type'])),

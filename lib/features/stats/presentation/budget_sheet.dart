@@ -82,7 +82,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c
+        c.id: c,
     };
     final cat = _categoryId == null ? null : categories[_categoryId];
 
@@ -101,8 +101,10 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
               borderRadius: BorderRadius.circular(16),
               onTap: _pickCategory,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
                 decoration: BoxDecoration(
                   color: context.palette.surface,
                   borderRadius: BorderRadius.circular(16),
@@ -112,33 +114,46 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                   children: [
                     if (cat == null)
                       const IconChip(
-                          icon: AppIcons.layoutGrid,
-                          size: 38,
-                          radius: 12,
-                          iconSize: 19)
+                        icon: AppIcons.layoutGrid,
+                        size: 38,
+                        radius: 12,
+                        iconSize: 19,
+                      )
                     else
                       CategoryGlyph(
-                          iconKey: cat.iconKey,
-                          color: AppColors.forHex(cat.colorHex),
-                          size: 38,
-                          radius: 12,
-                          iconSize: 19),
+                        iconKey: cat.iconKey,
+                        color: AppColors.forHex(cat.colorHex),
+                        size: 38,
+                        radius: 12,
+                        iconSize: 19,
+                      ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(l10n.category,
-                              style: AppTypography.body(
-                                  size: 12.5, color: context.palette.ink3)),
-                          Text(cat?.displayName(locale) ?? l10n.selectCategory,
-                              style: AppTypography.heading(
-                                  size: 15, weight: FontWeight.w500)),
+                          Text(
+                            l10n.category,
+                            style: AppTypography.body(
+                              size: 12.5,
+                              color: context.palette.ink3,
+                            ),
+                          ),
+                          Text(
+                            cat?.displayName(locale) ?? l10n.selectCategory,
+                            style: AppTypography.heading(
+                              size: 15,
+                              weight: FontWeight.w500,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    Icon(AppIcons.chevronRight,
-                        size: 19, color: context.palette.ink3),
+                    Icon(
+                      AppIcons.chevronRight,
+                      size: 19,
+                      color: context.palette.ink3,
+                    ),
                   ],
                 ),
               ),
@@ -155,9 +170,13 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.statsBudgetAmount,
-                      style: AppTypography.body(
-                          size: 12.5, color: context.palette.ink3)),
+                  Text(
+                    l10n.statsBudgetAmount,
+                    style: AppTypography.body(
+                      size: 12.5,
+                      color: context.palette.ink3,
+                    ),
+                  ),
                   CalcHistoryLine(_calcHistory),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -172,24 +191,30 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                           enableInteractiveSelection: false,
                           onTap: _openCalculator,
                           style: AppTypography.heading(
-                              size: 38, weight: FontWeight.w600),
+                            size: 38,
+                            weight: FontWeight.w600,
+                          ),
                           decoration: InputDecoration(
                             isCollapsed: true,
                             border: InputBorder.none,
                             filled: false,
                             hintText: '0',
                             hintStyle: AppTypography.heading(
-                                size: 38,
-                                weight: FontWeight.w600,
-                                color: context.palette.ink3),
+                              size: 38,
+                              weight: FontWeight.w600,
+                              color: context.palette.ink3,
+                            ),
                           ),
                         ),
                       ),
-                      Text('฿',
-                          style: AppTypography.heading(
-                              size: 24,
-                              weight: FontWeight.w500,
-                              color: context.palette.ink3)),
+                      Text(
+                        '฿',
+                        style: AppTypography.heading(
+                          size: 24,
+                          weight: FontWeight.w500,
+                          color: context.palette.ink3,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -212,11 +237,14 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: context.palette.line),
                         ),
-                        child: Text('฿${_fmt(a)}',
-                            style: AppTypography.heading(
-                                size: 13,
-                                weight: FontWeight.w500,
-                                color: context.palette.ink2)),
+                        child: Text(
+                          '฿${_fmt(a)}',
+                          style: AppTypography.heading(
+                            size: 13,
+                            weight: FontWeight.w500,
+                            color: context.palette.ink2,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -225,9 +253,13 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            Text(l10n.statsBudgetCycle,
-                style: AppTypography.body(
-                    size: 12.5, color: context.palette.ink3)),
+            Text(
+              l10n.statsBudgetCycle,
+              style: AppTypography.body(
+                size: 12.5,
+                color: context.palette.ink3,
+              ),
+            ),
             const SizedBox(height: 8),
             SegmentedControl<BudgetPeriod>(
               value: _period,
@@ -249,12 +281,17 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
               ),
               child: Row(
                 children: [
-                  Icon(AppIcons.bellRing,
-                      size: 19, color: context.palette.terraFg),
+                  Icon(
+                    AppIcons.bellRing,
+                    size: 19,
+                    color: context.palette.terraFg,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(l10n.statsAlertAt80,
-                        style: AppTypography.body(size: 14.5)),
+                    child: Text(
+                      l10n.statsAlertAt80,
+                      style: AppTypography.body(size: 14.5),
+                    ),
                   ),
                   AppToggle(
                     value: _alert80,
@@ -277,14 +314,20 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(AppIcons.trash2,
-                          size: 19, color: context.palette.dangerFg),
+                      Icon(
+                        AppIcons.trash2,
+                        size: 19,
+                        color: context.palette.dangerFg,
+                      ),
                       const SizedBox(width: 8),
-                      Text(l10n.statsDeleteBudget,
-                          style: AppTypography.heading(
-                              size: 16,
-                              weight: FontWeight.w500,
-                              color: context.palette.dangerFg)),
+                      Text(
+                        l10n.statsDeleteBudget,
+                        style: AppTypography.heading(
+                          size: 16,
+                          weight: FontWeight.w500,
+                          color: context.palette.dangerFg,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -296,9 +339,10 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     );
   }
 
-  String _fmt(int n) => n
-      .toString()
-      .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
+  String _fmt(int n) => n.toString().replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+$)'),
+        (m) => '${m[1]},',
+      );
 
   Future<void> _pickCategory() async {
     final pick = await showModalBottomSheet<CategoryPick>(
@@ -315,21 +359,24 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     if (_categoryId == null || cents <= 0) {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.statsSelectCategoryAndAmount)));
+        SnackBar(content: Text(l10n.statsSelectCategoryAndAmount)),
+      );
       return;
     }
     final now = DateTime.now();
     final b = widget.budget;
     final start = b?.startDate ?? AppDate.toMillis(AppDate.startOfMonth(now));
-    await ref.read(databaseProvider).upsertBudget(BudgetsCompanion.insert(
-          id: b?.id ?? const Uuid().v4(),
-          categoryId: Value(_categoryId),
-          period: _period,
-          amountCents: cents,
-          startDate: start,
-          createdAt: b?.createdAt ?? now.millisecondsSinceEpoch,
-          updatedAt: now.millisecondsSinceEpoch,
-        ));
+    await ref.read(databaseProvider).upsertBudget(
+          BudgetsCompanion.insert(
+            id: b?.id ?? const Uuid().v4(),
+            categoryId: Value(_categoryId),
+            period: _period,
+            amountCents: cents,
+            startDate: start,
+            createdAt: b?.createdAt ?? now.millisecondsSinceEpoch,
+            updatedAt: now.millisecondsSinceEpoch,
+          ),
+        );
     if (mounted) Navigator.of(context).pop(true);
   }
 

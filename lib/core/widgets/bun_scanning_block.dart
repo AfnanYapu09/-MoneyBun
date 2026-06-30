@@ -70,9 +70,13 @@ class _BunScanningBlockState extends State<BunScanningBlock>
           Expanded(
             child: Row(
               children: [
-                Text(AppLocalizations.of(context).bunReadingSlips,
-                    style: AppTypography.heading(
-                        size: 14.5, weight: FontWeight.w500)),
+                Text(
+                  AppLocalizations.of(context).bunReadingSlips,
+                  style: AppTypography.heading(
+                    size: 14.5,
+                    weight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(width: 6),
                 _Dots(controller: _dots),
               ],
@@ -164,7 +168,10 @@ class _MiniSlip extends StatelessWidget {
                   color: AppColors.terra,
                   boxShadow: [
                     BoxShadow(
-                        color: AppColors.terra, blurRadius: 8, spreadRadius: 1),
+                      color: AppColors.terra,
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
                   ],
                 ),
               ),
@@ -188,8 +195,10 @@ class _SlipLine extends StatelessWidget {
       widthFactor: widthFactor,
       child: Container(
         height: 4,
-        decoration:
-            BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(3),
+        ),
       ),
     );
   }
@@ -210,8 +219,11 @@ class PullHint extends StatelessWidget {
           AnimatedRotation(
             turns: armed ? 0.5 : 0,
             duration: const Duration(milliseconds: 200),
-            child: const Icon(AppIcons.arrowDown,
-                size: 16, color: AppColors.terra),
+            child: const Icon(
+              AppIcons.arrowDown,
+              size: 16,
+              color: AppColors.terra,
+            ),
           ),
           const SizedBox(width: 8),
           Text(

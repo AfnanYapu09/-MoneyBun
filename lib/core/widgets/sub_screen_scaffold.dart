@@ -41,9 +41,13 @@ class SubScreenScaffold extends StatelessWidget {
                     color: context.palette.ink,
                   ),
                   Expanded(
-                    child: Text(title,
-                        style: AppTypography.heading(
-                            size: 18, weight: FontWeight.w600)),
+                    child: Text(
+                      title,
+                      style: AppTypography.heading(
+                        size: 18,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                   if (action != null) action!,
                 ],

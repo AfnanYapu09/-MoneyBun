@@ -135,7 +135,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c
+        c.id: c,
     };
 
     return FullSheetScaffold(
@@ -152,20 +152,23 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         },
         segments: [
           Segment(
-              value: TxnType.expense,
-              label: l10n.expense,
-              icon: AppIcons.arrowUpRight,
-              color: AppColors.terra),
+            value: TxnType.expense,
+            label: l10n.expense,
+            icon: AppIcons.arrowUpRight,
+            color: AppColors.terra,
+          ),
           Segment(
-              value: TxnType.income,
-              label: l10n.income,
-              icon: AppIcons.arrowDownLeft,
-              color: context.palette.greenFg),
+            value: TxnType.income,
+            label: l10n.income,
+            icon: AppIcons.arrowDownLeft,
+            color: context.palette.greenFg,
+          ),
           Segment(
-              value: TxnType.transfer,
-              label: l10n.transfer,
-              icon: AppIcons.arrowLeftRight,
-              color: context.palette.amberFg),
+            value: TxnType.transfer,
+            label: l10n.transfer,
+            icon: AppIcons.arrowLeftRight,
+            color: context.palette.amberFg,
+          ),
         ],
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a
@@ -184,14 +187,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(AppIcons.calendar,
-                      size: 18, color: context.palette.terraFg),
+                  Icon(
+                    AppIcons.calendar,
+                    size: 18,
+                    color: context.palette.terraFg,
+                  ),
                   const SizedBox(width: 8),
-                  Text(AppDate.formatDayHeader(_occurredAt, locale: locale),
-                      style: AppTypography.heading(
-                          size: 15,
-                          weight: FontWeight.w500,
-                          color: context.palette.terraFg)),
+                  Text(
+                    AppDate.formatDayHeader(_occurredAt, locale: locale),
+                    style: AppTypography.heading(
+                      size: 15,
+                      weight: FontWeight.w500,
+                      color: context.palette.terraFg,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -224,9 +233,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         enableInteractiveSelection: false,
                         onTap: _openCalculator,
                         style: AppTypography.heading(
-                            size: 40,
-                            weight: FontWeight.w600,
-                            color: context.palette.ink),
+                          size: 40,
+                          weight: FontWeight.w600,
+                          color: context.palette.ink,
+                        ),
                         decoration: InputDecoration(
                           isCollapsed: true,
                           border: InputBorder.none,
@@ -235,17 +245,21 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                           filled: false,
                           hintText: '0',
                           hintStyle: AppTypography.heading(
-                              size: 40,
-                              weight: FontWeight.w600,
-                              color: context.palette.ink3),
+                            size: 40,
+                            weight: FontWeight.w600,
+                            color: context.palette.ink3,
+                          ),
                         ),
                       ),
                     ),
-                    Text('฿',
-                        style: AppTypography.heading(
-                            size: 26,
-                            weight: FontWeight.w500,
-                            color: context.palette.ink3)),
+                    Text(
+                      '฿',
+                      style: AppTypography.heading(
+                        size: 26,
+                        weight: FontWeight.w500,
+                        color: context.palette.ink3,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -278,18 +292,22 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           const SizedBox(height: 18),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-            child: Text(l10n.addtxnMore,
-                style: AppTypography.heading(
-                    size: 13,
-                    weight: FontWeight.w500,
-                    color: context.palette.ink3)),
+            child: Text(
+              l10n.addtxnMore,
+              style: AppTypography.heading(
+                size: 13,
+                weight: FontWeight.w500,
+                color: context.palette.ink3,
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           _Row(
             icon: AppIcons.repeat,
             label: l10n.addtxnRecurring,
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.addtxnRecurringSoon))),
+            onTap: () => ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.addtxnRecurringSoon))),
           ),
           if (widget.editId != null) ...[
             const SizedBox(height: 22),
@@ -305,14 +323,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(AppIcons.trash2,
-                        size: 19, color: context.palette.dangerFg),
+                    Icon(
+                      AppIcons.trash2,
+                      size: 19,
+                      color: context.palette.dangerFg,
+                    ),
                     const SizedBox(width: 8),
-                    Text(l10n.addtxnDeleteEntry,
-                        style: AppTypography.heading(
-                            size: 16,
-                            weight: FontWeight.w500,
-                            color: context.palette.dangerFg)),
+                    Text(
+                      l10n.addtxnDeleteEntry,
+                      style: AppTypography.heading(
+                        size: 16,
+                        weight: FontWeight.w500,
+                        color: context.palette.dangerFg,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -329,8 +353,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         TxnType.expense => AppIcons.arrowUpRight,
       };
 
-  String? _categoryLabel(Map<String, CategoryRow> categories,
-      AppLocalizations l10n, String locale) {
+  String? _categoryLabel(
+    Map<String, CategoryRow> categories,
+    AppLocalizations l10n,
+    String locale,
+  ) {
     if (_categoryId == null) return null;
     final c = categories[_categoryId];
     final tagSuffix =
@@ -373,10 +400,13 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c), child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(c),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(c, controller.text.trim()),
-              child: Text(l10n.save)),
+            onPressed: () => Navigator.pop(c, controller.text.trim()),
+            child: Text(l10n.save),
+          ),
         ],
       ),
     );
@@ -398,8 +428,15 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_occurredAt),
     );
-    setState(() => _occurredAt = DateTime(date.year, date.month, date.day,
-        time?.hour ?? _occurredAt.hour, time?.minute ?? _occurredAt.minute));
+    setState(
+      () => _occurredAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time?.hour ?? _occurredAt.hour,
+        time?.minute ?? _occurredAt.minute,
+      ),
+    );
     _persistLive();
   }
 
@@ -440,8 +477,9 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     final l10n = AppLocalizations.of(context);
     final cents = Money.parseToCents(_amount.text) ?? 0;
     if (cents <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.addtxnEnterAmount)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.addtxnEnterAmount)));
       return;
     }
     final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
@@ -468,10 +506,13 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         content: Text(l10n.addtxnConfirmDelete),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(c, true), child: Text(l10n.delete)),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(l10n.delete),
+          ),
         ],
       ),
     );
@@ -511,12 +552,15 @@ class _Row extends StatelessWidget {
             IconChip(icon: icon, size: 36, radius: 11, iconSize: 18),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(value ?? label,
-                  style: AppTypography.body(
-                      size: 15,
-                      color: value == null
-                          ? context.palette.ink2
-                          : context.palette.ink)),
+              child: Text(
+                value ?? label,
+                style: AppTypography.body(
+                  size: 15,
+                  color: value == null
+                      ? context.palette.ink2
+                      : context.palette.ink,
+                ),
+              ),
             ),
             Icon(AppIcons.chevronRight, size: 19, color: context.palette.ink3),
           ],

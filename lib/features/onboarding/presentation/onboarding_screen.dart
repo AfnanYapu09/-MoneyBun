@@ -32,11 +32,16 @@ class OnboardingScreen extends ConsumerWidget {
                     await _seen(ref);
                     if (!context.mounted) return;
                     context.go(
-                        ref.read(firebaseReadyProvider) ? '/login' : '/home');
+                      ref.read(firebaseReadyProvider) ? '/login' : '/home',
+                    );
                   },
-                  child: Text(l10n.onbSkip,
-                      style: AppTypography.body(
-                          size: 14, color: context.palette.ink3)),
+                  child: Text(
+                    l10n.onbSkip,
+                    style: AppTypography.body(
+                      size: 14,
+                      color: context.palette.ink3,
+                    ),
+                  ),
                 ),
               ),
               const Spacer(),
@@ -51,16 +56,20 @@ class OnboardingScreen extends ConsumerWidget {
                 child: const BunCalculator(width: 212),
               ),
               const SizedBox(height: 24),
-              Text(l10n.onbSlideTitle,
-                  textAlign: TextAlign.center,
-                  style:
-                      AppTypography.heading(size: 25, weight: FontWeight.w600)),
+              Text(
+                l10n.onbSlideTitle,
+                textAlign: TextAlign.center,
+                style: AppTypography.heading(size: 25, weight: FontWeight.w600),
+              ),
               const SizedBox(height: 10),
               Text(
                 l10n.onbSlideBody,
                 textAlign: TextAlign.center,
                 style: AppTypography.body(
-                    size: 15, color: context.palette.ink2, height: 1.55),
+                  size: 15,
+                  color: context.palette.ink2,
+                  height: 1.55,
+                ),
               ),
               const Spacer(),
               PrimaryButton(

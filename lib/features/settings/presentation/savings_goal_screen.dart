@@ -85,18 +85,23 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.settingsSavedThisMonth,
-                    style: AppTypography.body(
-                        size: 13, color: context.palette.greenFg)),
+                Text(
+                  l10n.settingsSavedThisMonth,
+                  style: AppTypography.body(
+                    size: 13,
+                    color: context.palette.greenFg,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   goal > 0
                       ? '${Money.compact(saved)} / ${Money.compact(goal)}'
                       : Money.compact(saved),
                   style: AppTypography.heading(
-                      size: 28,
-                      weight: FontWeight.w600,
-                      color: context.palette.greenFg),
+                    size: 28,
+                    weight: FontWeight.w600,
+                    color: context.palette.greenFg,
+                  ),
                 ),
                 if (goal > 0) ...[
                   const SizedBox(height: 12),
@@ -110,7 +115,9 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                   if (saved >= goal)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.green,
                         borderRadius: BorderRadius.circular(999),
@@ -118,33 +125,46 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(AppIcons.partyPopper,
-                              size: 14, color: Colors.white),
+                          const Icon(
+                            AppIcons.partyPopper,
+                            size: 14,
+                            color: Colors.white,
+                          ),
                           const SizedBox(width: 5),
                           Text(
-                              l10n.settingsGoalReached(
-                                  (saved / goal * 100).round()),
-                              style: AppTypography.heading(
-                                  size: 12.5,
-                                  weight: FontWeight.w500,
-                                  color: Colors.white)),
+                            l10n.settingsGoalReached(
+                              (saved / goal * 100).round(),
+                            ),
+                            style: AppTypography.heading(
+                              size: 12.5,
+                              weight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
                         ],
                       ),
                     )
                   else
-                    Text(l10n.settingsGoalProgress((pct * 100).round()),
-                        style: AppTypography.body(
-                            size: 12.5, color: context.palette.greenFg)),
+                    Text(
+                      l10n.settingsGoalProgress((pct * 100).round()),
+                      style: AppTypography.body(
+                        size: 12.5,
+                        color: context.palette.greenFg,
+                      ),
+                    ),
                 ],
               ],
             ),
           ),
           const SizedBox(height: 20),
-          Text(l10n.settingsMonthlyGoal,
-              style: AppTypography.heading(
-                  size: 14,
-                  weight: FontWeight.w500,
-                  color: context.palette.ink3)),
+          Text(
+            l10n.settingsMonthlyGoal,
+            style: AppTypography.heading(
+              size: 14,
+              weight: FontWeight.w500,
+              color: context.palette.ink3,
+            ),
+          ),
           const SizedBox(height: 8),
           CalcHistoryLine(_calcHistory),
           TextField(
@@ -154,8 +174,10 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
             showCursor: false,
             enableInteractiveSelection: false,
             onTap: _openCalculator,
-            decoration:
-                const InputDecoration(prefixText: '฿ ', hintText: '8,000'),
+            decoration: const InputDecoration(
+              prefixText: '฿ ',
+              hintText: '8,000',
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -173,11 +195,14 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: context.palette.line),
                       ),
-                      child: Text('฿${_fmt(a)}',
-                          style: AppTypography.heading(
-                              size: 13,
-                              weight: FontWeight.w500,
-                              color: context.palette.ink2)),
+                      child: Text(
+                        '฿${_fmt(a)}',
+                        style: AppTypography.heading(
+                          size: 13,
+                          weight: FontWeight.w500,
+                          color: context.palette.ink2,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -192,9 +217,10 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
     );
   }
 
-  String _fmt(int n) => n
-      .toString()
-      .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
+  String _fmt(int n) => n.toString().replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+$)'),
+        (m) => '${m[1]},',
+      );
 
   Future<void> _save() async {
     final cents = Money.parseToCents(_amount.text) ?? 0;

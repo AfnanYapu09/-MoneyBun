@@ -170,8 +170,10 @@ class _MonthGrid extends ConsumerWidget {
             children: [
               for (var m = 1; m <= 12; m++)
                 _PickTile(
-                  label: AppDate.formatMonthShort(DateTime(year, m),
-                      locale: locale),
+                  label: AppDate.formatMonthShort(
+                    DateTime(year, m),
+                    locale: locale,
+                  ),
                   selected: period.monthAnchor.year == year &&
                       period.monthAnchor.month == m,
                   onTap: () => onPick(DateTime(year, m)),
@@ -259,8 +261,9 @@ class _WeekListState extends ConsumerState<_WeekList> {
       weeks.add(w);
       w = AppDate.addWeeks(w, 1);
     }
-    final selectedStart =
-        AppDate.startOfWeek(period.isWeek ? period.anchor : DateTime.now());
+    final selectedStart = AppDate.startOfWeek(
+      period.isWeek ? period.anchor : DateTime.now(),
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -281,8 +284,10 @@ class _WeekListState extends ConsumerState<_WeekList> {
               return _PickTile(
                 key: selected ? _selectedKey : null,
                 label: l10n.statsWeekN(i + 1),
-                subtitle:
-                    AppDate.formatWeekRange(weeks[i], locale: widget.locale),
+                subtitle: AppDate.formatWeekRange(
+                  weeks[i],
+                  locale: widget.locale,
+                ),
                 selected: selected,
                 onTap: () => widget.onPick(weeks[i]),
                 alignStart: true,
@@ -347,8 +352,11 @@ class _YearGrid extends ConsumerWidget {
 }
 
 class _Stepper extends StatelessWidget {
-  const _Stepper(
-      {required this.label, required this.onPrev, required this.onNext});
+  const _Stepper({
+    required this.label,
+    required this.onPrev,
+    required this.onNext,
+  });
   final String label;
   final VoidCallback onPrev;
   final VoidCallback onNext;
@@ -359,8 +367,10 @@ class _Stepper extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _RoundIcon(icon: AppIcons.chevronLeft, onTap: onPrev),
-        Text(label,
-            style: AppTypography.heading(size: 16, weight: FontWeight.w600)),
+        Text(
+          label,
+          style: AppTypography.heading(size: 16, weight: FontWeight.w600),
+        ),
         _RoundIcon(icon: AppIcons.chevronRight, onTap: onNext),
       ],
     );
@@ -433,7 +443,10 @@ class _PickTile extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.heading(
-                  size: 14, weight: FontWeight.w500, color: fg),
+                size: 14,
+                weight: FontWeight.w500,
+                color: fg,
+              ),
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 2),
@@ -472,11 +485,14 @@ class _TodayButton extends StatelessWidget {
           color: context.palette.terraWash,
           borderRadius: BorderRadius.circular(99),
         ),
-        child: Text(l10n.statsThisMonth,
-            style: AppTypography.heading(
-                size: 13,
-                weight: FontWeight.w500,
-                color: context.palette.terraFg)),
+        child: Text(
+          l10n.statsThisMonth,
+          style: AppTypography.heading(
+            size: 13,
+            weight: FontWeight.w500,
+            color: context.palette.terraFg,
+          ),
+        ),
       ),
     );
   }

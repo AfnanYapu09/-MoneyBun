@@ -53,11 +53,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c
+        c.id: c,
     };
     final accounts = {
       for (final a in ref.watch(accountsProvider).value ?? const <AccountRow>[])
-        a.id: a
+        a.id: a,
     };
     final budgets = ref.watch(budgetsProvider).value ?? const <BudgetRow>[];
     final settings = ref.watch(appSettingsProvider).value;
@@ -74,7 +74,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Every budget (weekly / monthly / yearly) converted to the active window
     // so the spending card compares like-for-like with the period's spending.
     final totalBudget = budgets.fold<int>(
-        0, (s, b) => s + budgetForWindow(b.amountCents, b.period, period));
+      0,
+      (s, b) => s + budgetForWindow(b.amountCents, b.period, period),
+    );
 
     // The home recent list surfaces only the actionable, still-uncategorised
     // slip imports (newest first, capped); everything else lives on
@@ -92,7 +94,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Bouncing physics on every platform so the Cupertino-style refresh
           // control (Bun scanning block) can be revealed by overscroll.
           physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics()),
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           slivers: [
             // Pull-to-refresh: NO Material spinner — just a pull hint. The
             // "น้องบันกำลังอ่านสลิป" scanning block now lives in the body
@@ -150,7 +153,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                     _RecentHeader(
-                        onSeeAll: () => context.push('/transactions')),
+                      onSeeAll: () => context.push('/transactions'),
+                    ),
                     _RecentList(
                       uncategorized: recentUncategorized,
                       categories: categories,
@@ -289,11 +293,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         content: Text(l10n.homePhotoPermissionBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: Text(l10n.homeOpenSettings)),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(l10n.homeOpenSettings),
+          ),
         ],
       ),
     );
@@ -319,14 +325,19 @@ class _PullHint extends StatelessWidget {
             AnimatedRotation(
               turns: armed ? 0.5 : 0,
               duration: const Duration(milliseconds: 200),
-              child: const Icon(AppIcons.arrowDown,
-                  size: 16, color: AppColors.terra),
+              child: const Icon(
+                AppIcons.arrowDown,
+                size: 16,
+                color: AppColors.terra,
+              ),
             ),
             const SizedBox(width: 8),
             Text(
               armed ? l10n.homePullRelease : l10n.homePullHint,
-              style:
-                  AppTypography.body(size: 13.5, color: context.palette.ink3),
+              style: AppTypography.body(
+                size: 13.5,
+                color: context.palette.ink3,
+              ),
             ),
           ],
         ),
@@ -353,12 +364,17 @@ class _Header extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(greeting,
-                  style: AppTypography.body(
-                      size: 13, color: context.palette.ink3)),
-              Text(name,
-                  style:
-                      AppTypography.heading(size: 20, weight: FontWeight.w600)),
+              Text(
+                greeting,
+                style: AppTypography.body(
+                  size: 13,
+                  color: context.palette.ink3,
+                ),
+              ),
+              Text(
+                name,
+                style: AppTypography.heading(size: 20, weight: FontWeight.w600),
+              ),
             ],
           ),
         ),
@@ -436,24 +452,34 @@ class _SpendingCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.homeSpentNoun(subtitleNoun),
-                  style: AppTypography.body(
-                      size: 14,
-                      color: AppColors.reverse.withValues(alpha: 0.82))),
+              Text(
+                l10n.homeSpentNoun(subtitleNoun),
+                style: AppTypography.body(
+                  size: 14,
+                  color: AppColors.reverse.withValues(alpha: 0.82),
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(Money.compact(spentCents),
-                  style: AppTypography.heading(
-                      size: 38,
-                      weight: FontWeight.w600,
-                      color: AppColors.reverse)),
+              Text(
+                Money.compact(spentCents),
+                style: AppTypography.heading(
+                  size: 38,
+                  weight: FontWeight.w600,
+                  color: AppColors.reverse,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
                 hasBudget
                     ? l10n.homeBudgetRemaining(
-                        Money.compact(remaining), Money.compact(budgetCents))
+                        Money.compact(remaining),
+                        Money.compact(budgetCents),
+                      )
                     : l10n.homeNoBudget,
                 style: AppTypography.body(
-                    size: 13, color: AppColors.reverse.withValues(alpha: 0.82)),
+                  size: 13,
+                  color: AppColors.reverse.withValues(alpha: 0.82),
+                ),
               ),
               const SizedBox(height: 14),
               ClipRRect(
@@ -472,23 +498,31 @@ class _SpendingCard extends StatelessWidget {
                 onTap: scanning ? null : () => onRefresh(),
                 child: Row(
                   children: [
-                    Icon(scanning ? AppIcons.loader : AppIcons.receiptText,
-                        size: 14, color: AppColors.reverse),
+                    Icon(
+                      scanning ? AppIcons.loader : AppIcons.receiptText,
+                      size: 14,
+                      color: AppColors.reverse,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         scanning
                             ? l10n.homeReadingSlip
-                            : l10n.homeLastReadSlip(_relative(lastReadAt, l10n)),
+                            : l10n.homeLastReadSlip(
+                                _relative(lastReadAt, l10n),
+                              ),
                         style: AppTypography.body(
-                            size: 12,
-                            color: AppColors.reverse.withValues(alpha: 0.82)),
+                          size: 12,
+                          color: AppColors.reverse.withValues(alpha: 0.82),
+                        ),
                       ),
                     ),
                     if (!scanning)
-                      Icon(AppIcons.rotateCw,
-                          size: 14,
-                          color: AppColors.reverse.withValues(alpha: 0.7)),
+                      Icon(
+                        AppIcons.rotateCw,
+                        size: 14,
+                        color: AppColors.reverse.withValues(alpha: 0.7),
+                      ),
                   ],
                 ),
               ),
@@ -501,8 +535,9 @@ class _SpendingCard extends StatelessWidget {
 
   String _relative(int? ms, AppLocalizations l10n) {
     if (ms == null) return l10n.homeNeverRead;
-    final diff =
-        DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ms));
+    final diff = DateTime.now().difference(
+      DateTime.fromMillisecondsSinceEpoch(ms),
+    );
     if (diff.inMinutes < 1) return l10n.homeJustNow;
     if (diff.inMinutes < 60) return l10n.homeMinutesAgo(diff.inMinutes);
     if (diff.inHours < 24) return l10n.homeHoursAgo(diff.inHours);
@@ -520,13 +555,20 @@ class _RecentHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(l10n.homeRecentTitle,
-            style: AppTypography.heading(size: 16, weight: FontWeight.w500)),
+        Text(
+          l10n.homeRecentTitle,
+          style: AppTypography.heading(size: 16, weight: FontWeight.w500),
+        ),
         InkWell(
           onTap: onSeeAll,
-          child: Text(l10n.homeSeeAll,
-              style: AppTypography.heading(
-                  size: 13, weight: FontWeight.w400, color: AppColors.terra)),
+          child: Text(
+            l10n.homeSeeAll,
+            style: AppTypography.heading(
+              size: 13,
+              weight: FontWeight.w400,
+              color: AppColors.terra,
+            ),
+          ),
         ),
       ],
     );
@@ -562,13 +604,15 @@ class _RecentList extends StatelessWidget {
           children: [
             const BunAvatar(size: 72),
             const SizedBox(height: 12),
-            Text(l10n.homeNothingToCategorize,
-                style:
-                    AppTypography.heading(size: 15, weight: FontWeight.w500)),
+            Text(
+              l10n.homeNothingToCategorize,
+              style: AppTypography.heading(size: 15, weight: FontWeight.w500),
+            ),
             const SizedBox(height: 4),
-            Text(l10n.homeNothingToCategorizeHint,
-                style:
-                    AppTypography.body(size: 13, color: context.palette.ink3)),
+            Text(
+              l10n.homeNothingToCategorizeHint,
+              style: AppTypography.body(size: 13, color: context.palette.ink3),
+            ),
           ],
         ),
       );

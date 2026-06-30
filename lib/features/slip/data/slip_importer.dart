@@ -263,7 +263,9 @@ class SlipImporter {
         final file = await asset.file;
         if (file == null) continue;
         acc.inspected++;
-        final parsed = (await _pipeline.process(file.path))
+        final parsed = (await _pipeline.process(
+          file.path,
+        ))
             .copyWith(imagePath: file.path, assetId: asset.id);
         // Skip if this exact slip (by bank transaction reference) was already
         // imported — guards against a re-import when the asset id differs

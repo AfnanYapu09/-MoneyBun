@@ -50,74 +50,105 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const Center(child: Wordmark(size: 30)),
             const SizedBox(height: 8),
             Center(
-              child: Text(l10n.authLoginSubtitle,
-                  style: AppTypography.body(
-                      size: 14, color: context.palette.ink2)),
+              child: Text(
+                l10n.authLoginSubtitle,
+                style: AppTypography.body(
+                  size: 14,
+                  color: context.palette.ink2,
+                ),
+              ),
             ),
             const SizedBox(height: 30),
             AuthField(
-                icon: AppIcons.mail,
-                hint: l10n.authEmail,
-                controller: _email,
-                keyboardType: TextInputType.emailAddress),
+              icon: AppIcons.mail,
+              hint: l10n.authEmail,
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+            ),
             const SizedBox(height: 12),
             AuthField(
-                icon: AppIcons.lock,
-                hint: l10n.authPassword,
-                controller: _password,
-                obscure: true),
+              icon: AppIcons.lock,
+              hint: l10n.authPassword,
+              controller: _password,
+              obscure: true,
+            ),
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
               child: InkWell(
                 onTap: () => context.push('/forgot-password'),
-                child: Text(l10n.authForgotPassword,
-                    style: AppTypography.heading(
-                        size: 13,
-                        weight: FontWeight.w400,
-                        color: AppColors.terra)),
+                child: Text(
+                  l10n.authForgotPassword,
+                  style: AppTypography.heading(
+                    size: 13,
+                    weight: FontWeight.w400,
+                    color: AppColors.terra,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 14),
             PrimaryButton(
-                label: l10n.authLogin, loading: _busy, onPressed: _login),
+              label: l10n.authLogin,
+              loading: _busy,
+              onPressed: _login,
+            ),
             const SizedBox(height: 22),
-            Row(children: [
-              Expanded(child: Divider(color: context.palette.line)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(l10n.authOr,
+            Row(
+              children: [
+                Expanded(child: Divider(color: context.palette.line)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    l10n.authOr,
                     style: AppTypography.body(
-                        size: 13, color: context.palette.ink3)),
-              ),
-              Expanded(child: Divider(color: context.palette.line)),
-            ]),
+                      size: 13,
+                      color: context.palette.ink3,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: context.palette.line)),
+              ],
+            ),
             const SizedBox(height: 22),
-            Row(children: [
-              SocialButton(
-                  icon: AppIcons.google, label: 'Google', onPressed: _google),
-              const SizedBox(width: 12),
-              SocialButton(
-                  icon: AppIcons.apple, label: 'Apple', onPressed: _apple),
-            ]),
+            Row(
+              children: [
+                SocialButton(
+                  icon: AppIcons.google,
+                  label: 'Google',
+                  onPressed: _google,
+                ),
+                const SizedBox(width: 12),
+                SocialButton(
+                  icon: AppIcons.apple,
+                  label: 'Apple',
+                  onPressed: _apple,
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             Center(
               child: GestureDetector(
                 onTap: () => context.push('/signup'),
-                child: Text.rich(TextSpan(
-                  text: l10n.authNoAccount,
-                  style:
-                      AppTypography.body(size: 14, color: context.palette.ink2),
-                  children: [
-                    TextSpan(
-                      text: l10n.authSignUpNow,
-                      style: AppTypography.heading(
+                child: Text.rich(
+                  TextSpan(
+                    text: l10n.authNoAccount,
+                    style: AppTypography.body(
+                      size: 14,
+                      color: context.palette.ink2,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: l10n.authSignUpNow,
+                        style: AppTypography.heading(
                           size: 14,
                           weight: FontWeight.w500,
-                          color: AppColors.terra),
-                    ),
-                  ],
-                )),
+                          color: AppColors.terra,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
             if (!firebaseReady) ...[
@@ -125,9 +156,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Center(
                 child: TextButton(
                   onPressed: () => context.go('/home'),
-                  child: Text(l10n.authContinueGuest,
-                      style: AppTypography.body(
-                          size: 13, color: context.palette.ink3)),
+                  child: Text(
+                    l10n.authContinueGuest,
+                    style: AppTypography.body(
+                      size: 13,
+                      color: context.palette.ink3,
+                    ),
+                  ),
                 ),
               ),
             ],

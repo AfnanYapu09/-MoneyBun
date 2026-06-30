@@ -126,14 +126,22 @@ class AccountFlowCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(fromLabel,
-                          style: AppTypography.body(
-                              size: 11.5, color: context.palette.ink3)),
-                      Text(fromName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.heading(
-                              size: 14, weight: FontWeight.w500)),
+                      Text(
+                        fromLabel,
+                        style: AppTypography.body(
+                          size: 11.5,
+                          color: context.palette.ink3,
+                        ),
+                      ),
+                      Text(
+                        fromName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.heading(
+                          size: 14,
+                          weight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -143,8 +151,11 @@ class AccountFlowCard extends StatelessWidget {
           if (hasTo) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Icon(AppIcons.arrowRight,
-                  size: 18, color: context.palette.ink3),
+              child: Icon(
+                AppIcons.arrowRight,
+                size: 18,
+                color: context.palette.ink3,
+              ),
             ),
             Expanded(
               child: Row(
@@ -153,15 +164,23 @@ class AccountFlowCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(toLabel ?? '',
-                            style: AppTypography.body(
-                                size: 11.5, color: context.palette.ink3)),
-                        Text(toName!,
-                            textAlign: TextAlign.right,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.heading(
-                                size: 14, weight: FontWeight.w500)),
+                        Text(
+                          toLabel ?? '',
+                          style: AppTypography.body(
+                            size: 11.5,
+                            color: context.palette.ink3,
+                          ),
+                        ),
+                        Text(
+                          toName!,
+                          textAlign: TextAlign.right,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.heading(
+                            size: 14,
+                            weight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -205,15 +224,26 @@ class SlipChip extends StatelessWidget {
         child: Row(
           children: [
             const IconChip(
-                icon: AppIcons.receiptText, size: 40, radius: 11, iconSize: 19),
+              icon: AppIcons.receiptText,
+              size: 40,
+              radius: 11,
+              iconSize: 19,
+            ),
             const SizedBox(width: 14),
             Expanded(
-              child:
-                  Text(l10n.txnSlipOriginal, style: AppTypography.body(size: 14.5)),
+              child: Text(
+                l10n.txnSlipOriginal,
+                style: AppTypography.body(size: 14.5),
+              ),
             ),
-            Text(l10n.txnViewImage,
-                style: AppTypography.heading(
-                    size: 13, weight: FontWeight.w400, color: AppColors.terra)),
+            Text(
+              l10n.txnViewImage,
+              style: AppTypography.heading(
+                size: 13,
+                weight: FontWeight.w400,
+                color: AppColors.terra,
+              ),
+            ),
           ],
         ),
       ),
@@ -223,8 +253,11 @@ class SlipChip extends StatelessWidget {
 
 /// Full-screen viewer for the stored slip image. Pass [onDelete] to show a
 /// "ลบรายการ" button (e.g. for a slip whose amount couldn't be read).
-void showSlipViewer(BuildContext context, SlipRow slip,
-    {VoidCallback? onDelete}) {
+void showSlipViewer(
+  BuildContext context,
+  SlipRow slip, {
+  VoidCallback? onDelete,
+}) {
   final l10n = AppLocalizations.of(context);
   showDialog<void>(
     context: context,
@@ -264,7 +297,9 @@ void showSlipViewer(BuildContext context, SlipRow slip,
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 11),
+                      horizontal: 18,
+                      vertical: 11,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.danger,
                       borderRadius: BorderRadius.circular(99),
@@ -272,14 +307,20 @@ void showSlipViewer(BuildContext context, SlipRow slip,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(AppIcons.trash2,
-                            size: 18, color: Colors.white),
+                        const Icon(
+                          AppIcons.trash2,
+                          size: 18,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 8),
-                        Text(l10n.txnDeleteEntry,
-                            style: AppTypography.heading(
-                                size: 14,
-                                weight: FontWeight.w500,
-                                color: Colors.white)),
+                        Text(
+                          l10n.txnDeleteEntry,
+                          style: AppTypography.heading(
+                            size: 14,
+                            weight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
                       ],
                     ),
                   ),

@@ -110,9 +110,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _save() async {
     final repo = ref.read(settingsRepositoryProvider);
     await repo.setDisplayName(
-        _name.text.trim().isEmpty ? 'คุณบัน' : _name.text.trim());
+      _name.text.trim().isEmpty ? 'คุณบัน' : _name.text.trim(),
+    );
     await repo.setUsername(
-        _username.text.trim().isEmpty ? 'moneybun' : _username.text.trim());
+      _username.text.trim().isEmpty ? 'moneybun' : _username.text.trim(),
+    );
     await repo.setPhone(_phone.text.trim());
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
@@ -165,8 +167,10 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nameStyle = AppTypography.heading(size: 20, weight: FontWeight.w600);
-    final handleStyle =
-        AppTypography.body(size: 13, color: context.palette.ink3);
+    final handleStyle = AppTypography.body(
+      size: 13,
+      color: context.palette.ink3,
+    );
 
     return Center(
       child: Column(
@@ -243,8 +247,10 @@ class _ProfileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle =
-        AppTypography.body(size: 12, color: context.palette.ink3);
+    final labelStyle = AppTypography.body(
+      size: 12,
+      color: context.palette.ink3,
+    );
     final valueStyle = AppTypography.body(size: 15.5);
 
     return Padding(

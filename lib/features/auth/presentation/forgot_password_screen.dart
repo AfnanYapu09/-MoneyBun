@@ -38,18 +38,27 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
         children: [
-          Text(l10n.authForgotPasswordDesc,
-              style: AppTypography.body(
-                  size: 14.5, color: context.palette.ink2, height: 1.5)),
+          Text(
+            l10n.authForgotPasswordDesc,
+            style: AppTypography.body(
+              size: 14.5,
+              color: context.palette.ink2,
+              height: 1.5,
+            ),
+          ),
           const SizedBox(height: 20),
           AuthField(
-              icon: AppIcons.mail,
-              hint: l10n.authEmail,
-              controller: _email,
-              keyboardType: TextInputType.emailAddress),
+            icon: AppIcons.mail,
+            hint: l10n.authEmail,
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+          ),
           const SizedBox(height: 24),
           PrimaryButton(
-              label: l10n.authSendLink, loading: _busy, onPressed: _send),
+            label: l10n.authSendLink,
+            loading: _busy,
+            onPressed: _send,
+          ),
         ],
       ),
     );
@@ -64,8 +73,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     setState(() => _busy = true);
     try {
       await auth.sendPasswordReset(_email.text);
+      if (!mounted) return;
       _snack(AppLocalizations.of(context).authResetLinkSent);
-      if (mounted) context.pop();
+      context.pop();
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);

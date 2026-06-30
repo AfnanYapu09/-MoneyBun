@@ -18,8 +18,9 @@ class AuthService {
 
   /// The Web OAuth client id from the Firebase/Google Cloud console (passed via
   ///   --dart-define=GOOGLE_SERVER_CLIENT_ID=xxxx.apps.googleusercontent.com).
-  static const _serverClientId =
-      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+  static const _serverClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
@@ -29,14 +30,21 @@ class AuthService {
 
   Future<User?> signInWithEmail(String email, String password) async {
     final result = await _auth.signInWithEmailAndPassword(
-        email: email.trim(), password: password);
+      email: email.trim(),
+      password: password,
+    );
     return result.user;
   }
 
   Future<User?> signUpWithEmail(
-      String name, String email, String password) async {
+    String name,
+    String email,
+    String password,
+  ) async {
     final result = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(), password: password);
+      email: email.trim(),
+      password: password,
+    );
     if (name.trim().isNotEmpty) {
       await result.user?.updateDisplayName(name.trim());
     }
@@ -61,7 +69,8 @@ class AuthService {
     final gsi = GoogleSignIn.instance;
     if (!gsi.supportsAuthenticate()) {
       throw UnsupportedError(
-          'Google Sign-In is not supported on this platform');
+        'Google Sign-In is not supported on this platform',
+      );
     }
     final account = await gsi.authenticate();
     final idToken = account.authentication.idToken;
@@ -90,10 +99,9 @@ class AuthService {
       ],
       nonce: hashedNonce,
     );
-    final oauth = OAuthProvider('apple.com').credential(
-      idToken: appleCredential.identityToken,
-      rawNonce: rawNonce,
-    );
+    final oauth = OAuthProvider(
+      'apple.com',
+    ).credential(idToken: appleCredential.identityToken, rawNonce: rawNonce);
     final result = await _auth.signInWithCredential(oauth);
     return result.user;
   }
@@ -102,8 +110,10 @@ class AuthService {
     const chars =
         '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._';
     final rnd = Random.secure();
-    return List.generate(length, (_) => chars[rnd.nextInt(chars.length)])
-        .join();
+    return List.generate(
+      length,
+      (_) => chars[rnd.nextInt(chars.length)],
+    ).join();
   }
 
   // ---- Sign out ----------------------------------------------------------

@@ -117,9 +117,7 @@ const List<_IconGroup> _groups = [
     'amulet',
     'fortune',
   ]),
-  _IconGroup('อื่นๆ', 'Other', false, [
-    'misc',
-  ]),
+  _IconGroup('อื่นๆ', 'Other', false, ['misc']),
   // ---- Income ----
   _IconGroup('งาน & เงินเดือน', 'Work & Salary', true, [
     'salary',
@@ -199,11 +197,14 @@ class AddCategorySheet extends ConsumerWidget {
           for (final g in groups) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 14, 4, 10),
-              child: Text(g.label(locale),
-                  style: AppTypography.heading(
-                      size: 14,
-                      weight: FontWeight.w600,
-                      color: context.palette.ink2)),
+              child: Text(
+                g.label(locale),
+                style: AppTypography.heading(
+                  size: 14,
+                  weight: FontWeight.w600,
+                  color: context.palette.ink2,
+                ),
+              ),
             ),
             GridView.count(
               crossAxisCount: 4,
@@ -260,24 +261,23 @@ class _IconTile extends StatelessWidget {
                   circle: true,
                 ),
                 if (added)
-                  const Positioned(
-                    right: -2,
-                    bottom: -2,
-                    child: _AddedBadge(),
-                  ),
+                  const Positioned(right: -2, bottom: -2, child: _AddedBadge()),
               ],
             ),
             const SizedBox(height: 7),
             Flexible(
               child: Text(
-                  Localizations.localeOf(context).languageCode.startsWith('en')
-                      ? info.nameEn
-                      : info.nameTh,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.body(
-                      size: 11.5, color: context.palette.ink2)),
+                Localizations.localeOf(context).languageCode.startsWith('en')
+                    ? info.nameEn
+                    : info.nameTh,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.body(
+                  size: 11.5,
+                  color: context.palette.ink2,
+                ),
+              ),
             ),
           ],
         ),
@@ -294,10 +294,7 @@ class _AddedBadge extends StatelessWidget {
     return Container(
       width: 20,
       height: 20,
-      decoration: BoxDecoration(
-        color: AppColors.green,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
       child: const Icon(AppIcons.check, size: 13, color: Colors.white),
     );
   }

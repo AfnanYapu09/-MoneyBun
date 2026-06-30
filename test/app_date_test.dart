@@ -29,11 +29,15 @@ void main() {
 
     test('startOfWeek snaps back to Sunday', () {
       // 2026-06-17 is a Wednesday; its week starts Sunday 2026-06-14.
-      expect(AppDate.startOfWeek(DateTime(2026, 6, 17, 13)),
-          DateTime(2026, 6, 14));
+      expect(
+        AppDate.startOfWeek(DateTime(2026, 6, 17, 13)),
+        DateTime(2026, 6, 14),
+      );
       // A Sunday is its own week start.
-      expect(AppDate.startOfWeek(DateTime(2026, 6, 14, 23)),
-          DateTime(2026, 6, 14));
+      expect(
+        AppDate.startOfWeek(DateTime(2026, 6, 14, 23)),
+        DateTime(2026, 6, 14),
+      );
     });
 
     test('endOfWeek is the following Saturday end-of-day', () {

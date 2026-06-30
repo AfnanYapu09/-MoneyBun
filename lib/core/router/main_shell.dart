@@ -43,8 +43,11 @@ class MainShell extends ConsumerWidget {
                     if (shell.currentIndex != 0) shell.goBranch(0);
                     showAddTransactionSheet(context);
                   },
-                  child: const Icon(AppIcons.plus,
-                      color: AppColors.reverse, size: 28),
+                  child: const Icon(
+                    AppIcons.plus,
+                    color: AppColors.reverse,
+                    size: 28,
+                  ),
                 ),
               ),
             ),
@@ -109,11 +112,14 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(icon, color: color, size: 23),
             const SizedBox(height: 3),
-            Text(label,
-                style: AppTypography.heading(
-                    size: 11,
-                    weight: selected ? FontWeight.w500 : FontWeight.w400,
-                    color: color)),
+            Text(
+              label,
+              style: AppTypography.heading(
+                size: 11,
+                weight: selected ? FontWeight.w500 : FontWeight.w400,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),

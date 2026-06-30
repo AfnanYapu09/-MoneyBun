@@ -49,7 +49,8 @@ class ScannedTxnRow extends StatelessWidget {
             InkWell(
               onTap: onShowSlip,
               customBorder: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: Container(
                 width: 42,
                 height: 42,
@@ -58,15 +59,19 @@ class ScannedTxnRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: PixelMaskIcon('alert',
-                    color: context.palette.dangerFg, size: 24),
+                child: PixelMaskIcon(
+                  'alert',
+                  color: context.palette.dangerFg,
+                  size: 24,
+                ),
               ),
             )
           else
             InkWell(
               onTap: onCategorize,
               customBorder: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                borderRadius: BorderRadius.circular(14),
+              ),
               child: DashedBorder(
                 radius: 14,
                 strokeWidth: 2,
@@ -74,8 +79,11 @@ class ScannedTxnRow extends StatelessWidget {
                   width: 42,
                   height: 42,
                   child: Center(
-                    child: Icon(AppIcons.plus,
-                        size: 20, color: context.palette.terraFg),
+                    child: Icon(
+                      AppIcons.plus,
+                      size: 20,
+                      color: context.palette.terraFg,
+                    ),
                   ),
                 ),
               ),
@@ -85,28 +93,36 @@ class ScannedTxnRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.txnNewFromSlip,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.heading(
-                        size: 15, weight: FontWeight.w500)),
                 Text(
-                    needsAmount
-                        ? l10n.txnAmountUnreadable
-                        : l10n.txnUncategorizedAt(time),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.body(
-                        size: 12.5,
-                        color: needsAmount
-                            ? context.palette.dangerFg
-                            : context.palette.ink3)),
+                  l10n.txnNewFromSlip,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.heading(
+                    size: 15,
+                    weight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  needsAmount
+                      ? l10n.txnAmountUnreadable
+                      : l10n.txnUncategorizedAt(time),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.body(
+                    size: 12.5,
+                    color: needsAmount
+                        ? context.palette.dangerFg
+                        : context.palette.ink3,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Text('−${Money.compact(txn.amountCents.abs())}',
-              style: AppTypography.heading(size: 15, weight: FontWeight.w500)),
+          Text(
+            '−${Money.compact(txn.amountCents.abs())}',
+            style: AppTypography.heading(size: 15, weight: FontWeight.w500),
+          ),
         ],
       ),
     );

@@ -16,8 +16,11 @@ enum BunVariant {
 /// design's 14×16 grid so it stays crisp at any size. `X`=body, `K`=eye,
 /// `N`=nose/cheek shadow. See `design_files/bun.jsx` (`BUN_MAP`).
 class BunAvatar extends StatelessWidget {
-  const BunAvatar(
-      {super.key, this.size = 64, this.variant = BunVariant.normal});
+  const BunAvatar({
+    super.key,
+    this.size = 64,
+    this.variant = BunVariant.normal,
+  });
 
   /// Target width in logical pixels. Height is `size * 16/14`.
   final double size;
@@ -125,7 +128,11 @@ class _BunCalcPainter extends CustomPainter {
             : (ch == 'N' ? AppColors.terraDeep : AppColors.terra);
         canvas.drawRect(
           Rect.fromLTWH(
-              (ox * s) + x * cell, (oy * s) + y * cell, cell + 0.5, cell + 0.5),
+            (ox * s) + x * cell,
+            (oy * s) + y * cell,
+            cell + 0.5,
+            cell + 0.5,
+          ),
           px,
         );
       }
@@ -137,28 +144,35 @@ class _BunCalcPainter extends CustomPainter {
     aa.color = _calcBody;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          Rect.fromLTWH(cx, cy, cw, ch), Radius.circular(13 * s)),
+        Rect.fromLTWH(cx, cy, cw, ch),
+        Radius.circular(13 * s),
+      ),
       aa,
     );
     aa.color = AppColors.cream;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          Rect.fromLTWH(cx + 8 * s, cy + 10 * s, cw - 16 * s, 20 * s),
-          Radius.circular(5 * s)),
+        Rect.fromLTWH(cx + 8 * s, cy + 10 * s, cw - 16 * s, 20 * s),
+        Radius.circular(5 * s),
+      ),
       aa,
     );
 
     final tp = TextPainter(
       text: TextSpan(
-          text: '฿2,001',
-          style: AppTypography.heading(
-              size: 12 * s,
-              weight: FontWeight.w600,
-              color: AppColors.terraDeep)),
+        text: '฿2,001',
+        style: AppTypography.heading(
+          size: 12 * s,
+          weight: FontWeight.w600,
+          color: AppColors.terraDeep,
+        ),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
-    tp.paint(canvas,
-        Offset(cx + cw - 9 * s - tp.width, cy + 22 * s - tp.height / 2));
+    tp.paint(
+      canvas,
+      Offset(cx + cw - 9 * s - tp.width, cy + 22 * s - tp.height / 2),
+    );
 
     final xs = [cx + 9 * s, cx + 29 * s, cx + 49 * s];
     final ys = [cy + 40 * s, cy + 58 * s, cy + 76 * s];
@@ -166,8 +180,10 @@ class _BunCalcPainter extends CustomPainter {
       for (var j = 0; j < 3; j++) {
         aa.color = (i == 2 && j == 2) ? AppColors.terra : AppColors.cream;
         canvas.drawRRect(
-          RRect.fromRectAndRadius(Rect.fromLTWH(xs[j], ys[i], 14 * s, 13 * s),
-              Radius.circular(3 * s)),
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(xs[j], ys[i], 14 * s, 13 * s),
+            Radius.circular(3 * s),
+          ),
           aa,
         );
       }

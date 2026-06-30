@@ -40,9 +40,14 @@ class AccountsSheet extends ConsumerWidget {
       title: l10n.acctScanTitle,
       action: TextButton(
         onPressed: () => setAll(true),
-        child: Text(l10n.acctReset,
-            style: AppTypography.heading(
-                size: 14, weight: FontWeight.w500, color: AppColors.terra)),
+        child: Text(
+          l10n.acctReset,
+          style: AppTypography.heading(
+            size: 14,
+            weight: FontWeight.w500,
+            color: AppColors.terra,
+          ),
+        ),
       ),
       child: ListView(
         shrinkWrap: true,
@@ -50,9 +55,13 @@ class AccountsSheet extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: Text(l10n.acctScanDesc,
-                style: AppTypography.body(
-                    size: 13.5, color: context.palette.ink3)),
+            child: Text(
+              l10n.acctScanDesc,
+              style: AppTypography.body(
+                size: 13.5,
+                color: context.palette.ink3,
+              ),
+            ),
           ),
           _ToggleRow(
             leading: Container(
@@ -62,8 +71,11 @@ class AccountsSheet extends ConsumerWidget {
                 color: context.palette.terraWash,
                 shape: BoxShape.circle,
               ),
-              child: Icon(AppIcons.wallet,
-                  size: 20, color: context.palette.terraFg),
+              child: Icon(
+                AppIcons.wallet,
+                size: 20,
+                color: context.palette.terraFg,
+              ),
             ),
             name: l10n.acctAllBanks,
             on: allOn,
@@ -106,9 +118,7 @@ class _ToggleRow extends StatelessWidget {
           children: [
             leading,
             const SizedBox(width: 14),
-            Expanded(
-              child: Text(name, style: AppTypography.body(size: 15)),
-            ),
+            Expanded(child: Text(name, style: AppTypography.body(size: 15))),
             // Display-only: the whole row's InkWell handles the tap.
             AppToggle(value: on),
           ],

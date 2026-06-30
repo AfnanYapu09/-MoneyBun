@@ -20,7 +20,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCB7C6F),
       Color(0xFFA2603F),
       Color(0xFFE3AA89),
-      Color(0xFFC77E5E)
+      Color(0xFFC77E5E),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
@@ -48,7 +48,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE3AA89),
       Color(0xFFA2603F),
       Color(0xFF7E6242),
-      Color(0xFFC77E5E)
+      Color(0xFFC77E5E),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
@@ -77,7 +77,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCB7C6F),
       Color(0xFFE6A99C),
       Color(0xFF7E6242),
-      Color(0xFFA8845F)
+      Color(0xFFA8845F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -106,7 +106,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF7E6242),
       Color(0xFFE6C896),
       Color(0xFFF6EFE5),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -134,7 +134,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6B4AD),
       Color(0xFFCD8A84),
       Color(0xFFCBA068),
-      Color(0xFFA57C44)
+      Color(0xFFA57C44),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -162,7 +162,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6B4AD),
       Color(0xFFCD8A84),
       Color(0xFFA8845F),
-      Color(0xFFCBAA85)
+      Color(0xFFCBAA85),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -190,7 +190,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF8FA877),
       Color(0xFFBCCBA1),
       Color(0xFFCB7C6F),
-      Color(0xFFE6A99C)
+      Color(0xFFE6A99C),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -219,7 +219,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA8845F),
       Color(0xFF4A3B33),
       Color(0xFFCCA968),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -247,7 +247,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF7E6242),
       Color(0xFFF6EFE5),
       Color(0xFFCBA068),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -274,7 +274,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6A99C),
       Color(0xFFCB7C6F),
       Color(0xFFCBAA85),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -303,7 +303,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFC3B8AB),
       Color(0xFFA8845F),
       Color(0xFFA55749),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -330,7 +330,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF5F7798),
       Color(0xFFAFC2D8),
       Color(0xFF7FAFC4),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -358,7 +358,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF7CA39B),
       Color(0xFF5A817A),
       Color(0xFFCCA968),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -386,7 +386,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFAFC2D8),
       Color(0xFFA6843F),
       Color(0xFFCCA968),
-      Color(0xFF4A3B33)
+      Color(0xFF4A3B33),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -414,7 +414,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF7CA39B),
       Color(0xFFAFC2D8),
       Color(0xFFCCA968),
-      Color(0xFF4A3B33)
+      Color(0xFF4A3B33),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -443,7 +443,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6A99C),
       Color(0xFFAFC2D8),
       Color(0xFF7E6242),
-      Color(0xFF7FAFC4)
+      Color(0xFF7FAFC4),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -469,7 +469,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF5A817A),
       Color(0xFF7CA39B),
-      Color(0xFF4A3B33)
+      Color(0xFF4A3B33),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -495,7 +495,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFA55749),
       Color(0xFFCB7C6F),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -523,7 +523,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6A99C),
       Color(0xFFCB7C6F),
       Color(0xFFCCA968),
-      Color(0xFF4A3B33)
+      Color(0xFF4A3B33),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -549,7 +549,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF5A817A),
       Color(0xFF7CA39B),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -575,7 +575,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF7F586B),
       Color(0xFFC9A7B4),
-      Color(0xFFA87E91)
+      Color(0xFFA87E91),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -605,7 +605,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA87E91),
       Color(0xFF688254),
       Color(0xFFF6EFE5),
-      Color(0xFFCBAA85)
+      Color(0xFFCBAA85),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -632,7 +632,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCD8A84),
       Color(0xFFCCA968),
       Color(0xFFCB7C6F),
-      Color(0xFF8FA877)
+      Color(0xFF8FA877),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -658,7 +658,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFA8665E),
       Color(0xFFCD8A84),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -685,7 +685,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6A99C),
       Color(0xFFCB7C6F),
       Color(0xFFA55749),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -712,7 +712,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCBAA85),
       Color(0xFF7E6242),
       Color(0xFFA8845F),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -759,7 +759,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFA55749),
       Color(0xFF4A3B33),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -787,7 +787,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6B4AD),
       Color(0xFFA8665E),
       Color(0xFF7F586B),
-      Color(0xFFA87E91)
+      Color(0xFFA87E91),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -814,7 +814,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF897E70),
       Color(0xFFC3B8AB),
       Color(0xFF4A3B33),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -842,7 +842,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA8665E),
       Color(0xFFCD8A84),
       Color(0xFFE6B4AD),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -871,7 +871,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFF6EFE5),
       Color(0xFFCBAA85),
       Color(0xFFA8845F),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -898,7 +898,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF849ABA),
       Color(0xFF5F7798),
       Color(0xFFAFC2D8),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -925,7 +925,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF5A817A),
       Color(0xFF7CA39B),
       Color(0xFFA9C7C0),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -951,7 +951,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFA87E91),
       Color(0xFFC9A7B4),
-      Color(0xFF7F586B)
+      Color(0xFF7F586B),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -978,7 +978,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF4A3B33),
       Color(0xFF897E70),
       Color(0xFFC3B8AB),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1006,7 +1006,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF7E6242),
       Color(0xFFCCA968),
       Color(0xFFE6CE95),
-      Color(0xFFA6843F)
+      Color(0xFFA6843F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1032,7 +1032,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF5F7798),
       Color(0xFF849ABA),
-      Color(0xFFAFC2D8)
+      Color(0xFFAFC2D8),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1060,7 +1060,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF7E6242),
       Color(0xFFCBA068),
       Color(0xFFF6EFE5),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1086,7 +1086,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFA8845F),
       Color(0xFFF6EFE5),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1113,7 +1113,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF8FA877),
       Color(0xFF688254),
       Color(0xFFC77E5E),
-      Color(0xFFA2603F)
+      Color(0xFFA2603F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1140,7 +1140,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFC3B8AB),
       Color(0xFFFCF9F2),
       Color(0xFF849ABA),
-      Color(0xFF897E70)
+      Color(0xFF897E70),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1166,7 +1166,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF7FAFC4),
       Color(0xFF5A817A),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1192,7 +1192,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFE6CE95),
       Color(0xFFCCA968),
-      Color(0xFFA6843F)
+      Color(0xFFA6843F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1219,7 +1219,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF4A3B33),
       Color(0xFFA55749),
       Color(0xFFCB7C6F),
-      Color(0xFFE6A99C)
+      Color(0xFFE6A99C),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1247,7 +1247,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA9C6D9),
       Color(0xFFF6EFE5),
       Color(0xFFAFC2D8),
-      Color(0xFF849ABA)
+      Color(0xFF849ABA),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1276,7 +1276,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFAFC2D8),
       Color(0xFFCCA968),
       Color(0xFFF6EFE5),
-      Color(0xFF897E70)
+      Color(0xFF897E70),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1323,7 +1323,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF4A3B33),
       Color(0xFFAFC2D8),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1351,7 +1351,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFAFC2D8),
       Color(0xFF849ABA),
       Color(0xFFC3B8AB),
-      Color(0xFF897E70)
+      Color(0xFF897E70),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1377,7 +1377,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFA55749),
       Color(0xFFCB7C6F),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1405,7 +1405,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA55749),
       Color(0xFFFCF9F2),
       Color(0xFFF6EFE5),
-      Color(0xFFC3B8AB)
+      Color(0xFFC3B8AB),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1431,7 +1431,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFC3B8AB),
       Color(0xFFFCF9F2),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1459,7 +1459,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFC3B8AB),
       Color(0xFFFCF9F2),
       Color(0xFFCCA968),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1485,7 +1485,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF9A8AAD),
       Color(0xFF736288),
-      Color(0xFF4A3B33)
+      Color(0xFF4A3B33),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1534,7 +1534,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF9A8AAD),
       Color(0xFFF6EFE5),
       Color(0xFFCCA968),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1561,7 +1561,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF4A3B33),
       Color(0xFFF6EFE5),
       Color(0xFFA55749),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1611,7 +1611,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCBAA85),
       Color(0xFFA87E91),
       Color(0xFFCCA968),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1639,7 +1639,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF897E70),
       Color(0xFFCCA968),
       Color(0xFF5F7798),
-      Color(0xFFAFC2D8)
+      Color(0xFFAFC2D8),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1666,7 +1666,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA9C7C0),
       Color(0xFF7CA39B),
       Color(0xFFF6EFE5),
-      Color(0xFF5A817A)
+      Color(0xFF5A817A),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1692,7 +1692,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFAFC2D8),
       Color(0xFF849ABA),
-      Color(0xFF5F7798)
+      Color(0xFF5F7798),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1718,7 +1718,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF7F586B),
       Color(0xFFF6EFE5),
-      Color(0xFFA87E91)
+      Color(0xFFA87E91),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1745,7 +1745,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA57C44),
       Color(0xFFCBA068),
       Color(0xFFF6EFE5),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1772,7 +1772,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF4A3B33),
       Color(0xFFCCA968),
       Color(0xFF897E70),
-      Color(0xFFA6843F)
+      Color(0xFFA6843F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1800,7 +1800,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFF6EFE5),
       Color(0xFF897E70),
       Color(0xFFCB7C6F),
-      Color(0xFFA55749)
+      Color(0xFFA55749),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1830,7 +1830,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFBCCBA1),
       Color(0xFF8FA877),
       Color(0xFFE6A99C),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1859,7 +1859,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6CE95),
       Color(0xFFCCA968),
       Color(0xFFCBAA85),
-      Color(0xFF4A3B33)
+      Color(0xFF4A3B33),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1886,7 +1886,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6B4AD),
       Color(0xFFA8665E),
       Color(0xFFCD8A84),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1912,7 +1912,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFCBAA85),
       Color(0xFF4A3B33),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1939,7 +1939,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCB7C6F),
       Color(0xFFC77E5E),
       Color(0xFFE3AA89),
-      Color(0xFFA2603F)
+      Color(0xFFA2603F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1987,7 +1987,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCBAA85),
       Color(0xFFA8845F),
       Color(0xFF8FA877),
-      Color(0xFFBCCBA1)
+      Color(0xFFBCCBA1),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2013,7 +2013,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF5A817A),
       Color(0xFF7CA39B),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2039,7 +2039,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFC3B8AB),
       Color(0xFFF6EFE5),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2065,7 +2065,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFC3B8AB),
       Color(0xFFF6EFE5),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2092,7 +2092,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF736288),
       Color(0xFF4A3B33),
       Color(0xFF9A8AAD),
-      Color(0xFFC0B2D1)
+      Color(0xFFC0B2D1),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2119,7 +2119,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA8665E),
       Color(0xFFCD8A84),
       Color(0xFFE6CE95),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2150,7 +2150,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6CE95),
       Color(0xFFCCA968),
       Color(0xFFA6843F),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2176,7 +2176,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF4A3B33),
       Color(0xFFC3B8AB),
-      Color(0xFFFCF9F2)
+      Color(0xFFFCF9F2),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2203,7 +2203,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCCA968),
       Color(0xFFE6C896),
       Color(0xFF7E6242),
-      Color(0xFFA6843F)
+      Color(0xFFA6843F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2232,7 +2232,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFF6EFE5),
       Color(0xFFC0B2D1),
       Color(0xFF736288),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2279,7 +2279,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF688254),
       Color(0xFF8FA877),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2305,7 +2305,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF688254),
       Color(0xFFBCCBA1),
-      Color(0xFF8FA877)
+      Color(0xFF8FA877),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2334,7 +2334,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA57C44),
       Color(0xFFE6C896),
       Color(0xFFCBA068),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2362,7 +2362,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFCBA068),
       Color(0xFFF6EFE5),
       Color(0xFFA57C44),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2390,7 +2390,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA57C44),
       Color(0xFFCBA068),
       Color(0xFFA6843F),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2418,7 +2418,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA55749),
       Color(0xFFA6843F),
       Color(0xFFE6CE95),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2446,7 +2446,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFF6EFE5),
       Color(0xFF5F7798),
       Color(0xFFA6843F),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2493,7 +2493,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFF688254),
       Color(0xFFE6CE95),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2520,7 +2520,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF7E6242),
       Color(0xFFCBAA85),
       Color(0xFFE6CE95),
-      Color(0xFFCCA968)
+      Color(0xFFCCA968),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2548,7 +2548,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA6843F),
       Color(0xFFCCA968),
       Color(0xFFF6EFE5),
-      Color(0xFF7E6242)
+      Color(0xFF7E6242),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2575,7 +2575,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF688254),
       Color(0xFF8FA877),
       Color(0xFFCCA968),
-      Color(0xFFA6843F)
+      Color(0xFFA6843F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2602,7 +2602,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA55749),
       Color(0xFFCB7C6F),
       Color(0xFFCCA968),
-      Color(0xFFA6843F)
+      Color(0xFFA6843F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2631,7 +2631,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF4A3B33),
       Color(0xFFA8665E),
       Color(0xFFCD8A84),
-      Color(0xFFF6EFE5)
+      Color(0xFFF6EFE5),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2658,7 +2658,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFE6CE95),
       Color(0xFFCCA968),
       Color(0xFFF6EFE5),
-      Color(0xFFA6843F)
+      Color(0xFFA6843F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2685,7 +2685,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFF688254),
       Color(0xFF8FA877),
       Color(0xFFA55749),
-      Color(0xFFCB7C6F)
+      Color(0xFFCB7C6F),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2711,7 +2711,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0x00000000),
       Color(0xFFA6843F),
       Color(0xFFCCA968),
-      Color(0xFFCBAA85)
+      Color(0xFFCBAA85),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2739,7 +2739,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFA55749),
       Color(0xFFA6843F),
       Color(0xFFCCA968),
-      Color(0xFFE6CE95)
+      Color(0xFFE6CE95),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2767,7 +2767,7 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
       Color(0xFFF6EFE5),
       Color(0xFFCBA068),
       Color(0xFFA57C44),
-      Color(0xFFCBAA85)
+      Color(0xFFCBAA85),
     ],
     pixels: [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2794,621 +2794,724 @@ const Map<String, PixelGlyph> kPixelGlyphs = {
 /// the category seed. Order matches the design's `defs()`.
 const List<PixelIconInfo> kPixelIconCatalog = [
   PixelIconInfo(
-      id: 'food',
-      nameTh: 'อาหาร & เครื่องดื่ม',
-      nameEn: 'food_drink',
-      colorHex: 'FFC77E5E',
-      income: false),
-  PixelIconInfo(
-      id: 'coffee',
-      nameTh: 'กาแฟ / ชานม',
-      nameEn: 'coffee_tea',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'groceries',
-      nameTh: 'ตลาด / ของสด',
-      nameEn: 'groceries',
-      colorHex: 'FF8FA877',
-      income: false),
-  PixelIconInfo(
-      id: 'rice',
-      nameTh: 'ข้าวสาร / ของแห้ง',
-      nameEn: 'rice_grain',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'snacks',
-      nameTh: 'ขนม / ของหวาน',
-      nameEn: 'snacks_dessert',
-      colorHex: 'FFCD8A84',
-      income: false),
-  PixelIconInfo(
-      id: 'bakery',
-      nameTh: 'เบเกอรี่ / เค้ก',
-      nameEn: 'bakery_cake',
-      colorHex: 'FFCD8A84',
-      income: false),
-  PixelIconInfo(
-      id: 'fruit',
-      nameTh: 'ผลไม้',
-      nameEn: 'fruit',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'bbq',
-      nameTh: 'ปิ้งย่าง / บุฟเฟ่ต์',
-      nameEn: 'bbq_buffet',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'parcel',
-      nameTh: 'ค่าส่งพัสดุ / ไปรษณีย์',
-      nameEn: 'parcel_post',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'drinks',
-      nameTh: 'สังสรรค์ / เครื่องดื่ม',
-      nameEn: 'drinks_party',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'cigarette',
-      nameTh: 'บุหรี่ / เหล้า',
-      nameEn: 'cigarette_alcohol',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'waterdrink',
-      nameTh: 'น้ำดื่ม / น้ำเปล่า',
-      nameEn: 'drinking_water',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'transport',
-      nameTh: 'เดินทาง',
-      nameEn: 'transport',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'taxi',
-      nameTh: 'แท็กซี่ / เรียกรถ',
-      nameEn: 'taxi_ride',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'train',
-      nameTh: 'รถไฟฟ้า BTS/MRT',
-      nameEn: 'train_metro',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'boat',
-      nameTh: 'เรือ / เรือข้ามฟาก',
-      nameEn: 'boat_ferry',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'bike',
-      nameTh: 'จักรยาน',
-      nameEn: 'bicycle',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'fuel',
-      nameTh: 'น้ำมันรถ',
-      nameEn: 'fuel',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'carcare',
-      nameTh: 'ดูแลรถ / ล้างรถ',
-      nameEn: 'car_care',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'parking',
-      nameTh: 'ค่าจอด / ทางด่วน',
-      nameEn: 'parking_toll',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'shopping',
-      nameTh: 'ช้อปปิ้ง',
-      nameEn: 'shopping',
-      colorHex: 'FFA87E91',
-      income: false),
-  PixelIconInfo(
-      id: 'flowers',
-      nameTh: 'ดอกไม้ / ช่อดอกไม้',
-      nameEn: 'flowers',
-      colorHex: 'FFCD8A84',
-      income: false),
-  PixelIconInfo(
-      id: 'souvenir',
-      nameTh: 'ของฝาก / กระเช้า',
-      nameEn: 'souvenir',
-      colorHex: 'FFCBA068',
-      income: false),
-  PixelIconInfo(
-      id: 'clothes',
-      nameTh: 'เสื้อผ้า',
-      nameEn: 'clothes',
-      colorHex: 'FFCD8A84',
-      income: false),
-  PixelIconInfo(
-      id: 'shoes',
-      nameTh: 'รองเท้า',
-      nameEn: 'shoes',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'bag',
-      nameTh: 'กระเป๋า',
-      nameEn: 'bag',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'glasses',
-      nameTh: 'แว่นตา',
-      nameEn: 'glasses',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'watch',
-      nameTh: 'นาฬิกา / เครื่องประดับ',
-      nameEn: 'watch',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'beauty',
-      nameTh: 'ความงาม / เสริมสวย',
-      nameEn: 'beauty',
-      colorHex: 'FFCD8A84',
-      income: false),
-  PixelIconInfo(
-      id: 'haircut',
-      nameTh: 'ตัดผม / ร้านเสริมสวย',
-      nameEn: 'haircut_salon',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'nails',
-      nameTh: 'ทำเล็บ',
-      nameEn: 'nails',
-      colorHex: 'FFCD8A84',
-      income: false),
-  PixelIconInfo(
-      id: 'spa',
-      nameTh: 'สปา / นวด',
-      nameEn: 'spa_massage',
-      colorHex: 'FF8FA877',
-      income: false),
-  PixelIconInfo(
-      id: 'laundry',
-      nameTh: 'ซัก / รีด',
-      nameEn: 'laundry',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'home',
-      nameTh: 'ของใช้ในบ้าน',
-      nameEn: 'home_goods',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'furniture',
-      nameTh: 'เฟอร์นิเจอร์',
-      nameEn: 'furniture',
-      colorHex: 'FFA87E91',
-      income: false),
-  PixelIconInfo(
-      id: 'kitchenware',
-      nameTh: 'เครื่องครัว',
-      nameEn: 'kitchenware',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'cleaning',
-      nameTh: 'ทำความสะอาด / แม่บ้าน',
-      nameEn: 'cleaning',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'condofee',
-      nameTh: 'ค่าส่วนกลาง / นิติ',
-      nameEn: 'condo_fee',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'housing',
-      nameTh: 'ที่พัก / ค่าเช่า',
-      nameEn: 'housing_rent',
-      colorHex: 'FFCBA068',
-      income: false),
-  PixelIconInfo(
-      id: 'repair',
-      nameTh: 'ซ่อมแซม / ช่าง',
-      nameEn: 'repair',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'plant',
-      nameTh: 'ต้นไม้ / สวน',
-      nameEn: 'plants_garden',
-      colorHex: 'FF8FA877',
-      income: false),
-  PixelIconInfo(
-      id: 'bills',
-      nameTh: 'บิล & สาธารณูปโภค',
-      nameEn: 'bills_utility',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'water',
-      nameTh: 'ค่าน้ำ / ประปา',
-      nameEn: 'water_bill',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'electric',
-      nameTh: 'ค่าไฟ',
-      nameEn: 'electric_bill',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'gas',
-      nameTh: 'แก๊สหุงต้ม',
-      nameEn: 'cooking_gas',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'phone',
-      nameTh: 'มือถือ / เน็ต',
-      nameEn: 'phone_internet',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'topup',
-      nameTh: 'เติมเงินมือถือ / e-wallet',
-      nameEn: 'mobile_topup',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'subscription',
-      nameTh: 'ค่าสมาชิก / แอป',
-      nameEn: 'subscription',
-      colorHex: 'FF9A8AAD',
-      income: false),
-  PixelIconInfo(
-      id: 'electronics',
-      nameTh: 'เครื่องใช้ไฟฟ้า',
-      nameEn: 'electronics',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'computer',
-      nameTh: 'คอม / โน้ตบุ๊ก',
-      nameEn: 'computer_laptop',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'health',
-      nameTh: 'สุขภาพ / โรงพยาบาล',
-      nameEn: 'health',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'pharmacy',
-      nameTh: 'ยา / ร้านขายยา',
-      nameEn: 'pharmacy',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'dentist',
-      nameTh: 'หมอฟัน / ทันตกรรม',
-      nameEn: 'dentist',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'supplement',
-      nameTh: 'วิตามิน / อาหารเสริม',
-      nameEn: 'supplement',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'fitness',
-      nameTh: 'ออกกำลังกาย',
-      nameEn: 'fitness',
-      colorHex: 'FF9A8AAD',
-      income: false),
-  PixelIconInfo(
-      id: 'sports',
-      nameTh: 'กีฬา / ดูบอล',
-      nameEn: 'sports',
-      colorHex: 'FF8FA877',
-      income: false),
-  PixelIconInfo(
-      id: 'game',
-      nameTh: 'บันเทิง / เกม',
-      nameEn: 'entertainment',
-      colorHex: 'FF9A8AAD',
-      income: false),
-  PixelIconInfo(
-      id: 'movies',
-      nameTh: 'หนัง / สตรีมมิ่ง',
-      nameEn: 'movies_streaming',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'music',
-      nameTh: 'ดนตรี / คอนเสิร์ต',
-      nameEn: 'music_concert',
-      colorHex: 'FF9A8AAD',
-      income: false),
-  PixelIconInfo(
-      id: 'hobby',
-      nameTh: 'งานอดิเรก / ศิลปะ',
-      nameEn: 'hobby_craft',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'camera',
-      nameTh: 'กล้อง / ถ่ายรูป',
-      nameEn: 'camera_photo',
-      colorHex: 'FF4A3B33',
-      income: false),
-  PixelIconInfo(
-      id: 'travel',
-      nameTh: 'ท่องเที่ยว',
-      nameEn: 'travel',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'flight',
-      nameTh: 'ตั๋วเครื่องบิน',
-      nameEn: 'flight',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'hotel',
-      nameTh: 'โรงแรม / ที่พักเที่ยว',
-      nameEn: 'hotel',
-      colorHex: 'FFA87E91',
-      income: false),
-  PixelIconInfo(
-      id: 'lottery',
-      nameTh: 'หวย / ลอตเตอรี่',
-      nameEn: 'lottery',
-      colorHex: 'FFCBA068',
-      income: false),
-  PixelIconInfo(
-      id: 'education',
-      nameTh: 'การศึกษา',
-      nameEn: 'education',
-      colorHex: 'FF849ABA',
-      income: false),
-  PixelIconInfo(
-      id: 'course',
-      nameTh: 'คอร์สเรียน / อบรม',
-      nameEn: 'course_training',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'books',
-      nameTh: 'หนังสือ',
-      nameEn: 'books',
-      colorHex: 'FF8FA877',
-      income: false),
-  PixelIconInfo(
-      id: 'stationery',
-      nameTh: 'เครื่องเขียน',
-      nameEn: 'stationery',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'kids',
-      nameTh: 'ลูก / ค่าเลี้ยงดู',
-      nameEn: 'kids_childcare',
-      colorHex: 'FFCBA068',
-      income: false),
-  PixelIconInfo(
-      id: 'toys',
-      nameTh: 'ของเล่นเด็ก',
-      nameEn: 'toys',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'family',
-      nameTh: 'ครอบครัว / ให้พ่อแม่',
-      nameEn: 'family_support',
-      colorHex: 'FFC77E5E',
-      income: false),
-  PixelIconInfo(
-      id: 'pet',
-      nameTh: 'สัตว์เลี้ยง',
-      nameEn: 'pet',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'vet',
-      nameTh: 'หมอสัตว์ / รักษาสัตว์',
-      nameEn: 'veterinary',
-      colorHex: 'FF8FA877',
-      income: false),
-  PixelIconInfo(
-      id: 'insurance',
-      nameTh: 'ประกัน',
-      nameEn: 'insurance',
-      colorHex: 'FF7CA39B',
-      income: false),
-  PixelIconInfo(
-      id: 'tax',
-      nameTh: 'ภาษี / ค่าธรรมเนียม',
-      nameEn: 'tax_fees',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'fine',
-      nameTh: 'ค่าปรับ / ใบสั่ง',
-      nameEn: 'fine_ticket',
-      colorHex: 'FFCB7C6F',
-      income: false),
-  PixelIconInfo(
-      id: 'debt',
-      nameTh: 'หนี้ / ผ่อนชำระ',
-      nameEn: 'debt_installment',
-      colorHex: 'FF9A8AAD',
-      income: false),
-  PixelIconInfo(
-      id: 'merit',
-      nameTh: 'ทำบุญ / บริจาค',
-      nameEn: 'merit_donate',
-      colorHex: 'FFCD8A84',
-      income: false),
-  PixelIconInfo(
-      id: 'ceremony',
-      nameTh: 'งานบุญ / งานบวช-แต่ง',
-      nameEn: 'ceremony',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'funeral',
-      nameTh: 'ซองช่วยงานศพ',
-      nameEn: 'funeral_condolence',
-      colorHex: 'FF897E70',
-      income: false),
-  PixelIconInfo(
-      id: 'amulet',
-      nameTh: 'พระเครื่อง / เครื่องราง',
-      nameEn: 'amulet',
-      colorHex: 'FFCCA968',
-      income: false),
-  PixelIconInfo(
-      id: 'fortune',
-      nameTh: 'ดูดวง / หมอดู',
-      nameEn: 'fortune_telling',
-      colorHex: 'FF9A8AAD',
-      income: false),
-  PixelIconInfo(
-      id: 'misc',
-      nameTh: 'จิปาถะ / อื่นๆ',
-      nameEn: 'misc_other',
-      colorHex: 'FFA8845F',
-      income: false),
-  PixelIconInfo(
-      id: 'salary',
-      nameTh: 'เงินเดือน',
-      nameEn: 'salary',
-      colorHex: 'FF8FA877',
-      income: true),
-  PixelIconInfo(
-      id: 'freelance',
-      nameTh: 'รายได้เสริม / ฟรีแลนซ์',
-      nameEn: 'freelance',
-      colorHex: 'FF8FA877',
-      income: true),
-  PixelIconInfo(
-      id: 'business',
-      nameTh: 'ค้าขาย / ร้านค้า',
-      nameEn: 'business_sales',
-      colorHex: 'FFCBA068',
-      income: true),
-  PixelIconInfo(
-      id: 'assetsale',
-      nameTh: 'ขายของมือสอง / ทรัพย์สิน',
-      nameEn: 'asset_sale',
-      colorHex: 'FFCBA068',
-      income: true),
-  PixelIconInfo(
-      id: 'rental',
-      nameTh: 'ค่าเช่ารับ / ปล่อยเช่า',
-      nameEn: 'rental_income',
-      colorHex: 'FFCBA068',
-      income: true),
-  PixelIconInfo(
-      id: 'bonus',
-      nameTh: 'โบนัส / เงินพิเศษ',
-      nameEn: 'bonus',
-      colorHex: 'FFCCA968',
-      income: true),
-  PixelIconInfo(
-      id: 'overtime',
-      nameTh: 'OT / ค่าล่วงเวลา',
-      nameEn: 'overtime',
-      colorHex: 'FF849ABA',
-      income: true),
-  PixelIconInfo(
-      id: 'commission',
-      nameTh: 'คอมมิชชั่น',
-      nameEn: 'commission',
-      colorHex: 'FF8FA877',
-      income: true),
-  PixelIconInfo(
-      id: 'interest',
-      nameTh: 'ดอกเบี้ย / เงินปันผล',
-      nameEn: 'interest_dividend',
-      colorHex: 'FFCCA968',
-      income: true),
-  PixelIconInfo(
-      id: 'pension',
-      nameTh: 'บำนาญ / เงินเกษียณ',
-      nameEn: 'pension',
-      colorHex: 'FFCCA968',
-      income: true),
-  PixelIconInfo(
-      id: 'prize',
-      nameTh: 'เงินรางวัล / ถูกรางวัล',
-      nameEn: 'prize_winnings',
-      colorHex: 'FFCCA968',
-      income: true),
-  PixelIconInfo(
-      id: 'refund',
-      nameTh: 'เงินคืน / คืนภาษี',
-      nameEn: 'refund',
-      colorHex: 'FF8FA877',
-      income: true),
-  PixelIconInfo(
-      id: 'angpao',
-      nameTh: 'อั่งเปา / ของขวัญ',
-      nameEn: 'gift_received',
-      colorHex: 'FFCB7C6F',
-      income: true),
-  PixelIconInfo(
-      id: 'savings',
-      nameTh: 'ออมเงิน / ลงทุน',
-      nameEn: 'savings',
-      colorHex: 'FFCD8A84',
-      income: true),
-  PixelIconInfo(
-      id: 'gold',
-      nameTh: 'ทองคำ / เครื่องประดับ',
-      nameEn: 'gold_jewelry',
-      colorHex: 'FFCCA968',
-      income: true),
-  PixelIconInfo(
-      id: 'invest',
-      nameTh: 'หุ้น / คริปโต',
-      nameEn: 'invest_stocks',
-      colorHex: 'FF8FA877',
-      income: true),
-  PixelIconInfo(
-      id: 'welfare',
-      nameTh: 'สวัสดิการ / เงินช่วยเหลือ',
-      nameEn: 'welfare_subsidy',
-      colorHex: 'FF8FA877',
-      income: true),
-  PixelIconInfo(
-      id: 'tip',
-      nameTh: 'ทิป / เซอร์วิสชาร์จ',
-      nameEn: 'tips',
-      colorHex: 'FFCCA968',
-      income: true),
-  PixelIconInfo(
-      id: 'loan',
-      nameTh: 'เงินกู้ / เงินยืม',
-      nameEn: 'loan_received',
-      colorHex: 'FFCBA068',
-      income: true),
+    id: 'food',
+    nameTh: 'อาหาร & เครื่องดื่ม',
+    nameEn: 'food_drink',
+    colorHex: 'FFC77E5E',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'coffee',
+    nameTh: 'กาแฟ / ชานม',
+    nameEn: 'coffee_tea',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'groceries',
+    nameTh: 'ตลาด / ของสด',
+    nameEn: 'groceries',
+    colorHex: 'FF8FA877',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'rice',
+    nameTh: 'ข้าวสาร / ของแห้ง',
+    nameEn: 'rice_grain',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'snacks',
+    nameTh: 'ขนม / ของหวาน',
+    nameEn: 'snacks_dessert',
+    colorHex: 'FFCD8A84',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'bakery',
+    nameTh: 'เบเกอรี่ / เค้ก',
+    nameEn: 'bakery_cake',
+    colorHex: 'FFCD8A84',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'fruit',
+    nameTh: 'ผลไม้',
+    nameEn: 'fruit',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'bbq',
+    nameTh: 'ปิ้งย่าง / บุฟเฟ่ต์',
+    nameEn: 'bbq_buffet',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'parcel',
+    nameTh: 'ค่าส่งพัสดุ / ไปรษณีย์',
+    nameEn: 'parcel_post',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'drinks',
+    nameTh: 'สังสรรค์ / เครื่องดื่ม',
+    nameEn: 'drinks_party',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'cigarette',
+    nameTh: 'บุหรี่ / เหล้า',
+    nameEn: 'cigarette_alcohol',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'waterdrink',
+    nameTh: 'น้ำดื่ม / น้ำเปล่า',
+    nameEn: 'drinking_water',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'transport',
+    nameTh: 'เดินทาง',
+    nameEn: 'transport',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'taxi',
+    nameTh: 'แท็กซี่ / เรียกรถ',
+    nameEn: 'taxi_ride',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'train',
+    nameTh: 'รถไฟฟ้า BTS/MRT',
+    nameEn: 'train_metro',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'boat',
+    nameTh: 'เรือ / เรือข้ามฟาก',
+    nameEn: 'boat_ferry',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'bike',
+    nameTh: 'จักรยาน',
+    nameEn: 'bicycle',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'fuel',
+    nameTh: 'น้ำมันรถ',
+    nameEn: 'fuel',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'carcare',
+    nameTh: 'ดูแลรถ / ล้างรถ',
+    nameEn: 'car_care',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'parking',
+    nameTh: 'ค่าจอด / ทางด่วน',
+    nameEn: 'parking_toll',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'shopping',
+    nameTh: 'ช้อปปิ้ง',
+    nameEn: 'shopping',
+    colorHex: 'FFA87E91',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'flowers',
+    nameTh: 'ดอกไม้ / ช่อดอกไม้',
+    nameEn: 'flowers',
+    colorHex: 'FFCD8A84',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'souvenir',
+    nameTh: 'ของฝาก / กระเช้า',
+    nameEn: 'souvenir',
+    colorHex: 'FFCBA068',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'clothes',
+    nameTh: 'เสื้อผ้า',
+    nameEn: 'clothes',
+    colorHex: 'FFCD8A84',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'shoes',
+    nameTh: 'รองเท้า',
+    nameEn: 'shoes',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'bag',
+    nameTh: 'กระเป๋า',
+    nameEn: 'bag',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'glasses',
+    nameTh: 'แว่นตา',
+    nameEn: 'glasses',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'watch',
+    nameTh: 'นาฬิกา / เครื่องประดับ',
+    nameEn: 'watch',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'beauty',
+    nameTh: 'ความงาม / เสริมสวย',
+    nameEn: 'beauty',
+    colorHex: 'FFCD8A84',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'haircut',
+    nameTh: 'ตัดผม / ร้านเสริมสวย',
+    nameEn: 'haircut_salon',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'nails',
+    nameTh: 'ทำเล็บ',
+    nameEn: 'nails',
+    colorHex: 'FFCD8A84',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'spa',
+    nameTh: 'สปา / นวด',
+    nameEn: 'spa_massage',
+    colorHex: 'FF8FA877',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'laundry',
+    nameTh: 'ซัก / รีด',
+    nameEn: 'laundry',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'home',
+    nameTh: 'ของใช้ในบ้าน',
+    nameEn: 'home_goods',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'furniture',
+    nameTh: 'เฟอร์นิเจอร์',
+    nameEn: 'furniture',
+    colorHex: 'FFA87E91',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'kitchenware',
+    nameTh: 'เครื่องครัว',
+    nameEn: 'kitchenware',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'cleaning',
+    nameTh: 'ทำความสะอาด / แม่บ้าน',
+    nameEn: 'cleaning',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'condofee',
+    nameTh: 'ค่าส่วนกลาง / นิติ',
+    nameEn: 'condo_fee',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'housing',
+    nameTh: 'ที่พัก / ค่าเช่า',
+    nameEn: 'housing_rent',
+    colorHex: 'FFCBA068',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'repair',
+    nameTh: 'ซ่อมแซม / ช่าง',
+    nameEn: 'repair',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'plant',
+    nameTh: 'ต้นไม้ / สวน',
+    nameEn: 'plants_garden',
+    colorHex: 'FF8FA877',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'bills',
+    nameTh: 'บิล & สาธารณูปโภค',
+    nameEn: 'bills_utility',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'water',
+    nameTh: 'ค่าน้ำ / ประปา',
+    nameEn: 'water_bill',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'electric',
+    nameTh: 'ค่าไฟ',
+    nameEn: 'electric_bill',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'gas',
+    nameTh: 'แก๊สหุงต้ม',
+    nameEn: 'cooking_gas',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'phone',
+    nameTh: 'มือถือ / เน็ต',
+    nameEn: 'phone_internet',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'topup',
+    nameTh: 'เติมเงินมือถือ / e-wallet',
+    nameEn: 'mobile_topup',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'subscription',
+    nameTh: 'ค่าสมาชิก / แอป',
+    nameEn: 'subscription',
+    colorHex: 'FF9A8AAD',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'electronics',
+    nameTh: 'เครื่องใช้ไฟฟ้า',
+    nameEn: 'electronics',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'computer',
+    nameTh: 'คอม / โน้ตบุ๊ก',
+    nameEn: 'computer_laptop',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'health',
+    nameTh: 'สุขภาพ / โรงพยาบาล',
+    nameEn: 'health',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'pharmacy',
+    nameTh: 'ยา / ร้านขายยา',
+    nameEn: 'pharmacy',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'dentist',
+    nameTh: 'หมอฟัน / ทันตกรรม',
+    nameEn: 'dentist',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'supplement',
+    nameTh: 'วิตามิน / อาหารเสริม',
+    nameEn: 'supplement',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'fitness',
+    nameTh: 'ออกกำลังกาย',
+    nameEn: 'fitness',
+    colorHex: 'FF9A8AAD',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'sports',
+    nameTh: 'กีฬา / ดูบอล',
+    nameEn: 'sports',
+    colorHex: 'FF8FA877',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'game',
+    nameTh: 'บันเทิง / เกม',
+    nameEn: 'entertainment',
+    colorHex: 'FF9A8AAD',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'movies',
+    nameTh: 'หนัง / สตรีมมิ่ง',
+    nameEn: 'movies_streaming',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'music',
+    nameTh: 'ดนตรี / คอนเสิร์ต',
+    nameEn: 'music_concert',
+    colorHex: 'FF9A8AAD',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'hobby',
+    nameTh: 'งานอดิเรก / ศิลปะ',
+    nameEn: 'hobby_craft',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'camera',
+    nameTh: 'กล้อง / ถ่ายรูป',
+    nameEn: 'camera_photo',
+    colorHex: 'FF4A3B33',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'travel',
+    nameTh: 'ท่องเที่ยว',
+    nameEn: 'travel',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'flight',
+    nameTh: 'ตั๋วเครื่องบิน',
+    nameEn: 'flight',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'hotel',
+    nameTh: 'โรงแรม / ที่พักเที่ยว',
+    nameEn: 'hotel',
+    colorHex: 'FFA87E91',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'lottery',
+    nameTh: 'หวย / ลอตเตอรี่',
+    nameEn: 'lottery',
+    colorHex: 'FFCBA068',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'education',
+    nameTh: 'การศึกษา',
+    nameEn: 'education',
+    colorHex: 'FF849ABA',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'course',
+    nameTh: 'คอร์สเรียน / อบรม',
+    nameEn: 'course_training',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'books',
+    nameTh: 'หนังสือ',
+    nameEn: 'books',
+    colorHex: 'FF8FA877',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'stationery',
+    nameTh: 'เครื่องเขียน',
+    nameEn: 'stationery',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'kids',
+    nameTh: 'ลูก / ค่าเลี้ยงดู',
+    nameEn: 'kids_childcare',
+    colorHex: 'FFCBA068',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'toys',
+    nameTh: 'ของเล่นเด็ก',
+    nameEn: 'toys',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'family',
+    nameTh: 'ครอบครัว / ให้พ่อแม่',
+    nameEn: 'family_support',
+    colorHex: 'FFC77E5E',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'pet',
+    nameTh: 'สัตว์เลี้ยง',
+    nameEn: 'pet',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'vet',
+    nameTh: 'หมอสัตว์ / รักษาสัตว์',
+    nameEn: 'veterinary',
+    colorHex: 'FF8FA877',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'insurance',
+    nameTh: 'ประกัน',
+    nameEn: 'insurance',
+    colorHex: 'FF7CA39B',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'tax',
+    nameTh: 'ภาษี / ค่าธรรมเนียม',
+    nameEn: 'tax_fees',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'fine',
+    nameTh: 'ค่าปรับ / ใบสั่ง',
+    nameEn: 'fine_ticket',
+    colorHex: 'FFCB7C6F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'debt',
+    nameTh: 'หนี้ / ผ่อนชำระ',
+    nameEn: 'debt_installment',
+    colorHex: 'FF9A8AAD',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'merit',
+    nameTh: 'ทำบุญ / บริจาค',
+    nameEn: 'merit_donate',
+    colorHex: 'FFCD8A84',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'ceremony',
+    nameTh: 'งานบุญ / งานบวช-แต่ง',
+    nameEn: 'ceremony',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'funeral',
+    nameTh: 'ซองช่วยงานศพ',
+    nameEn: 'funeral_condolence',
+    colorHex: 'FF897E70',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'amulet',
+    nameTh: 'พระเครื่อง / เครื่องราง',
+    nameEn: 'amulet',
+    colorHex: 'FFCCA968',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'fortune',
+    nameTh: 'ดูดวง / หมอดู',
+    nameEn: 'fortune_telling',
+    colorHex: 'FF9A8AAD',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'misc',
+    nameTh: 'จิปาถะ / อื่นๆ',
+    nameEn: 'misc_other',
+    colorHex: 'FFA8845F',
+    income: false,
+  ),
+  PixelIconInfo(
+    id: 'salary',
+    nameTh: 'เงินเดือน',
+    nameEn: 'salary',
+    colorHex: 'FF8FA877',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'freelance',
+    nameTh: 'รายได้เสริม / ฟรีแลนซ์',
+    nameEn: 'freelance',
+    colorHex: 'FF8FA877',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'business',
+    nameTh: 'ค้าขาย / ร้านค้า',
+    nameEn: 'business_sales',
+    colorHex: 'FFCBA068',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'assetsale',
+    nameTh: 'ขายของมือสอง / ทรัพย์สิน',
+    nameEn: 'asset_sale',
+    colorHex: 'FFCBA068',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'rental',
+    nameTh: 'ค่าเช่ารับ / ปล่อยเช่า',
+    nameEn: 'rental_income',
+    colorHex: 'FFCBA068',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'bonus',
+    nameTh: 'โบนัส / เงินพิเศษ',
+    nameEn: 'bonus',
+    colorHex: 'FFCCA968',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'overtime',
+    nameTh: 'OT / ค่าล่วงเวลา',
+    nameEn: 'overtime',
+    colorHex: 'FF849ABA',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'commission',
+    nameTh: 'คอมมิชชั่น',
+    nameEn: 'commission',
+    colorHex: 'FF8FA877',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'interest',
+    nameTh: 'ดอกเบี้ย / เงินปันผล',
+    nameEn: 'interest_dividend',
+    colorHex: 'FFCCA968',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'pension',
+    nameTh: 'บำนาญ / เงินเกษียณ',
+    nameEn: 'pension',
+    colorHex: 'FFCCA968',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'prize',
+    nameTh: 'เงินรางวัล / ถูกรางวัล',
+    nameEn: 'prize_winnings',
+    colorHex: 'FFCCA968',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'refund',
+    nameTh: 'เงินคืน / คืนภาษี',
+    nameEn: 'refund',
+    colorHex: 'FF8FA877',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'angpao',
+    nameTh: 'อั่งเปา / ของขวัญ',
+    nameEn: 'gift_received',
+    colorHex: 'FFCB7C6F',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'savings',
+    nameTh: 'ออมเงิน / ลงทุน',
+    nameEn: 'savings',
+    colorHex: 'FFCD8A84',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'gold',
+    nameTh: 'ทองคำ / เครื่องประดับ',
+    nameEn: 'gold_jewelry',
+    colorHex: 'FFCCA968',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'invest',
+    nameTh: 'หุ้น / คริปโต',
+    nameEn: 'invest_stocks',
+    colorHex: 'FF8FA877',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'welfare',
+    nameTh: 'สวัสดิการ / เงินช่วยเหลือ',
+    nameEn: 'welfare_subsidy',
+    colorHex: 'FF8FA877',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'tip',
+    nameTh: 'ทิป / เซอร์วิสชาร์จ',
+    nameEn: 'tips',
+    colorHex: 'FFCCA968',
+    income: true,
+  ),
+  PixelIconInfo(
+    id: 'loan',
+    nameTh: 'เงินกู้ / เงินยืม',
+    nameEn: 'loan_received',
+    colorHex: 'FFCBA068',
+    income: true,
+  ),
 ];

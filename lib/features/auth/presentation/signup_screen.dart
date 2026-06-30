@@ -46,33 +46,41 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           const Center(child: BunAvatar(size: 70)),
           const SizedBox(height: 12),
           Center(
-            child: Text(l10n.authCreateAccount,
-                style:
-                    AppTypography.heading(size: 25, weight: FontWeight.w600)),
+            child: Text(
+              l10n.authCreateAccount,
+              style: AppTypography.heading(size: 25, weight: FontWeight.w600),
+            ),
           ),
           const SizedBox(height: 6),
           Center(
-            child: Text(l10n.authSignUpSubtitle,
-                style: AppTypography.body(
-                    size: 14.5, color: context.palette.ink2)),
+            child: Text(
+              l10n.authSignUpSubtitle,
+              style: AppTypography.body(
+                size: 14.5,
+                color: context.palette.ink2,
+              ),
+            ),
           ),
           const SizedBox(height: 24),
           AuthField(
-              icon: AppIcons.userRound,
-              hint: l10n.authDisplayName,
-              controller: _name),
+            icon: AppIcons.userRound,
+            hint: l10n.authDisplayName,
+            controller: _name,
+          ),
           const SizedBox(height: 12),
           AuthField(
-              icon: AppIcons.mail,
-              hint: l10n.authEmail,
-              controller: _email,
-              keyboardType: TextInputType.emailAddress),
+            icon: AppIcons.mail,
+            hint: l10n.authEmail,
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+          ),
           const SizedBox(height: 12),
           AuthField(
-              icon: AppIcons.lock,
-              hint: l10n.authPassword,
-              controller: _password,
-              obscure: true),
+            icon: AppIcons.lock,
+            hint: l10n.authPassword,
+            controller: _password,
+            obscure: true,
+          ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,8 +99,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         : Border.all(color: context.palette.line, width: 1.5),
                   ),
                   child: _agree
-                      ? const Icon(AppIcons.check,
-                          size: 14, color: Colors.white)
+                      ? const Icon(
+                          AppIcons.check,
+                          size: 14,
+                          color: Colors.white,
+                        )
                       : null,
                 ),
               ),
@@ -102,15 +113,20 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   TextSpan(
                     text: l10n.authAgreePrefix,
                     style: AppTypography.body(
-                        size: 13, color: context.palette.ink2, height: 1.5),
+                      size: 13,
+                      color: context.palette.ink2,
+                      height: 1.5,
+                    ),
                     children: [
                       TextSpan(
-                          text: l10n.authTermsOfService,
-                          style: TextStyle(color: AppColors.terra)),
+                        text: l10n.authTermsOfService,
+                        style: TextStyle(color: AppColors.terra),
+                      ),
                       TextSpan(text: l10n.authAnd),
                       TextSpan(
-                          text: l10n.authPrivacyPolicy,
-                          style: TextStyle(color: AppColors.terra)),
+                        text: l10n.authPrivacyPolicy,
+                        style: TextStyle(color: AppColors.terra),
+                      ),
                     ],
                   ),
                 ),
@@ -119,25 +135,33 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           ),
           const SizedBox(height: 20),
           PrimaryButton(
-              label: l10n.authSignUp, loading: _busy, onPressed: _signup),
+            label: l10n.authSignUp,
+            loading: _busy,
+            onPressed: _signup,
+          ),
           const SizedBox(height: 24),
           Center(
             child: GestureDetector(
               onTap: () => context.pop(),
-              child: Text.rich(TextSpan(
-                text: l10n.authHaveAccount,
-                style:
-                    AppTypography.body(size: 14, color: context.palette.ink2),
-                children: [
-                  TextSpan(
-                    text: l10n.authLogin,
-                    style: AppTypography.heading(
+              child: Text.rich(
+                TextSpan(
+                  text: l10n.authHaveAccount,
+                  style: AppTypography.body(
+                    size: 14,
+                    color: context.palette.ink2,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: l10n.authLogin,
+                      style: AppTypography.heading(
                         size: 14,
                         weight: FontWeight.w500,
-                        color: AppColors.terra),
-                  ),
-                ],
-              )),
+                        color: AppColors.terra,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

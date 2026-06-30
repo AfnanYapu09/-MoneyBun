@@ -64,7 +64,10 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
   final auth = ref.watch(authServiceProvider);
   if (auth == null) return null;
   return SyncEngine(
-      ref.watch(databaseProvider), FirebaseFirestore.instance, auth);
+    ref.watch(databaseProvider),
+    FirebaseFirestore.instance,
+    auth,
+  );
 });
 
 /// Owns automatic sync (on sign-in, app launch, resume, and after edits).
@@ -151,9 +154,10 @@ class ScanController extends Notifier<ScanState> {
     // Bounded so an offline/slow sync can't block the scan indefinitely.
     final sync = ref.read(syncControllerProvider);
     if (sync != null) {
-      await sync
-          .awaitInitialSync()
-          .timeout(const Duration(seconds: 25), onTimeout: () {});
+      await sync.awaitInitialSync().timeout(
+            const Duration(seconds: 25),
+            onTimeout: () {},
+          );
     }
     await scan();
   }
@@ -183,8 +187,9 @@ class ScanController extends Notifier<ScanState> {
   }
 }
 
-final scanControllerProvider =
-    NotifierProvider<ScanController, ScanState>(ScanController.new);
+final scanControllerProvider = NotifierProvider<ScanController, ScanState>(
+  ScanController.new,
+);
 
 // ---- Reactive data ---------------------------------------------------------
 
@@ -206,8 +211,9 @@ class SelectedPeriod extends Notifier<DatePeriod> {
   void previous() => state = state.previous();
 }
 
-final selectedPeriodProvider =
-    NotifierProvider<SelectedPeriod, DatePeriod>(SelectedPeriod.new);
+final selectedPeriodProvider = NotifierProvider<SelectedPeriod, DatePeriod>(
+  SelectedPeriod.new,
+);
 
 /// Number of modal bottom sheets currently open. The home FAB hides while > 0
 /// so the floating "+" doesn't peek behind an open popup.
@@ -237,14 +243,17 @@ final monthTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {
 });
 
 /// A single transaction by id (Transaction detail screen).
-final transactionByIdProvider =
-    StreamProvider.family<TransactionRow?, String>((ref, id) {
+final transactionByIdProvider = StreamProvider.family<TransactionRow?, String>((
+  ref,
+  id,
+) {
   return ref.watch(databaseProvider).watchTransaction(id);
 });
 
 /// All transaction↔tag links (for resolving a transaction's tags reactively).
-final allTransactionTagsProvider =
-    StreamProvider<List<TransactionTagRow>>((ref) {
+final allTransactionTagsProvider = StreamProvider<List<TransactionTagRow>>((
+  ref,
+) {
   return ref.watch(databaseProvider).watchAllTransactionTags();
 });
 

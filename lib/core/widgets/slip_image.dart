@@ -17,8 +17,11 @@ class SlipImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final path = slip?.imagePath;
     if (path != null && path.isNotEmpty) {
-      return Image.file(File(path),
-          fit: fit, errorBuilder: (_, __, ___) => _placeholder(context));
+      return Image.file(
+        File(path),
+        fit: fit,
+        errorBuilder: (_, __, ___) => _placeholder(context),
+      );
     }
     return _placeholder(context);
   }

@@ -53,8 +53,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
 
   late final bool _hasActions =
       widget.slip != null || widget.onTransfer != null;
-  late final ScrollController _controller =
-      ScrollController(initialScrollOffset: _hasActions ? _actionsExtent : 0.0);
+  late final ScrollController _controller = ScrollController(
+    initialScrollOffset: _hasActions ? _actionsExtent : 0.0,
+  );
 
   @override
   void dispose() {
@@ -142,11 +143,14 @@ class _ActionButton extends StatelessWidget {
           children: [
             Icon(icon, size: 18, color: context.palette.terraFg),
             const SizedBox(width: 8),
-            Text(label,
-                style: AppTypography.heading(
-                    size: 14.5,
-                    weight: FontWeight.w500,
-                    color: context.palette.ink)),
+            Text(
+              label,
+              style: AppTypography.heading(
+                size: 14.5,
+                weight: FontWeight.w500,
+                color: context.palette.ink,
+              ),
+            ),
           ],
         ),
       ),

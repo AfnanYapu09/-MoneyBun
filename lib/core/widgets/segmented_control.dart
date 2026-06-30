@@ -6,8 +6,12 @@ import '../theme/typography.dart';
 
 /// One segment of a [SegmentedControl].
 class Segment<T> {
-  const Segment(
-      {required this.value, required this.label, this.icon, this.color});
+  const Segment({
+    required this.value,
+    required this.label,
+    this.icon,
+    this.color,
+  });
   final T value;
   final String label;
   final IconData? icon;
@@ -55,9 +59,10 @@ class SegmentedControl<T> extends StatelessWidget {
     final label = Text(
       s.label,
       style: AppTypography.heading(
-          size: iconOverLabel ? 12 : 13.5,
-          weight: on ? FontWeight.w500 : FontWeight.w400,
-          color: fg),
+        size: iconOverLabel ? 12 : 13.5,
+        weight: on ? FontWeight.w500 : FontWeight.w400,
+        color: fg,
+      ),
     );
     final content = iconOverLabel && s.icon != null
         ? Column(

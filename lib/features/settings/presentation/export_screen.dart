@@ -46,8 +46,11 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 color: context.palette.terraWash,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(AppIcons.download,
-                  size: 30, color: context.palette.terraFg),
+              child: Icon(
+                AppIcons.download,
+                size: 30,
+                color: context.palette.terraFg,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -57,8 +60,10 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
               child: Text(
                 l10n.settingsExportDescription,
                 textAlign: TextAlign.center,
-                style:
-                    AppTypography.body(size: 13.5, color: context.palette.ink2),
+                style: AppTypography.body(
+                  size: 13.5,
+                  color: context.palette.ink2,
+                ),
               ),
             ),
           ),
@@ -72,16 +77,25 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             ),
             child: Row(
               children: [
-                Icon(AppIcons.receiptText,
-                    size: 20, color: context.palette.ink3),
+                Icon(
+                  AppIcons.receiptText,
+                  size: 20,
+                  color: context.palette.ink3,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(l10n.settingsTotalTransactions,
-                      style: AppTypography.body(size: 15)),
+                  child: Text(
+                    l10n.settingsTotalTransactions,
+                    style: AppTypography.body(size: 15),
+                  ),
                 ),
-                Text('${txns.length}',
-                    style: AppTypography.heading(
-                        size: 16, weight: FontWeight.w600)),
+                Text(
+                  '${txns.length}',
+                  style: AppTypography.heading(
+                    size: 16,
+                    weight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -111,7 +125,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final categories = {
         for (final c
             in ref.read(categoriesProvider).value ?? const <CategoryRow>[])
-          c.id: c
+          c.id: c,
       };
       final csv = _buildCsv(txns, categories);
 
@@ -129,17 +143,19 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(savedPath == null
-              ? l10n.settingsExportCopiedClipboard
-              : l10n.settingsExportCopiedSaved(savedPath)),
+          content: Text(
+            savedPath == null
+                ? l10n.settingsExportCopiedClipboard
+                : l10n.settingsExportCopiedSaved(savedPath),
+          ),
           duration: const Duration(seconds: 4),
         ),
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.settingsExportFailed)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.settingsExportFailed)));
       }
     } finally {
       // Always clear the spinner, even if the clipboard channel throws, so the
@@ -151,7 +167,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   /// A spreadsheet-safe CSV: a fixed header, raw decimal amounts (no thousand
   /// separators that would split a column) and quoted text fields.
   String _buildCsv(
-      List<TransactionRow> txns, Map<String, CategoryRow> categories) {
+    List<TransactionRow> txns,
+    Map<String, CategoryRow> categories,
+  ) {
     String cell(String value) => '"${value.replaceAll('"', '""')}"';
     final buffer = StringBuffer('date,type,amount,category,note\n');
     for (final t in txns) {
@@ -159,8 +177,10 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final amount = (t.amountCents / 100).toStringAsFixed(2);
       final category =
           t.categoryId == null ? '' : (categories[t.categoryId]?.name ?? '');
-      buffer.writeln('$date,${t.type.name},$amount,'
-          '${cell(category)},${cell(t.note ?? '')}');
+      buffer.writeln(
+        '$date,${t.type.name},$amount,'
+        '${cell(category)},${cell(t.note ?? '')}',
+      );
     }
     return buffer.toString();
   }

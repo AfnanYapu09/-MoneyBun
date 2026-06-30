@@ -32,14 +32,16 @@ class TagRepository {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final tagId = id ?? _uuid.v4();
-    await _db.upsertTag(TagsCompanion.insert(
-      id: tagId,
-      name: name,
-      colorHex: Value(colorHex),
-      sortOrder: Value(sortOrder ?? 0),
-      createdAt: now,
-      updatedAt: now,
-    ));
+    await _db.upsertTag(
+      TagsCompanion.insert(
+        id: tagId,
+        name: name,
+        colorHex: Value(colorHex),
+        sortOrder: Value(sortOrder ?? 0),
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
     return tagId;
   }
 

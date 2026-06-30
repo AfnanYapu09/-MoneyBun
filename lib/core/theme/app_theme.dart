@@ -26,8 +26,9 @@ class Tokens {
   static const BorderRadius cardLg = BorderRadius.all(Radius.circular(rCardLg));
   static const BorderRadius input = BorderRadius.all(Radius.circular(rInput));
   static const BorderRadius pill = BorderRadius.all(Radius.circular(rPill));
-  static const BorderRadius sheetTop =
-      BorderRadius.vertical(top: Radius.circular(rSheet));
+  static const BorderRadius sheetTop = BorderRadius.vertical(
+    top: Radius.circular(rSheet),
+  );
 
   /// Flat 1px card/divider border (no shadow — the signature flat look).
   static Border hairline([Color color = AppColors.line]) =>
@@ -159,8 +160,10 @@ class AppTheme {
         filled: true,
         fillColor: scheme.surface,
         hintStyle: AppTypography.body(size: 15, color: palette.ink3),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: Tokens.input,
           borderSide: BorderSide(color: lineColor, width: 1),

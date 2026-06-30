@@ -30,11 +30,14 @@ class ThemeScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
-          Text(l10n.settingsDisplayMode,
-              style: AppTypography.heading(
-                  size: 14,
-                  weight: FontWeight.w500,
-                  color: context.palette.ink3)),
+          Text(
+            l10n.settingsDisplayMode,
+            style: AppTypography.heading(
+              size: 14,
+              weight: FontWeight.w500,
+              color: context.palette.ink3,
+            ),
+          ),
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,8 +113,9 @@ class _ModeSwatch extends StatelessWidget {
                 child: Container(
                   height: 8,
                   decoration: BoxDecoration(
-                    color:
-                        (isDark ? AppColors.cream : fg).withValues(alpha: 0.5),
+                    color: (isDark ? AppColors.cream : fg).withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -120,11 +124,13 @@ class _ModeSwatch extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(label,
-            style: AppTypography.body(
-                size: 13,
-                color:
-                    selected ? context.palette.terraFg : context.palette.ink2)),
+        Text(
+          label,
+          style: AppTypography.body(
+            size: 13,
+            color: selected ? context.palette.terraFg : context.palette.ink2,
+          ),
+        ),
       ],
     );
   }

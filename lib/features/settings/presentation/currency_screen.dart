@@ -38,28 +38,34 @@ class CurrencyScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
-          SettingGroup(children: [
-            for (final c in _currencies)
-              SelectRow(
-                leading: SizedBox(
-                  width: 26,
-                  child: Text(c.$2,
+          SettingGroup(
+            children: [
+              for (final c in _currencies)
+                SelectRow(
+                  leading: SizedBox(
+                    width: 26,
+                    child: Text(
+                      c.$2,
                       textAlign: TextAlign.center,
                       style: AppTypography.heading(
-                          size: 18,
-                          weight: FontWeight.w600,
-                          color: context.palette.terraFg)),
+                        size: 18,
+                        weight: FontWeight.w600,
+                        color: context.palette.terraFg,
+                      ),
+                    ),
+                  ),
+                  label: _currencyName(c.$1, l10n),
+                  secondary: c.$1,
+                  selected: current == c.$1,
+                  onTap: () => repo.setCurrency(c.$1),
                 ),
-                label: _currencyName(c.$1, l10n),
-                secondary: c.$1,
-                selected: current == c.$1,
-                onTap: () => repo.setCurrency(c.$1),
-              ),
-          ]),
+            ],
+          ),
           const SizedBox(height: 12),
-          Text(l10n.settingsCurrencyDisplayNote,
-              style:
-                  AppTypography.body(size: 12.5, color: context.palette.ink3)),
+          Text(
+            l10n.settingsCurrencyDisplayNote,
+            style: AppTypography.body(size: 12.5, color: context.palette.ink3),
+          ),
         ],
       ),
     );

@@ -14,11 +14,14 @@ class SettingSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-        child: Text(text,
-            style: AppTypography.heading(
-                size: 13,
-                weight: FontWeight.w500,
-                color: context.palette.ink3)),
+        child: Text(
+          text,
+          style: AppTypography.heading(
+            size: 13,
+            weight: FontWeight.w500,
+            color: context.palette.ink3,
+          ),
+        ),
       );
 }
 
@@ -103,9 +106,13 @@ class SettingRow extends StatelessWidget {
           if (value != null)
             Padding(
               padding: const EdgeInsets.only(left: 8),
-              child: Text(value!,
-                  style: AppTypography.body(
-                      size: 14, color: context.palette.ink3)),
+              child: Text(
+                value!,
+                style: AppTypography.body(
+                  size: 14,
+                  color: context.palette.ink3,
+                ),
+              ),
             ),
           if (trailingWidget != null) trailingWidget,
           if (trailingWidget == null && onTap != null && showChevron) ...[
@@ -155,9 +162,13 @@ class SelectRow extends StatelessWidget {
                 children: [
                   Text(label, style: AppTypography.body(size: 15)),
                   if (secondary != null)
-                    Text(secondary!,
-                        style: AppTypography.body(
-                            size: 12.5, color: context.palette.ink3)),
+                    Text(
+                      secondary!,
+                      style: AppTypography.body(
+                        size: 12.5,
+                        color: context.palette.ink3,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -168,8 +179,10 @@ class SelectRow extends StatelessWidget {
                     height: 20,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border:
-                          Border.all(color: context.palette.line, width: 1.5),
+                      border: Border.all(
+                        color: context.palette.line,
+                        width: 1.5,
+                      ),
                     ),
                   ),
           ],

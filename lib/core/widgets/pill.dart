@@ -7,12 +7,7 @@ import 'app_icons.dart';
 
 /// Centered month selector pill: ‹ label › with prev/next chevrons.
 class MonthChip extends StatelessWidget {
-  const MonthChip({
-    super.key,
-    required this.label,
-    this.onPrev,
-    this.onNext,
-  });
+  const MonthChip({super.key, required this.label, this.onPrev, this.onNext});
 
   final String label;
   final VoidCallback? onPrev;
@@ -35,9 +30,10 @@ class MonthChip extends StatelessWidget {
             _Chevron(icon: AppIcons.chevronLeft, onTap: onPrev),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(label,
-                  style:
-                      AppTypography.heading(size: 14, weight: FontWeight.w500)),
+              child: Text(
+                label,
+                style: AppTypography.heading(size: 14, weight: FontWeight.w500),
+              ),
             ),
             _Chevron(icon: AppIcons.chevronRight, onTap: onNext),
           ],
@@ -137,9 +133,14 @@ class StatusBadge extends StatelessWidget {
             Icon(icon, size: 15, color: fg),
             const SizedBox(width: 5),
           ],
-          Text(label,
-              style: AppTypography.heading(
-                  size: 12.5, weight: FontWeight.w500, color: fg)),
+          Text(
+            label,
+            style: AppTypography.heading(
+              size: 12.5,
+              weight: FontWeight.w500,
+              color: fg,
+            ),
+          ),
         ],
       ),
     );

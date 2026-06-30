@@ -57,11 +57,11 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c
+        c.id: c,
     };
     final accounts = {
       for (final a in ref.watch(accountsProvider).value ?? const <AccountRow>[])
-        a.id: a
+        a.id: a,
     };
     final budgetCount =
         (ref.watch(budgetsProvider).value ?? const <BudgetRow>[])
@@ -76,8 +76,11 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     final byCategory = <String, int>{};
     for (final t in selected) {
       final key = t.categoryId ?? 'sys_other';
-      byCategory.update(key, (v) => v + t.amountCents,
-          ifAbsent: () => t.amountCents);
+      byCategory.update(
+        key,
+        (v) => v + t.amountCents,
+        ifAbsent: () => t.amountCents,
+      );
     }
     final ranked = byCategory.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -85,7 +88,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     // Spending split by tag. A transaction can carry several tags, so its
     // amount counts toward each tag it has.
     final tags = {
-      for (final t in ref.watch(tagsProvider).value ?? const <TagRow>[]) t.id: t
+      for (final t in ref.watch(tagsProvider).value ?? const <TagRow>[])
+        t.id: t,
     };
     final selectedById = {for (final t in selected) t.id: t.amountCents};
     final byTag = <String, int>{};
@@ -109,10 +113,12 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     // Previous-period comparison badge for the selected type.
     final prev = period.previous();
     final prevTotal = allTxns
-        .where((t) =>
-            t.type == _type &&
-            t.occurredAt >= prev.start &&
-            t.occurredAt <= prev.end)
+        .where(
+          (t) =>
+              t.type == _type &&
+              t.occurredAt >= prev.start &&
+              t.occurredAt <= prev.end,
+        )
         .fold<int>(0, (s, t) => s + t.amountCents);
     final pctChange =
         prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100).round() : null;
@@ -139,8 +145,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     final breakdownTitle = _type == TxnType.income
         ? l10n.statsIncomeSources
         : l10n.statsExpenseBreakdown;
-    final donutCenter =
-        _type == TxnType.income ? l10n.statsTotalIncome : l10n.statsTotalSpending;
+    final donutCenter = _type == TxnType.income
+        ? l10n.statsTotalIncome
+        : l10n.statsTotalSpending;
 
     return Scaffold(
       body: SafeArea(
@@ -154,9 +161,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(l10n.stats,
-                        style: AppTypography.heading(
-                            size: 22, weight: FontWeight.w600)),
+                    Text(
+                      l10n.stats,
+                      style: AppTypography.heading(
+                        size: 22,
+                        weight: FontWeight.w600,
+                      ),
+                    ),
                     if (badge != null) badge,
                   ],
                 ),
@@ -174,20 +185,23 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   onChanged: (t) => setState(() => _type = t),
                   segments: [
                     Segment(
-                        value: TxnType.expense,
-                        label: l10n.expense,
-                        icon: AppIcons.arrowUpRight,
-                        color: AppColors.terra),
+                      value: TxnType.expense,
+                      label: l10n.expense,
+                      icon: AppIcons.arrowUpRight,
+                      color: AppColors.terra,
+                    ),
                     Segment(
-                        value: TxnType.income,
-                        label: l10n.income,
-                        icon: AppIcons.arrowDownLeft,
-                        color: context.palette.greenFg),
+                      value: TxnType.income,
+                      label: l10n.income,
+                      icon: AppIcons.arrowDownLeft,
+                      color: context.palette.greenFg,
+                    ),
                     Segment(
-                        value: TxnType.transfer,
-                        label: l10n.transfer,
-                        icon: AppIcons.arrowLeftRight,
-                        color: context.palette.amberFg),
+                      value: TxnType.transfer,
+                      label: l10n.transfer,
+                      icon: AppIcons.arrowLeftRight,
+                      color: context.palette.amberFg,
+                    ),
                   ],
                 ),
                 if (isTransfer) ...[
@@ -207,19 +221,26 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   if (_type == TxnType.expense && period.isWeek)
                     WeekStrip(
                       weekStart: period.anchor,
-                      dailyExpenseCents:
-                          weeklyExpenseCents(period.anchor, txns),
+                      dailyExpenseCents: weeklyExpenseCents(
+                        period.anchor,
+                        txns,
+                      ),
                       locale: locale,
                     ),
-                  Text(breakdownTitle,
-                      style: AppTypography.heading(
-                          size: 16, weight: FontWeight.w500)),
+                  Text(
+                    breakdownTitle,
+                    style: AppTypography.heading(
+                      size: 16,
+                      weight: FontWeight.w500,
+                    ),
+                  ),
                   _DonutCard(
-                      ranked: ranked,
-                      total: total,
-                      palette: chartColors,
-                      categories: categories,
-                      centerLabel: donutCenter),
+                    ranked: ranked,
+                    total: total,
+                    palette: chartColors,
+                    categories: categories,
+                    centerLabel: donutCenter,
+                  ),
                   Row(
                     children: [
                       Expanded(
@@ -262,7 +283,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                               padding: const EdgeInsets.only(bottom: 16),
                               child: InkWell(
                                 onTap: () => context.push(
-                                    '/transactions?categoryId=${Uri.encodeComponent(ranked[i].key)}'),
+                                  '/transactions?categoryId=${Uri.encodeComponent(ranked[i].key)}',
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                                 child: _CategoryBar(
                                   category: categories[ranked[i].key],
@@ -285,7 +307,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                             padding: const EdgeInsets.only(bottom: 16),
                             child: InkWell(
                               onTap: () => context.push(
-                                  '/transactions?tagId=${Uri.encodeComponent(rankedTags[i].key)}'),
+                                '/transactions?tagId=${Uri.encodeComponent(rankedTags[i].key)}',
+                              ),
                               borderRadius: BorderRadius.circular(12),
                               child: _TagBar(
                                 tag: tags[rankedTags[i].key],
@@ -311,8 +334,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
 Widget _emptyBreakdown(BuildContext context, String message) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Text(message,
-          style: AppTypography.body(size: 14, color: context.palette.ink3)),
+      child: Text(
+        message,
+        style: AppTypography.body(size: 14, color: context.palette.ink3),
+      ),
     );
 
 class _DonutCard extends StatelessWidget {
@@ -350,15 +375,17 @@ class _DonutCard extends StatelessWidget {
         center: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(centerLabel,
-                style:
-                    AppTypography.body(size: 12, color: context.palette.ink3)),
+            Text(
+              centerLabel,
+              style: AppTypography.body(size: 12, color: context.palette.ink3),
+            ),
             FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(Money.compact(total),
-                  maxLines: 1,
-                  style:
-                      AppTypography.heading(size: 22, weight: FontWeight.w600)),
+              child: Text(
+                Money.compact(total),
+                maxLines: 1,
+                style: AppTypography.heading(size: 22, weight: FontWeight.w600),
+              ),
             ),
           ],
         ),
@@ -398,17 +425,22 @@ class _EntryButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconChip(icon: icon, size: 38, radius: 12, iconSize: 20),
-                Icon(AppIcons.arrowRight,
-                    size: 18, color: context.palette.ink3),
+                Icon(
+                  AppIcons.arrowRight,
+                  size: 18,
+                  color: context.palette.ink3,
+                ),
               ],
             ),
             const SizedBox(height: 10),
-            Text(title,
-                style:
-                    AppTypography.heading(size: 15, weight: FontWeight.w500)),
-            Text(sub,
-                style:
-                    AppTypography.body(size: 12, color: context.palette.ink3)),
+            Text(
+              title,
+              style: AppTypography.heading(size: 15, weight: FontWeight.w500),
+            ),
+            Text(
+              sub,
+              style: AppTypography.body(size: 12, color: context.palette.ink3),
+            ),
           ],
         ),
       ),
@@ -447,24 +479,33 @@ class _TransferSummary extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.statsTotalTransferred,
-                    style: AppTypography.body(
-                        size: 12.5, color: context.palette.ink3)),
+                Text(
+                  l10n.statsTotalTransferred,
+                  style: AppTypography.body(
+                    size: 12.5,
+                    color: context.palette.ink3,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(Money.compact(total),
-                      maxLines: 1,
-                      style: AppTypography.heading(
-                          size: 26, weight: FontWeight.w600)),
+                  child: Text(
+                    Money.compact(total),
+                    maxLines: 1,
+                    style: AppTypography.heading(
+                      size: 26,
+                      weight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          Text(l10n.statsItemCount(count),
-              style:
-                  AppTypography.body(size: 12.5, color: context.palette.ink3)),
+          Text(
+            l10n.statsItemCount(count),
+            style: AppTypography.body(size: 12.5, color: context.palette.ink3),
+          ),
         ],
       ),
     );
@@ -499,25 +540,29 @@ class _TransferList extends StatelessWidget {
         children: [
           for (var i = 0; i < rows.length; i++) ...[
             if (i > 0) const Divider(height: 1),
-            Builder(builder: (context) {
-              final t = rows[i];
-              final d = txnDisplay(t,
+            Builder(
+              builder: (context) {
+                final t = rows[i];
+                final d = txnDisplay(
+                  t,
                   categories: categories,
                   accounts: accounts,
                   locale: locale,
                   withDate: true,
-                  context: context);
-              return TxnRow(
-                icon: d.icon,
-                title: d.title,
-                sub: d.sub,
-                iconColor: d.color,
-                iconKey: d.iconKey,
-                amountCents: t.amountCents,
-                type: t.type,
-                onTap: () => onTap(t.id),
-              );
-            }),
+                  context: context,
+                );
+                return TxnRow(
+                  icon: d.icon,
+                  title: d.title,
+                  sub: d.sub,
+                  iconColor: d.color,
+                  iconKey: d.iconKey,
+                  amountCents: t.amountCents,
+                  type: t.type,
+                  onTap: () => onTap(t.id),
+                );
+              },
+            ),
           ],
         ],
       ),
@@ -565,11 +610,17 @@ class _CategoryBar extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(category?.displayName(locale) ?? l10n.statsOther,
-                      style: AppTypography.body(size: 14)),
-                  Text(Money.compact(cents),
-                      style: AppTypography.heading(
-                          size: 14, weight: FontWeight.w500)),
+                  Text(
+                    category?.displayName(locale) ?? l10n.statsOther,
+                    style: AppTypography.body(size: 14),
+                  ),
+                  Text(
+                    Money.compact(cents),
+                    style: AppTypography.heading(
+                      size: 14,
+                      weight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
@@ -607,9 +658,13 @@ class _TagBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(tag?.name ?? '—', style: AppTypography.body(size: 14)),
-                  Text(Money.compact(cents),
-                      style: AppTypography.heading(
-                          size: 14, weight: FontWeight.w500)),
+                  Text(
+                    Money.compact(cents),
+                    style: AppTypography.heading(
+                      size: 14,
+                      weight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),

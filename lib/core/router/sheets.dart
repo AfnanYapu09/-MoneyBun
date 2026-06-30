@@ -36,8 +36,10 @@ class _FormSheetSize extends StatelessWidget {
 /// Runs [show] while marking a sheet open in [openSheetsProvider], so the home
 /// FAB hides for the sheet's whole lifetime (and reappears once it closes).
 Future<T?> _tracked<T>(BuildContext context, Future<T?> Function() show) async {
-  final notifier = ProviderScope.containerOf(context, listen: false)
-      .read(openSheetsProvider.notifier);
+  final notifier = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(openSheetsProvider.notifier);
   notifier.increment();
   try {
     return await show();
@@ -143,9 +145,7 @@ Future<bool?> showAddCategorySheet(
       useSafeArea: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => _FormSheetSize(
-        child: AddCategorySheet(type: type),
-      ),
+      builder: (_) => _FormSheetSize(child: AddCategorySheet(type: type)),
     ),
   );
 }
@@ -171,18 +171,23 @@ Future<bool> confirmLogout(BuildContext context) async {
                 color: context.palette.dangerWash,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(AppIcons.logOut,
-                  color: context.palette.dangerFg, size: 28),
+              child: Icon(
+                AppIcons.logOut,
+                color: context.palette.dangerFg,
+                size: 28,
+              ),
             ),
             const SizedBox(height: 12),
-            Text(l10n.logoutTitle,
-                style:
-                    AppTypography.heading(size: 19, weight: FontWeight.w600)),
+            Text(
+              l10n.logoutTitle,
+              style: AppTypography.heading(size: 19, weight: FontWeight.w600),
+            ),
             const SizedBox(height: 6),
-            Text(l10n.logoutBody,
-                textAlign: TextAlign.center,
-                style:
-                    AppTypography.body(size: 14, color: context.palette.ink2)),
+            Text(
+              l10n.logoutBody,
+              textAlign: TextAlign.center,
+              style: AppTypography.body(size: 14, color: context.palette.ink2),
+            ),
             const SizedBox(height: 18),
             PrimaryButton(
               label: l10n.signOut,

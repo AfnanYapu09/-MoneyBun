@@ -169,7 +169,9 @@ class GroupedBarChart extends StatelessWidget {
     final palette = context.palette;
     final incomeC = incomeColor ?? palette.greenFg;
     final max = groups.fold<double>(
-        1, (m, g) => math.max(m, math.max(g.income, g.expense)));
+      1,
+      (m, g) => math.max(m, math.max(g.income, g.expense)),
+    );
     final bars = [
       for (var i = 0; i < groups.length; i++)
         _tappable(i, _group(groups[i], max, incomeC, palette)),
@@ -222,11 +224,14 @@ class GroupedBarChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(g.label,
-            style: AppTypography.heading(
-                size: 12.5,
-                weight: g.active ? FontWeight.w500 : FontWeight.w400,
-                color: g.active ? palette.ink : palette.ink3)),
+        Text(
+          g.label,
+          style: AppTypography.heading(
+            size: 12.5,
+            weight: g.active ? FontWeight.w500 : FontWeight.w400,
+            color: g.active ? palette.ink : palette.ink3,
+          ),
+        ),
       ],
     );
   }

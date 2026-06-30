@@ -5,8 +5,11 @@ import '../../../l10n/generated/app_localizations.dart';
 /// Maps a Firebase Auth error to a clear, localized message so the user knows
 /// exactly why a sign-up / sign-in / reset failed. Falls back to [fallback]
 /// (the screen's generic message) for anything unrecognised.
-String authErrorMessage(Object error, AppLocalizations l10n,
-    {required String fallback}) {
+String authErrorMessage(
+  Object error,
+  AppLocalizations l10n, {
+  required String fallback,
+}) {
   if (error is FirebaseAuthException) {
     switch (error.code) {
       case 'email-already-in-use':
