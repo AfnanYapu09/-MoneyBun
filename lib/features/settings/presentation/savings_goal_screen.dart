@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/utils/calculator.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/calculator_keypad.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
@@ -23,11 +24,28 @@ class SavingsGoalScreen extends ConsumerStatefulWidget {
 class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
   final _amount = TextEditingController();
   bool _init = false;
+  String _calcHistory = '';
 
   @override
   void dispose() {
     _amount.dispose();
     super.dispose();
+  }
+
+  Future<void> _openCalculator() async {
+    final original = _amount.text;
+    await showAmountCalculator(
+      context,
+      initial: original,
+      onChanged: (text, history) {
+        _amount.text = text;
+        setState(() => _calcHistory = history);
+      },
+    );
+    if (!mounted) return;
+    final value = Calculator.evaluate(_amount.text);
+    _amount.text = value == null ? original : Calculator.formatResult(value);
+    // Keep _calcHistory as the keypad left it — it lingers until leaving the page.
   }
 
   @override
@@ -122,12 +140,14 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
               style: AppTypography.heading(
                   size: 14, weight: FontWeight.w500, color: AppColors.ink3)),
           const SizedBox(height: 8),
+          CalcHistoryLine(_calcHistory),
           TextField(
             controller: _amount,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-            ],
+            // Tap to open the in-app calculator (no system keyboard).
+            readOnly: true,
+            showCursor: false,
+            enableInteractiveSelection: false,
+            onTap: _openCalculator,
             decoration:
                 const InputDecoration(prefixText: '฿ ', hintText: '8,000'),
           ),

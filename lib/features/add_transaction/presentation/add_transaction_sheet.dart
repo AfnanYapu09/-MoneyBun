@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/calculator.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/calculator_keypad.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/segmented_control.dart';
@@ -38,6 +39,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   DateTime _occurredAt = DateTime.now();
   SlipRow? _slip;
   bool _loaded = false;
+  String _calcHistory = '';
 
   @override
   void initState() {
@@ -94,6 +96,27 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         TxnType.transfer => AppColors.amber,
         TxnType.expense => AppColors.terra,
       };
+
+  /// Open the orange in-app calculator. Keypresses appear live in the field;
+  /// on close the expression left there is resolved to a number (edit mode
+  /// then persists, mirroring the old onChanged hook).
+  Future<void> _openCalculator() async {
+    final original = _amount.text;
+    await showAmountCalculator(
+      context,
+      initial: original,
+      onChanged: (text, history) {
+        _amount.text = text;
+        setState(() => _calcHistory = history);
+      },
+    );
+    if (!mounted) return;
+    final value = Calculator.evaluate(_amount.text);
+    _amount.text = value == null ? original : Calculator.formatResult(value);
+    // Keep _calcHistory as the keypad left it — it lingers above the amount
+    // until the sheet is closed.
+    _persistLive();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,48 +188,55 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           const SizedBox(height: 14),
           // Amount card
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             decoration: BoxDecoration(
               color: AppColors.paper,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.line),
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(_directionIcon, size: 30, color: _accent),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: TextField(
-                    controller: _amount,
-                    onChanged: (_) => _persistLive(),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-                    ],
-                    style: AppTypography.heading(
-                        size: 40,
-                        weight: FontWeight.w600,
-                        color: AppColors.ink),
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      filled: false,
-                      hintText: '0',
-                      hintStyle: AppTypography.heading(
-                          size: 40,
-                          weight: FontWeight.w600,
-                          color: AppColors.ink3),
+                CalcHistoryLine(_calcHistory),
+                Row(
+                  children: [
+                    Icon(_directionIcon, size: 30, color: _accent),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: TextField(
+                        controller: _amount,
+                        // Tapping opens the in-app calculator instead of the
+                        // system keyboard (amounts can be worked out inline).
+                        readOnly: true,
+                        showCursor: false,
+                        enableInteractiveSelection: false,
+                        onTap: _openCalculator,
+                        style: AppTypography.heading(
+                            size: 40,
+                            weight: FontWeight.w600,
+                            color: AppColors.ink),
+                        decoration: InputDecoration(
+                          isCollapsed: true,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
+                          hintText: '0',
+                          hintStyle: AppTypography.heading(
+                              size: 40,
+                              weight: FontWeight.w600,
+                              color: AppColors.ink3),
+                        ),
+                      ),
                     ),
-                  ),
+                    Text('฿',
+                        style: AppTypography.heading(
+                            size: 26,
+                            weight: FontWeight.w500,
+                            color: AppColors.ink3)),
+                  ],
                 ),
-                Text('฿',
-                    style: AppTypography.heading(
-                        size: 26,
-                        weight: FontWeight.w500,
-                        color: AppColors.ink3)),
               ],
             ),
           ),

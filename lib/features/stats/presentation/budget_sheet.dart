@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -8,9 +7,11 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/calculator.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/calculator_keypad.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/primary_button.dart';
@@ -37,6 +38,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   final _amount = TextEditingController();
   BudgetPeriod _period = BudgetPeriod.monthly;
   bool _alert80 = true;
+  String _calcHistory = '';
 
   @override
   void initState() {
@@ -53,6 +55,22 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   void dispose() {
     _amount.dispose();
     super.dispose();
+  }
+
+  Future<void> _openCalculator() async {
+    final original = _amount.text;
+    await showAmountCalculator(
+      context,
+      initial: original,
+      onChanged: (text, history) {
+        _amount.text = text;
+        setState(() => _calcHistory = history);
+      },
+    );
+    if (!mounted) return;
+    final value = Calculator.evaluate(_amount.text);
+    _amount.text = value == null ? original : Calculator.formatResult(value);
+    // Keep _calcHistory as the keypad left it — it lingers until the sheet closes.
   }
 
   @override
@@ -136,6 +154,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                   Text('จำนวนงบ',
                       style: AppTypography.body(
                           size: 12.5, color: AppColors.ink3)),
+                  CalcHistoryLine(_calcHistory),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
@@ -143,12 +162,11 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                       Expanded(
                         child: TextField(
                           controller: _amount,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9.,]'))
-                          ],
+                          // Tap to open the in-app calculator (no system keyboard).
+                          readOnly: true,
+                          showCursor: false,
+                          enableInteractiveSelection: false,
+                          onTap: _openCalculator,
                           style: AppTypography.heading(
                               size: 38, weight: FontWeight.w600),
                           decoration: InputDecoration(
