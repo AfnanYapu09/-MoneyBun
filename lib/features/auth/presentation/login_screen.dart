@@ -151,6 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return; // ignore re-entry from a fast keyboard/button double-tap
     final auth = ref.read(authServiceProvider);
     if (auth == null) {
       _snack('ยังไม่ได้ตั้งค่า Firebase — ใช้งานแบบไม่ล็อกอินได้เลย');

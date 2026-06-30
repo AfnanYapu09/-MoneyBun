@@ -57,6 +57,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Future<void> _send() async {
+    if (_busy) return;
     final auth = ref.read(authServiceProvider);
     if (auth == null) {
       _snack('ยังไม่ได้ตั้งค่า Firebase');

@@ -158,6 +158,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 
   Future<void> _signup() async {
+    if (_busy) return;
     if (!_agree) {
       _snack('กรุณายอมรับเงื่อนไขการใช้งาน');
       return;
