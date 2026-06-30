@@ -110,7 +110,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
     ink3: Color(0xFF8A8174),
     line: Color(0xFF3A322A),
     toggleOff: Color(0xFF4A4136),
-    pixelTile: Color(0xFFECE3D4),
+    // A warm dark disc behind category pixel-art so the tiles sit in the dark
+    // theme instead of glowing as bright cream dots.
+    pixelTile: Color(0xFF37302A),
     terraWash: Color(0xFF3B2A22),
     terraFg: Color(0xFFE0A488),
     greenTint: Color(0xFF21302A),

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 
 class ThemeScreen extends ConsumerWidget {
@@ -15,19 +14,11 @@ class ThemeScreen extends ConsumerWidget {
     ('dark', 'มืด'),
     ('system', 'อัตโนมัติ'),
   ];
-  static const _accents = [
-    'FFC4694A',
-    'FF4E7A5E',
-    'FF2A6FDB',
-    'FF8A5BD6',
-    'FFC9A227',
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider).value;
     final mode = settings?.themeMode ?? 'system';
-    final accent = settings?.accentColor ?? 'FFC4694A';
     final repo = ref.read(settingsRepositoryProvider);
 
     return SubScreenScaffold(
@@ -54,37 +45,6 @@ class ThemeScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-              ],
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text('สีหลัก',
-              style: AppTypography.heading(
-                  size: 14,
-                  weight: FontWeight.w500,
-                  color: context.palette.ink3)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              for (final a in _accents) ...[
-                InkWell(
-                  onTap: () => repo.setAccentColor(a),
-                  customBorder: const CircleBorder(),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.forHex(a),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: accent == a
-                        ? const Icon(AppIcons.check,
-                            size: 20, color: Colors.white)
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 14),
               ],
             ],
           ),

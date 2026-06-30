@@ -94,9 +94,9 @@ class SettingsScreen extends ConsumerWidget {
                     repo.setLocale(settings.locale == 'th' ? 'en' : 'th'),
               ),
               SettingRow(
-                icon: AppIcons.shieldCheck,
-                label: 'ความปลอดภัย',
-                onTap: () => context.push('/settings/security'),
+                icon: AppIcons.download,
+                label: 'ส่งออกข้อมูล',
+                onTap: () => context.push('/settings/export'),
               ),
               SettingRow(
                 icon: AppIcons.circleHelp,

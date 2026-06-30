@@ -10,8 +10,8 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/settings/presentation/currency_screen.dart';
 import '../../features/settings/presentation/help_screen.dart';
 import '../../features/settings/presentation/profile_screen.dart';
+import '../../features/settings/presentation/export_screen.dart';
 import '../../features/settings/presentation/savings_goal_screen.dart';
-import '../../features/settings/presentation/security_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/settings/presentation/theme_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
@@ -109,8 +109,8 @@ GoRouter buildRouter(Ref ref) {
         pageBuilder: (c, s) => slidePage(const ThemeScreen()),
       ),
       GoRoute(
-        path: '/settings/security',
-        pageBuilder: (c, s) => slidePage(const SecurityScreen()),
+        path: '/settings/export',
+        pageBuilder: (c, s) => slidePage(const ExportScreen()),
       ),
       GoRoute(
         path: '/settings/help',
