@@ -12,8 +12,9 @@ class SlipRepository {
   final AppDatabase _db;
   static const _uuid = Uuid();
 
-  /// Persist a parsed slip (incl. its image) and return its id.
-  Future<String> save(ParsedSlip slip) async {
+  /// Persist a parsed slip (incl. its image) and return its id. [photoTakenAt]
+  /// is when the source gallery photo was created (drives the scan watermark).
+  Future<String> save(ParsedSlip slip, {DateTime? photoTakenAt}) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final id = _uuid.v4();
     await _db.upsertSlip(
@@ -22,6 +23,9 @@ class SlipRepository {
         source: slip.source,
         imagePath: Value(slip.imagePath),
         assetId: Value(slip.assetId),
+        photoTakenAt: Value(
+          photoTakenAt == null ? null : AppDate.toMillis(photoTakenAt),
+        ),
         bankCode: Value(slip.bankCode),
         transRef: Value(slip.transRef),
         qrPayload: Value(slip.qrPayload),

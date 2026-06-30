@@ -126,6 +126,7 @@ class FirestoreMappers {
   static Map<String, dynamic> slipToMap(SlipRow r) => {
         'source': r.source.index,
         'assetId': r.assetId,
+        'photoTakenAt': r.photoTakenAt,
         'bankCode': r.bankCode,
         'transRef': r.transRef,
         'qrPayload': r.qrPayload,
@@ -147,6 +148,7 @@ class FirestoreMappers {
         id: Value(id),
         source: Value(_enum(SlipSource.values, m['source'])),
         assetId: Value(m['assetId'] as String?),
+        photoTakenAt: Value((m['photoTakenAt'] as num?)?.toInt()),
         bankCode: Value(m['bankCode'] as String?),
         transRef: Value(m['transRef'] as String?),
         qrPayload: Value(m['qrPayload'] as String?),

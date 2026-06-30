@@ -87,6 +87,11 @@ class Slips extends Table {
 
   /// Source gallery asset id (Android album auto-scan) — used to skip re-imports.
   TextColumn get assetId => text().nullable()();
+
+  /// When the source photo was created in the gallery (epoch ms). Synced, so
+  /// the "read slips newer than the latest one" watermark survives a reinstall
+  /// or sign-out/in: it is recomputed as the max of this over imported slips.
+  IntColumn get photoTakenAt => integer().nullable()();
   IntColumn get source => intEnum<SlipSource>()();
   TextColumn get bankCode => text().nullable()();
   TextColumn get transRef => text().nullable()();

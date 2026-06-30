@@ -109,6 +109,7 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     transactions: ref.watch(transactionRepositoryProvider),
     importedAssetIds: db.importedAssetIds,
     importedSlipRefs: db.importedSlipRefs,
+    latestSlipPhotoTime: db.latestSlipPhotoTime,
     // Banks turned off in the accounts sheet (their scan-catalog ids).
     disabledScanIds: () async =>
         (await ref.read(settingsRepositoryProvider).read()).disabledScanIds,

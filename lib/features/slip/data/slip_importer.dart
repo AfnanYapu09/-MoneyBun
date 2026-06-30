@@ -50,12 +50,14 @@ class SlipImporter {
     required TransactionRepository transactions,
     required Future<Set<String>> Function() importedAssetIds,
     required Future<Set<String>> Function() importedSlipRefs,
+    required Future<int?> Function() latestSlipPhotoTime,
     required Future<Set<String>> Function() disabledScanIds,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
         _importedAssetIds = importedAssetIds,
         _importedSlipRefs = importedSlipRefs,
+        _latestSlipPhotoTime = latestSlipPhotoTime,
         _disabledScanIds = disabledScanIds;
 
   final SlipPipeline _pipeline;
@@ -68,6 +70,10 @@ class SlipImporter {
   /// restore, where the asset id may be missing.
   final Future<Set<String>> Function() _importedSlipRefs;
 
+  /// Source-photo time of the latest imported slip (epoch ms), or null when
+  /// none yet. Used as the scan watermark: read only photos newer than this.
+  final Future<int?> Function() _latestSlipPhotoTime;
+
   /// Scan-catalog ids the user turned off (their albums are skipped this scan).
   final Future<Set<String>> Function() _disabledScanIds;
 
@@ -77,15 +83,14 @@ class SlipImporter {
   /// Cap on images read per bank album (protects a long slip history).
   static const _albumCap = 300;
 
-  /// Only read photos from the past this-many days, so a scan never trawls a
-  /// whole month of old photos (slow). Already-imported photos are skipped by
-  /// asset id, so this window alone keeps re-scans cheap.
+  /// Bootstrap window: when no slip has ever been imported, a scan reads only
+  /// the past this-many days so it never trawls the whole gallery. Once a slip
+  /// exists, the watermark (latest imported slip's photo time) takes over.
   static const _scanWindowDays = 7;
 
-  /// The earliest photo-creation time a scan reads: always the last
-  /// [_scanWindowDays] days. Asset-id dedup (not a moving watermark) prevents
-  /// re-imports, so a just-saved slip is always found once the gallery indexes
-  /// it. Pure + static so it can be unit-tested.
+  /// The bootstrap cutoff (used only before any slip exists): the last
+  /// [_scanWindowDays] days. Once slips exist, [scanNew] uses the watermark
+  /// instead. Pure + static so it can be unit-tested.
   static DateTime scanCutoff(DateTime now) =>
       now.subtract(const Duration(days: _scanWindowDays));
 
@@ -193,11 +198,19 @@ class SlipImporter {
       if (paths.isEmpty) return const ScanResult();
       final already = await _importedAssetIds();
       final knownRefs = await _importedSlipRefs();
-      // Only look at the past week; asset-id dedup (not a moving watermark)
-      // skips photos already imported, so a just-saved slip is always found
-      // once indexed, while re-scans stay cheap.
-      final cutoff = scanCutoff(scanStart);
-      bool inWindow(AssetEntity a) => a.createDateTime.isAfter(cutoff);
+      // Watermark: once any slip has been imported, read only photos newer than
+      // the latest one — so a scan continues *after* the last slip and never
+      // re-reads older ones. The watermark is recomputed from the slips table
+      // (whose photoTakenAt syncs), so it survives a sign-out or reinstall.
+      // Before the first slip exists, bootstrap from the past week.
+      final watermarkMs = await _latestSlipPhotoTime();
+      final cutoff = watermarkMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(watermarkMs)
+          : scanCutoff(scanStart);
+      // Inclusive at the cutoff so a slip saved in the same second as the
+      // watermark isn't missed; the already-imported one is skipped by the
+      // asset-id / transRef dedup below.
+      bool inWindow(AssetEntity a) => !a.createDateTime.isBefore(cutoff);
       // Banks the user turned off in the accounts sheet — skip their albums.
       final disabled = await _disabledScanIds();
 
@@ -290,7 +303,9 @@ class SlipImporter {
   /// when the photo was saved — never the scan time — so entries land on the
   /// day of the slip.
   Future<void> _persist(ParsedSlip parsed, DateTime fallbackDate) async {
-    final slipId = await _slips.save(parsed);
+    // fallbackDate is the photo's gallery creation time — store it as the
+    // slip's photoTakenAt so it can advance the scan watermark.
+    final slipId = await _slips.save(parsed, photoTakenAt: fallbackDate);
     // A slip now yields only an amount, so every import is recorded as an
     // expense; the user can change the type per-transaction when needed.
     await _txns.save(

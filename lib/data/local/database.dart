@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -60,6 +60,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 5) {
             await _seedCategories();
             await _reskinSystemCategories();
+          }
+          // v6: remember each slip's source-photo time so the scan watermark
+          // (read only slips newer than the latest one) survives reinstall/sync.
+          if (from < 6) {
+            await m.addColumn(slips, slips.photoTakenAt);
           }
         },
       );
@@ -288,6 +293,20 @@ class AppDatabase extends _$AppDatabase {
       ..where(slips.assetId.isNotNull());
     final rows = await query.get();
     return rows.map((r) => r.read(slips.assetId)).whereType<String>().toSet();
+  }
+
+  /// The source-photo time (epoch ms) of the most recently imported slip, or
+  /// null when none have been imported. Drives the scan watermark: the scanner
+  /// reads only photos newer than this, so it continues after the latest slip
+  /// instead of re-reading old ones — and because [Slips.photoTakenAt] syncs,
+  /// this survives a sign-out/reinstall (it is recomputed from restored data).
+  Future<int?> latestSlipPhotoTime() async {
+    final query = select(slips)
+      ..where((s) => s.deleted.equals(false) & s.photoTakenAt.isNotNull())
+      ..orderBy([(s) => OrderingTerm.desc(s.photoTakenAt)])
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row?.photoTakenAt;
   }
 
   /// Stable bank transaction references already imported. Used as a second
