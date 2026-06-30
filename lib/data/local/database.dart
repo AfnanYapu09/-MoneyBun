@@ -405,13 +405,13 @@ class AppDatabase extends _$AppDatabase {
   /// Local updatedAt keyed by transaction id — one query, so the pull doesn't
   /// read every row individually before deciding what to upsert.
   Future<Map<String, int>> transactionsUpdatedAt() async {
-    final q = selectOnly(transactions)
-      ..addColumns([transactions.id, transactions.updatedAt]);
-    final rows = await q.get();
-    return {
-      for (final r in rows)
-        r.read(transactions.id)!: r.read(transactions.updatedAt) ?? 0
-    };
+    final q = selectOnly(transactions);
+    q.addColumns([transactions.id, transactions.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(transactions.id)!] = r.read(transactions.updatedAt) ?? 0;
+    }
+    return result;
   }
 
   // Each of these selects every row (including soft-deleted ones) so the pull
@@ -419,47 +419,53 @@ class AppDatabase extends _$AppDatabase {
   // remote doc — and a locally-deleted row isn't resurrected, since its
   // tombstone's updatedAt is still in the map.
   Future<Map<String, int>> accountsUpdatedAt() async {
-    final q = selectOnly(accounts)
-      ..addColumns([accounts.id, accounts.updatedAt]);
-    final rows = await q.get();
-    return {
-      for (final r in rows)
-        r.read(accounts.id)!: r.read(accounts.updatedAt) ?? 0
-    };
+    final q = selectOnly(accounts);
+    q.addColumns([accounts.id, accounts.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(accounts.id)!] = r.read(accounts.updatedAt) ?? 0;
+    }
+    return result;
   }
 
   Future<Map<String, int>> categoriesUpdatedAt() async {
-    final q = selectOnly(categories)
-      ..addColumns([categories.id, categories.updatedAt]);
-    final rows = await q.get();
-    return {
-      for (final r in rows)
-        r.read(categories.id)!: r.read(categories.updatedAt) ?? 0
-    };
+    final q = selectOnly(categories);
+    q.addColumns([categories.id, categories.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(categories.id)!] = r.read(categories.updatedAt) ?? 0;
+    }
+    return result;
   }
 
   Future<Map<String, int>> tagsUpdatedAt() async {
-    final q = selectOnly(tags)..addColumns([tags.id, tags.updatedAt]);
-    final rows = await q.get();
-    return {
-      for (final r in rows) r.read(tags.id)!: r.read(tags.updatedAt) ?? 0
-    };
+    final q = selectOnly(tags);
+    q.addColumns([tags.id, tags.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(tags.id)!] = r.read(tags.updatedAt) ?? 0;
+    }
+    return result;
   }
 
   Future<Map<String, int>> budgetsUpdatedAt() async {
-    final q = selectOnly(budgets)..addColumns([budgets.id, budgets.updatedAt]);
-    final rows = await q.get();
-    return {
-      for (final r in rows) r.read(budgets.id)!: r.read(budgets.updatedAt) ?? 0
-    };
+    final q = selectOnly(budgets);
+    q.addColumns([budgets.id, budgets.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(budgets.id)!] = r.read(budgets.updatedAt) ?? 0;
+    }
+    return result;
   }
 
   Future<Map<String, int>> slipsUpdatedAt() async {
-    final q = selectOnly(slips)..addColumns([slips.id, slips.updatedAt]);
-    final rows = await q.get();
-    return {
-      for (final r in rows) r.read(slips.id)!: r.read(slips.updatedAt) ?? 0
-    };
+    final q = selectOnly(slips);
+    q.addColumns([slips.id, slips.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(slips.id)!] = r.read(slips.updatedAt) ?? 0;
+    }
+    return result;
   }
 
   // insertAllOnConflictUpdate only writes the provided columns, so columns the

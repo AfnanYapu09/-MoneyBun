@@ -213,9 +213,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (ms != null) {
             final period = ref.read(selectedPeriodProvider);
             if (ms < period.start || ms > period.end) {
-              ref
-                  .read(selectedPeriodProvider.notifier)
-                  .setMonth(DateTime.fromMillisecondsSinceEpoch(ms));
+              final when = DateTime.fromMillisecondsSinceEpoch(ms);
+              ref.read(selectedPeriodProvider.notifier).setMonth(when);
             }
           }
         } else if (next.limited) {
