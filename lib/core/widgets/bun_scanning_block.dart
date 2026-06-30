@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
 import 'app_icons.dart';
@@ -69,7 +70,7 @@ class _BunScanningBlockState extends State<BunScanningBlock>
           Expanded(
             child: Row(
               children: [
-                Text('น้องบันกำลังอ่านสลิป',
+                Text(AppLocalizations.of(context).bunReadingSlips,
                     style: AppTypography.heading(
                         size: 14.5, weight: FontWeight.w500)),
                 const SizedBox(width: 6),
@@ -214,7 +215,9 @@ class PullHint extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            armed ? 'ปล่อยเพื่อให้น้องบันอ่านสลิป' : 'ดึงลงเพื่ออัปเดตสลิป',
+            armed
+                ? AppLocalizations.of(context).releaseToScan
+                : AppLocalizations.of(context).pullToScan,
             style: AppTypography.body(size: 13.5, color: context.palette.ink3),
           ),
         ],

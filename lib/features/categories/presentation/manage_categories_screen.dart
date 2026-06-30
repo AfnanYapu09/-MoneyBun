@@ -7,6 +7,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'category_tag_board.dart';
 
 /// Manage categories using the very same grid + tag-chip board as the
@@ -25,8 +26,9 @@ class _ManageCategoriesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SubScreenScaffold(
-      title: 'จัดการหมวดหมู่',
+      title: l10n.manageCategories,
       action: IconButton(
         onPressed: () => showAddCategorySheet(context, type: _tab),
         icon: const Icon(AppIcons.plus, size: 22, color: AppColors.terra),
@@ -37,9 +39,9 @@ class _ManageCategoriesScreenState
           SegmentedControl<CategoryType>(
             value: _tab,
             onChanged: (t) => setState(() => _tab = t),
-            segments: const [
-              Segment(value: CategoryType.expense, label: 'รายจ่าย'),
-              Segment(value: CategoryType.income, label: 'รายรับ'),
+            segments: [
+              Segment(value: CategoryType.expense, label: l10n.expense),
+              Segment(value: CategoryType.income, label: l10n.income),
             ],
           ),
           const SizedBox(height: 18),

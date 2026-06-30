@@ -14,6 +14,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/profile_avatar.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -46,9 +47,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _init = true;
     }
     final email = ref.watch(authStateProvider).value?.email ?? '—';
+    final l10n = AppLocalizations.of(context);
 
     return SubScreenScaffold(
-      title: 'โปรไฟล์ของฉัน',
+      title: l10n.settingsMyProfile,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
         children: [
@@ -69,14 +71,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 _ProfileRow(
                   icon: AppIcons.userRound,
-                  label: 'ชื่อที่แสดง',
+                  label: l10n.settingsDisplayName,
                   controller: _name,
-                  hint: 'คุณบัน',
+                  hint: l10n.settingsDisplayNameHint,
                 ),
                 const _RowDivider(),
                 _ProfileRow(
                   icon: AppIcons.hash,
-                  label: 'ชื่อผู้ใช้',
+                  label: l10n.settingsUsername,
                   controller: _username,
                   prefix: '@',
                   hint: 'moneybun',
@@ -84,22 +86,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const _RowDivider(),
                 _ProfileRow(
                   icon: AppIcons.mail,
-                  label: 'อีเมล',
+                  label: l10n.settingsEmail,
                   value: email,
                 ),
                 const _RowDivider(),
                 _ProfileRow(
                   icon: AppIcons.phone,
-                  label: 'เบอร์โทร',
+                  label: l10n.settingsPhone,
                   controller: _phone,
                   keyboardType: TextInputType.phone,
-                  hint: 'ไม่ระบุ',
+                  hint: l10n.settingsPhoneHint,
                 ),
               ],
             ),
           ),
           const SizedBox(height: 28),
-          PrimaryButton(label: 'บันทึก', onPressed: _save),
+          PrimaryButton(label: l10n.save, onPressed: _save),
         ],
       ),
     );
@@ -113,9 +115,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _username.text.trim().isEmpty ? 'moneybun' : _username.text.trim());
     await repo.setPhone(_phone.text.trim());
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(const SnackBar(content: Text('บันทึกโปรไฟล์แล้ว')));
+      ..showSnackBar(SnackBar(content: Text(l10n.settingsProfileSaved)));
     context.pop();
   }
 

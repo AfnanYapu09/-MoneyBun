@@ -13,6 +13,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class SavingsGoalScreen extends ConsumerStatefulWidget {
   const SavingsGoalScreen({super.key});
@@ -68,9 +69,10 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
     // Net saved this month; never show a negative "saved" — no savings = ฿0.
     final saved = (income - expense) < 0 ? 0 : income - expense;
     final pct = goal > 0 ? (saved / goal).clamp(0.0, 1.0) : 0.0;
+    final l10n = AppLocalizations.of(context);
 
     return SubScreenScaffold(
-      title: 'เป้าหมายการออม',
+      title: l10n.settingsSavingsGoal,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
@@ -83,7 +85,7 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('เดือนนี้เก็บได้แล้ว',
+                Text(l10n.settingsSavedThisMonth,
                     style: AppTypography.body(
                         size: 13, color: context.palette.greenFg)),
                 const SizedBox(height: 2),
@@ -119,7 +121,9 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                           const Icon(AppIcons.partyPopper,
                               size: 14, color: Colors.white),
                           const SizedBox(width: 5),
-                          Text('ถึงเป้าแล้ว ${(saved / goal * 100).round()}%',
+                          Text(
+                              l10n.settingsGoalReached(
+                                  (saved / goal * 100).round()),
                               style: AppTypography.heading(
                                   size: 12.5,
                                   weight: FontWeight.w500,
@@ -128,7 +132,7 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
                       ),
                     )
                   else
-                    Text('ถึงเป้า ${(pct * 100).round()}%',
+                    Text(l10n.settingsGoalProgress((pct * 100).round()),
                         style: AppTypography.body(
                             size: 12.5, color: context.palette.greenFg)),
                 ],
@@ -136,7 +140,7 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('เป้าหมายต่อเดือน',
+          Text(l10n.settingsMonthlyGoal,
               style: AppTypography.heading(
                   size: 14,
                   weight: FontWeight.w500,
@@ -182,7 +186,7 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
             ],
           ),
           const SizedBox(height: 28),
-          PrimaryButton(label: 'บันทึกเป้าหมาย', onPressed: _save),
+          PrimaryButton(label: l10n.settingsSaveGoal, onPressed: _save),
         ],
       ),
     );

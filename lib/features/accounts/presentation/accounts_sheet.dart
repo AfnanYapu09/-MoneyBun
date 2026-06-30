@@ -9,6 +9,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_toggle.dart';
 import '../../../core/widgets/bank_logo.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Bottom sheet to choose which banks' gallery albums น้องบัน scans for slips.
 /// Each toggle persists immediately to settings (no Save button); the slip
@@ -18,6 +19,7 @@ class AccountsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final settings = ref.watch(appSettingsProvider).value;
     final disabled = settings?.disabledScanIds ?? const <String>{};
     final repo = ref.read(settingsRepositoryProvider);
@@ -35,10 +37,10 @@ class AccountsSheet extends ConsumerWidget {
     }
 
     return SheetScaffold(
-      title: 'บัญชีที่ให้น้องบันสแกนสลิป',
+      title: l10n.acctScanTitle,
       action: TextButton(
         onPressed: () => setAll(true),
-        child: Text('รีเซ็ต',
+        child: Text(l10n.acctReset,
             style: AppTypography.heading(
                 size: 14, weight: FontWeight.w500, color: AppColors.terra)),
       ),
@@ -48,7 +50,7 @@ class AccountsSheet extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: Text('ปิดธนาคารที่ไม่ต้องการให้อ่านสลิปจากอัลบั้ม',
+            child: Text(l10n.acctScanDesc,
                 style: AppTypography.body(
                     size: 13.5, color: context.palette.ink3)),
           ),
@@ -63,7 +65,7 @@ class AccountsSheet extends ConsumerWidget {
               child: Icon(AppIcons.wallet,
                   size: 20, color: context.palette.terraFg),
             ),
-            name: 'ทุกธนาคาร',
+            name: l10n.acctAllBanks,
             on: allOn,
             onTap: () => setAll(!allOn),
           ),

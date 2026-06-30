@@ -10,6 +10,7 @@ import '../../features/stats/presentation/budget_sheet.dart';
 import '../../features/stats/presentation/period_picker_sheet.dart';
 import '../../data/local/database.dart';
 import '../../domain/enums/enums.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
 import '../widgets/app_icons.dart';
@@ -151,6 +152,7 @@ Future<bool?> showAddCategorySheet(
 
 /// Centered logout confirmation dialog. Returns true if confirmed.
 Future<bool> confirmLogout(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
   final ok = await showDialog<bool>(
     context: context,
     barrierColor: _barrier,
@@ -173,23 +175,23 @@ Future<bool> confirmLogout(BuildContext context) async {
                   color: context.palette.dangerFg, size: 28),
             ),
             const SizedBox(height: 12),
-            Text('ออกจากระบบ?',
+            Text(l10n.logoutTitle,
                 style:
                     AppTypography.heading(size: 19, weight: FontWeight.w600)),
             const SizedBox(height: 6),
-            Text('ข้อมูลของคุณถูกบันทึกไว้แล้ว เข้าสู่ระบบใหม่ได้ทุกเมื่อ',
+            Text(l10n.logoutBody,
                 textAlign: TextAlign.center,
                 style:
                     AppTypography.body(size: 14, color: context.palette.ink2)),
             const SizedBox(height: 18),
             PrimaryButton(
-              label: 'ออกจากระบบ',
+              label: l10n.signOut,
               color: AppColors.danger,
               onPressed: () => Navigator.pop(c, true),
             ),
             const SizedBox(height: 10),
             SecondaryButton(
-              label: 'ยกเลิก',
+              label: l10n.cancel,
               onPressed: () => Navigator.pop(c, false),
             ),
           ],

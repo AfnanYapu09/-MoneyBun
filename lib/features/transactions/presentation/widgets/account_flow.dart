@@ -8,6 +8,7 @@ import '../../../../core/widgets/icon_chip.dart';
 import '../../../../core/widgets/slip_image.dart';
 import '../../../../data/local/database.dart';
 import '../../../../domain/enums/enums.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 /// True when the slip's sender and receiver names match (own-account move).
 bool isSelfTransfer(SlipRow? slip) {
@@ -25,6 +26,7 @@ bool isSelfTransfer(SlipRow? slip) {
 Widget accountFlowFor({
   required TxnType type,
   required Map<String, AccountRow> accounts,
+  required AppLocalizations l10n,
   String? accountId,
   String? toAccountId,
   SlipRow? slip,
@@ -40,10 +42,10 @@ Widget accountFlowFor({
     final hasReceiver = receiver != null && receiver.isNotEmpty;
     return AccountFlowCard(
       fromIcon: AppIcons.landmark,
-      fromLabel: fromBank ?? 'โอนจาก',
-      fromName: hasSender ? sender : (account ?? 'บัญชี'),
+      fromLabel: fromBank ?? l10n.txnFlowFrom,
+      fromName: hasSender ? sender : (account ?? l10n.txnFlowAccount),
       toIcon: AppIcons.landmark,
-      toLabel: toBank ?? 'เข้าบัญชี',
+      toLabel: toBank ?? l10n.txnFlowInto,
       toName: hasReceiver ? receiver : toBank,
     );
   }
@@ -51,19 +53,19 @@ Widget accountFlowFor({
   switch (type) {
     case TxnType.transfer:
       return AccountFlowCard(
-        fromLabel: 'จ่ายจาก',
-        fromName: account ?? 'บัญชี',
-        toLabel: 'ไปยัง',
+        fromLabel: l10n.txnFlowPaidFrom,
+        fromName: account ?? l10n.txnFlowAccount,
+        toLabel: l10n.txnFlowTo,
         toName: (toAccountId == null ? null : accounts[toAccountId]?.name) ??
-            'บัญชี',
+            l10n.txnFlowAccount,
       );
     case TxnType.income:
       final sender = slip?.senderName;
       final hasSender = sender != null && sender.isNotEmpty;
       return AccountFlowCard(
-        fromLabel: 'เข้าบัญชี',
-        fromName: account ?? 'บัญชี',
-        toLabel: hasSender ? 'จาก' : null,
+        fromLabel: l10n.txnFlowInto,
+        fromName: account ?? l10n.txnFlowAccount,
+        toLabel: hasSender ? l10n.txnFlowSender : null,
         toName: hasSender ? sender : null,
         toIcon: AppIcons.userRound,
       );
@@ -71,9 +73,9 @@ Widget accountFlowFor({
       final merchant = slip?.receiverName;
       final hasMerchant = merchant != null && merchant.isNotEmpty;
       return AccountFlowCard(
-        fromLabel: 'จ่ายจาก',
-        fromName: account ?? 'เงินสด',
-        toLabel: hasMerchant ? 'ร้านค้า' : null,
+        fromLabel: l10n.txnFlowPaidFrom,
+        fromName: account ?? l10n.txnFlowCash,
+        toLabel: hasMerchant ? l10n.txnFlowMerchant : null,
         toName: hasMerchant ? merchant : null,
         toIcon: AppIcons.store,
       );
@@ -184,6 +186,7 @@ class SlipChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -200,9 +203,10 @@ class SlipChip extends StatelessWidget {
                 icon: AppIcons.receiptText, size: 40, radius: 11, iconSize: 19),
             const SizedBox(width: 14),
             Expanded(
-              child: Text('สลิปต้นฉบับ', style: AppTypography.body(size: 14.5)),
+              child:
+                  Text(l10n.txnSlipOriginal, style: AppTypography.body(size: 14.5)),
             ),
-            Text('ดูรูป',
+            Text(l10n.txnViewImage,
                 style: AppTypography.heading(
                     size: 13, weight: FontWeight.w400, color: AppColors.terra)),
           ],
@@ -216,6 +220,7 @@ class SlipChip extends StatelessWidget {
 /// "ลบรายการ" button (e.g. for a slip whose amount couldn't be read).
 void showSlipViewer(BuildContext context, SlipRow slip,
     {VoidCallback? onDelete}) {
+  final l10n = AppLocalizations.of(context);
   showDialog<void>(
     context: context,
     barrierColor: const Color(0xE6211C18),
@@ -265,7 +270,7 @@ void showSlipViewer(BuildContext context, SlipRow slip,
                         const Icon(AppIcons.trash2,
                             size: 18, color: Colors.white),
                         const SizedBox(width: 8),
-                        Text('ลบรายการ',
+                        Text(l10n.txnDeleteEntry,
                             style: AppTypography.heading(
                                 size: 14,
                                 weight: FontWeight.w500,

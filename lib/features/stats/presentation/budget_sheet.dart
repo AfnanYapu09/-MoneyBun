@@ -19,6 +19,7 @@ import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../add_transaction/presentation/category_picker_sheet.dart';
 
 /// Bottom sheet to set a per-category budget — creates a new one, or edits the
@@ -75,6 +76,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
@@ -83,10 +85,10 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
     final cat = _categoryId == null ? null : categories[_categoryId];
 
     return SheetScaffold(
-      title: widget.budget == null ? 'ตั้งงบประมาณ' : 'แก้ไขงบประมาณ',
+      title: widget.budget == null ? l10n.statsSetBudget : l10n.statsEditBudget,
       sizeToContent: true,
       maxHeightFactor: 0.9,
-      footer: PrimaryButton(label: 'บันทึกงบ', onPressed: _save),
+      footer: PrimaryButton(label: l10n.statsSaveBudget, onPressed: _save),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
         child: Column(
@@ -124,10 +126,10 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('หมวดหมู่',
+                          Text(l10n.category,
                               style: AppTypography.body(
                                   size: 12.5, color: context.palette.ink3)),
-                          Text(cat?.name ?? 'เลือกหมวดหมู่',
+                          Text(cat?.name ?? l10n.selectCategory,
                               style: AppTypography.heading(
                                   size: 15, weight: FontWeight.w500)),
                         ],
@@ -151,7 +153,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('จำนวนงบ',
+                  Text(l10n.statsBudgetAmount,
                       style: AppTypography.body(
                           size: 12.5, color: context.palette.ink3)),
                   CalcHistoryLine(_calcHistory),
@@ -221,17 +223,17 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            Text('รอบงบประมาณ',
+            Text(l10n.statsBudgetCycle,
                 style: AppTypography.body(
                     size: 12.5, color: context.palette.ink3)),
             const SizedBox(height: 8),
             SegmentedControl<BudgetPeriod>(
               value: _period,
               onChanged: (p) => setState(() => _period = p),
-              segments: const [
-                Segment(value: BudgetPeriod.weekly, label: 'รายสัปดาห์'),
-                Segment(value: BudgetPeriod.monthly, label: 'รายเดือน'),
-                Segment(value: BudgetPeriod.yearly, label: 'รายปี'),
+              segments: [
+                Segment(value: BudgetPeriod.weekly, label: l10n.statsWeekly),
+                Segment(value: BudgetPeriod.monthly, label: l10n.statsMonthly),
+                Segment(value: BudgetPeriod.yearly, label: l10n.statsYearly),
               ],
             ),
             const SizedBox(height: 14),
@@ -249,7 +251,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                       size: 19, color: context.palette.terraFg),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text('เตือนเมื่อใช้ถึง 80%',
+                    child: Text(l10n.statsAlertAt80,
                         style: AppTypography.body(size: 14.5)),
                   ),
                   AppToggle(
@@ -276,7 +278,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                       Icon(AppIcons.trash2,
                           size: 19, color: context.palette.dangerFg),
                       const SizedBox(width: 8),
-                      Text('ลบงบประมาณนี้',
+                      Text(l10n.statsDeleteBudget,
                           style: AppTypography.heading(
                               size: 16,
                               weight: FontWeight.w500,
@@ -309,8 +311,9 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   Future<void> _save() async {
     final cents = Money.parseToCents(_amount.text) ?? 0;
     if (_categoryId == null || cents <= 0) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('เลือกหมวดหมู่และจำนวนงบ')));
+          SnackBar(content: Text(l10n.statsSelectCategoryAndAmount)));
       return;
     }
     final now = DateTime.now();

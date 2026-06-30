@@ -6,8 +6,10 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../data/local/database.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'txn_display.dart';
 import 'widgets/txn_row.dart';
 
@@ -43,6 +45,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final txns = ref.watch(allTransactionsProvider).value ?? const [];
     final categories = {
@@ -61,7 +64,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         : txns.where((t) {
             final cat = t.categoryId == null
                 ? ''
-                : categories[t.categoryId]?.name ?? '';
+                : categories[t.categoryId]?.displayName(locale) ?? '';
             return (t.note ?? '').toLowerCase().contains(q) ||
                 cat.toLowerCase().contains(q);
           }).toList();
@@ -100,14 +103,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               onChanged: (v) => setState(() => _query = v),
                               onSubmitted: _runQuery,
                               style: AppTypography.body(size: 14.5),
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 isDense: true,
                                 contentPadding: EdgeInsets.zero,
                                 filled: false,
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
-                                hintText: 'ค้นหารายการ…',
+                                hintText: l10n.txnSearchHint,
                               ),
                             ),
                           ),
@@ -146,7 +149,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4),
-                          child: Text('ผลการค้นหา · ${results.length} รายการ',
+                          child: Text(l10n.txnSearchResults(results.length),
                               style: AppTypography.heading(
                                   size: 14, weight: FontWeight.w500)),
                         ),
@@ -191,9 +194,10 @@ class _RecentSearches extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (recent.isEmpty) {
       return Center(
-        child: Text('พิมพ์เพื่อค้นหารายการ',
+        child: Text(l10n.txnSearchEmptyHint,
             style: AppTypography.body(size: 14, color: context.palette.ink3)),
       );
     }
@@ -202,7 +206,7 @@ class _RecentSearches extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: Text('ค้นหาล่าสุด',
+          child: Text(l10n.txnRecentSearches,
               style: AppTypography.heading(
                   size: 13,
                   weight: FontWeight.w500,

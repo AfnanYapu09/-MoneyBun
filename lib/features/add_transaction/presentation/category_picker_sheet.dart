@@ -6,6 +6,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../categories/presentation/category_tag_board.dart';
 import '../../transactions/presentation/widgets/account_flow.dart';
 
@@ -63,8 +64,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SheetScaffold(
-      title: 'เลือกหมวดหมู่ / แท็ก',
+      title: l10n.addtxnPickCategoryTag,
       child: SingleChildScrollView(
         controller: _controller,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -79,7 +81,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                     Expanded(
                       child: _ActionButton(
                         icon: AppIcons.receiptText,
-                        label: 'ดูสลิป',
+                        label: l10n.addtxnViewSlip,
                         onTap: () => showSlipViewer(context, widget.slip!),
                       ),
                     ),
@@ -89,7 +91,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                     Expanded(
                       child: _ActionButton(
                         icon: AppIcons.arrowLeftRight,
-                        label: 'ย้ายเงิน',
+                        label: l10n.transfer,
                         onTap: () {
                           widget.onTransfer!();
                           Navigator.of(context).maybePop();

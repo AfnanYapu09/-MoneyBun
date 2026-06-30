@@ -9,6 +9,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'widgets/auth_field.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -35,6 +36,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SubScreenScaffold(
       title: '',
       body: ListView(
@@ -43,29 +45,31 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           const Center(child: BunAvatar(size: 70)),
           const SizedBox(height: 12),
           Center(
-            child: Text('สร้างบัญชีใหม่',
+            child: Text(l10n.authCreateAccount,
                 style:
                     AppTypography.heading(size: 25, weight: FontWeight.w600)),
           ),
           const SizedBox(height: 6),
           Center(
-            child: Text('เริ่มจดเงินกับน้องบันใน 1 นาที',
+            child: Text(l10n.authSignUpSubtitle,
                 style: AppTypography.body(
                     size: 14.5, color: context.palette.ink2)),
           ),
           const SizedBox(height: 24),
           AuthField(
-              icon: AppIcons.userRound, hint: 'ชื่อที่แสดง', controller: _name),
+              icon: AppIcons.userRound,
+              hint: l10n.authDisplayName,
+              controller: _name),
           const SizedBox(height: 12),
           AuthField(
               icon: AppIcons.mail,
-              hint: 'อีเมล',
+              hint: l10n.authEmail,
               controller: _email,
               keyboardType: TextInputType.emailAddress),
           const SizedBox(height: 12),
           AuthField(
               icon: AppIcons.lock,
-              hint: 'รหัสผ่าน',
+              hint: l10n.authPassword,
               controller: _password,
               obscure: true),
           const SizedBox(height: 16),
@@ -95,16 +99,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               Expanded(
                 child: Text.rich(
                   TextSpan(
-                    text: 'ฉันยอมรับ ',
+                    text: l10n.authAgreePrefix,
                     style: AppTypography.body(
                         size: 13, color: context.palette.ink2, height: 1.5),
                     children: [
                       TextSpan(
-                          text: 'เงื่อนไขการใช้งาน',
+                          text: l10n.authTermsOfService,
                           style: TextStyle(color: AppColors.terra)),
-                      const TextSpan(text: ' และ '),
+                      TextSpan(text: l10n.authAnd),
                       TextSpan(
-                          text: 'นโยบายความเป็นส่วนตัว',
+                          text: l10n.authPrivacyPolicy,
                           style: TextStyle(color: AppColors.terra)),
                     ],
                   ),
@@ -114,18 +118,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           ),
           const SizedBox(height: 20),
           PrimaryButton(
-              label: 'สมัครสมาชิก', loading: _busy, onPressed: _signup),
+              label: l10n.authSignUp, loading: _busy, onPressed: _signup),
           const SizedBox(height: 24),
           Center(
             child: GestureDetector(
               onTap: () => context.pop(),
               child: Text.rich(TextSpan(
-                text: 'มีบัญชีแล้ว? ',
+                text: l10n.authHaveAccount,
                 style:
                     AppTypography.body(size: 14, color: context.palette.ink2),
                 children: [
                   TextSpan(
-                    text: 'เข้าสู่ระบบ',
+                    text: l10n.authLogin,
                     style: AppTypography.heading(
                         size: 14,
                         weight: FontWeight.w500,
@@ -142,12 +146,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   Future<void> _signup() async {
     if (!_agree) {
-      _snack('กรุณายอมรับเงื่อนไขการใช้งาน');
+      _snack(AppLocalizations.of(context).authMustAcceptTerms);
       return;
     }
     final auth = ref.read(authServiceProvider);
     if (auth == null) {
-      _snack('ยังไม่ได้ตั้งค่า Firebase — ใช้งานแบบไม่ล็อกอินได้เลย');
+      _snack(AppLocalizations.of(context).authFirebaseNotConfigured);
       return;
     }
     setState(() => _busy = true);
@@ -160,7 +164,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
       if (mounted) context.go('/home');
     } catch (e) {
-      _snack('สมัครสมาชิกไม่สำเร็จ');
+      _snack(AppLocalizations.of(context).authSignUpFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

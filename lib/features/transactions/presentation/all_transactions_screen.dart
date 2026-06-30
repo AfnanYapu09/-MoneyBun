@@ -8,10 +8,12 @@ import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'widgets/account_flow.dart';
 import 'widgets/txn_day_group.dart';
 
@@ -26,6 +28,7 @@ class AllTransactionsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
     var txns = ref.watch(periodTransactionsProvider).value ?? const [];
@@ -45,7 +48,7 @@ class AllTransactionsScreen extends ConsumerWidget {
       txns = txns
           .where((t) => (t.categoryId ?? 'sys_other') == categoryId)
           .toList();
-      filterName = categories[categoryId]?.name ?? 'อื่นๆ';
+      filterName = categories[categoryId]?.displayName(locale) ?? l10n.txnOther;
     } else if (tagId != null) {
       final taggedIds = (ref.watch(allTransactionTagsProvider).value ??
               const <TransactionTagRow>[])
@@ -67,7 +70,7 @@ class AllTransactionsScreen extends ConsumerWidget {
     final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return SubScreenScaffold(
-      title: filterName ?? 'รายการทั้งหมด',
+      title: filterName ?? l10n.txnAllTitle,
       action: IconButton(
         onPressed: () => context.push('/search'),
         icon: Icon(AppIcons.search, size: 21, color: context.palette.ink2),
@@ -86,7 +89,7 @@ class AllTransactionsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 60),
               child: Center(
-                child: Text('ยังไม่มีรายการ${period.periodNoun(locale)}',
+                child: Text(l10n.txnNoneInPeriod(period.periodNoun(locale)),
                     style: AppTypography.body(
                         size: 14, color: context.palette.ink3)),
               ),

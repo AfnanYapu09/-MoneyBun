@@ -12,6 +12,7 @@ import '../../../core/widgets/dashed_border.dart';
 import '../../../core/widgets/pixel_icon.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Shared category-grid + tag-chips board used by BOTH the transaction
 /// category picker (select mode) and the Settings "manage" screens (manage
@@ -50,6 +51,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final categories = (ref.watch(categoriesProvider).value ?? const [])
         .where((c) => c.type == widget.categoryType && c.id != 'sys_other')
         .toList();
@@ -115,13 +117,13 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
               Row(
                 children: [
                   Expanded(
-                    child: Text('ลากไอคอนเพื่อจัดเรียง · แตะ − เพื่อลบ',
+                    child: Text(l10n.catReorderHint,
                         style: AppTypography.body(
                             size: 13, color: context.palette.ink3)),
                   ),
                   TextButton(
                     onPressed: () => setState(() => _editing = false),
-                    child: Text('เสร็จ',
+                    child: Text(l10n.catDone,
                         style: AppTypography.heading(
                             size: 15,
                             weight: FontWeight.w600,
@@ -142,7 +144,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
             if (!editing) ...[
               const SizedBox(height: 12),
               Center(
-                child: Text('กดค้างที่ไอคอนเพื่อจัดเรียงหรือลบ',
+                child: Text(l10n.catLongPressHint,
                     style: AppTypography.body(
                         size: 12.5, color: context.palette.ink3)),
               ),
@@ -154,19 +156,19 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
   }
 
   Future<void> _confirmDeleteCategory(CategoryRow c) async {
+    final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        content: Text('ลบหมวด "${c.name}" ใช่ไหม?\n'
-            'รายการเก่าที่ใช้หมวดนี้จะกลายเป็น "อื่นๆ"'),
+        content: Text(l10n.catConfirmDelete(c.name)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('ยกเลิก')),
+              child: Text(l10n.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child:
-                Text('ลบ', style: TextStyle(color: context.palette.dangerFg)),
+            child: Text(l10n.delete,
+                style: TextStyle(color: context.palette.dangerFg)),
           ),
         ],
       ),
@@ -180,18 +182,19 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
       showAddCategorySheet(context, type: widget.categoryType);
 
   Future<void> _editCategory(CategoryRow c) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: c.name);
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('แก้ชื่อหมวดหมู่'),
+        title: Text(l10n.catRenameTitle),
         content: TextField(controller: controller, autofocus: true),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: const Text('บันทึก')),
+              child: Text(l10n.save)),
         ],
       ),
     );
@@ -201,22 +204,23 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
   }
 
   Future<void> _addTag() async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('แท็กใหม่'),
+        title: Text(l10n.tagNewTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'ชื่อแท็ก เช่น จำเป็น'),
+          decoration: InputDecoration(hintText: l10n.tagNameHint),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c), child: const Text('ยกเลิก')),
+              onPressed: () => Navigator.pop(c), child: Text(l10n.cancel)),
           TextButton(
               onPressed: () => Navigator.pop(c, controller.text.trim()),
-              child: const Text('เพิ่ม')),
+              child: Text(l10n.catAdd)),
         ],
       ),
     );
@@ -227,23 +231,24 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
   }
 
   Future<void> _editTag(TagRow t) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: t.name);
     final action = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('แก้ไขแท็ก'),
+        title: Text(l10n.tagEditTitle),
         content: TextField(controller: controller, autofocus: true),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, '__delete__'),
-            child:
-                Text('ลบ', style: TextStyle(color: context.palette.dangerFg)),
+            child: Text(l10n.delete,
+                style: TextStyle(color: context.palette.dangerFg)),
           ),
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('ยกเลิก')),
+              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           TextButton(
               onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              child: const Text('บันทึก')),
+              child: Text(l10n.save)),
         ],
       ),
     );
@@ -297,6 +302,7 @@ class _AddTagChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(11),
       onTap: onAdd,
@@ -313,7 +319,7 @@ class _AddTagChip extends StatelessWidget {
           children: [
             const Icon(AppIcons.plus, size: 16, color: AppColors.terra),
             const SizedBox(width: 6),
-            Text('เพิ่มแท็ก',
+            Text(l10n.tagAddChip,
                 style:
                     AppTypography.heading(size: 14, weight: FontWeight.w400)),
           ],
@@ -409,6 +415,7 @@ class _AddCategoryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -428,7 +435,7 @@ class _AddCategoryButton extends StatelessWidget {
           ),
           const SizedBox(height: 7),
           Flexible(
-            child: Text('เพิ่ม',
+            child: Text(l10n.catAdd,
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

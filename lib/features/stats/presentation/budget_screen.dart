@@ -6,6 +6,7 @@ import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/budget_math.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
@@ -17,12 +18,14 @@ import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class BudgetScreen extends ConsumerWidget {
   const BudgetScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
     final txns = ref.watch(periodTransactionsProvider).value ?? const [];
@@ -51,7 +54,7 @@ class BudgetScreen extends ConsumerWidget {
     final daysLeft = period.daysRemaining;
 
     return SubScreenScaffold(
-      title: 'งบประมาณ',
+      title: l10n.statsBudget,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 28),
         children: [
@@ -72,7 +75,7 @@ class BudgetScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ใช้ไปแล้วจากงบรวม',
+                Text(l10n.statsSpentFromTotal,
                     style: AppTypography.body(
                         size: 14,
                         color: AppColors.reverse.withValues(alpha: 0.82))),
@@ -114,7 +117,8 @@ class BudgetScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'เหลืออีก ${Money.compact(remaining)} · อีก $daysLeft วัน${period.periodEndNoun(locale)}',
+                  l10n.statsRemainingDays(Money.compact(remaining), daysLeft,
+                      period.periodEndNoun(locale)),
                   style: AppTypography.body(
                       size: 13,
                       color: AppColors.reverse.withValues(alpha: 0.82)),
@@ -123,13 +127,13 @@ class BudgetScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 18),
-          Text('งบรายหมวด',
+          Text(l10n.statsCategoryBudgets,
               style: AppTypography.heading(size: 16, weight: FontWeight.w500)),
           const SizedBox(height: 10),
           if (budgets.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text('ยังไม่มีงบรายหมวด',
+              child: Text(l10n.statsNoCategoryBudgets,
                   style: AppTypography.body(
                       size: 14, color: context.palette.ink3)),
             )
@@ -182,6 +186,8 @@ class _BudgetBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final pct = limit == 0 ? 0.0 : spent / limit;
     final over = pct > 1.0;
     final color = over
@@ -217,7 +223,7 @@ class _BudgetBar extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Flexible(
-                          child: Text(category?.name ?? 'อื่นๆ',
+                          child: Text(category?.displayName(locale) ?? l10n.statsOther,
                               overflow: TextOverflow.ellipsis,
                               style: AppTypography.body(size: 14.5)),
                         ),
@@ -272,6 +278,7 @@ class _DashedAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -285,7 +292,7 @@ class _DashedAddButton extends StatelessWidget {
             children: [
               const Icon(AppIcons.plus, size: 20, color: AppColors.terra),
               const SizedBox(width: 8),
-              Text('เพิ่มงบหมวดใหม่',
+              Text(l10n.statsAddCategoryBudget,
                   style: AppTypography.heading(
                       size: 16,
                       weight: FontWeight.w500,

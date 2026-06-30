@@ -6,6 +6,7 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_motion.dart';
@@ -19,6 +20,7 @@ import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/week_strip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../transactions/presentation/txn_display.dart';
 import '../../transactions/presentation/widgets/txn_row.dart';
 
@@ -46,6 +48,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final chartColors = _paletteFor(context);
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
@@ -128,14 +131,16 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             ? context.palette.amberFg
             : (good ? context.palette.greenFg : context.palette.terraFg),
         label: up
-            ? 'มากกว่า$prevNoun $pctChange%'
-            : 'น้อยกว่า$prevNoun ${pctChange.abs()}%',
+            ? l10n.statsMoreThan(prevNoun, pctChange)
+            : l10n.statsLessThan(prevNoun, pctChange.abs()),
       );
     }
 
-    final breakdownTitle =
-        _type == TxnType.income ? 'เงินมาจากไหน' : 'เงินหมดไปกับอะไร';
-    final donutCenter = _type == TxnType.income ? 'รายรับรวม' : 'ใช้จ่ายรวม';
+    final breakdownTitle = _type == TxnType.income
+        ? l10n.statsIncomeSources
+        : l10n.statsExpenseBreakdown;
+    final donutCenter =
+        _type == TxnType.income ? l10n.statsTotalIncome : l10n.statsTotalSpending;
 
     return Scaffold(
       body: SafeArea(
@@ -149,7 +154,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('สถิติ',
+                    Text(l10n.stats,
                         style: AppTypography.heading(
                             size: 22, weight: FontWeight.w600)),
                     if (badge != null) badge,
@@ -168,19 +173,19 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   value: _type,
                   onChanged: (t) => setState(() => _type = t),
                   segments: [
-                    const Segment(
+                    Segment(
                         value: TxnType.expense,
-                        label: 'รายจ่าย',
+                        label: l10n.expense,
                         icon: AppIcons.arrowUpRight,
                         color: AppColors.terra),
                     Segment(
                         value: TxnType.income,
-                        label: 'รายรับ',
+                        label: l10n.income,
                         icon: AppIcons.arrowDownLeft,
                         color: context.palette.greenFg),
                     Segment(
                         value: TxnType.transfer,
-                        label: 'ย้ายเงิน',
+                        label: l10n.transfer,
                         icon: AppIcons.arrowLeftRight,
                         color: context.palette.amberFg),
                   ],
@@ -188,7 +193,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                 if (isTransfer) ...[
                   _TransferSummary(total: total, count: selected.length),
                   if (transferRows.isEmpty)
-                    _emptyBreakdown(context, 'ยังไม่มีการย้ายเงิน')
+                    _emptyBreakdown(context, l10n.statsNoTransfers)
                   else
                     _TransferList(
                       rows: transferRows,
@@ -220,10 +225,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       Expanded(
                         child: _EntryButton(
                           icon: AppIcons.wallet,
-                          title: 'งบประมาณ',
+                          title: l10n.statsBudget,
                           sub: budgetCount > 0
-                              ? '$budgetCount หมวดที่ตั้งไว้'
-                              : 'ตั้งงบรายหมวด',
+                              ? l10n.statsBudgetCategoriesSet(budgetCount)
+                              : l10n.statsSetCategoryBudget,
                           onTap: () => context.push('/budget'),
                         ),
                       ),
@@ -231,8 +236,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                       Expanded(
                         child: _EntryButton(
                           icon: AppIcons.arrowLeftRight,
-                          title: 'เปรียบเทียบ',
-                          sub: 'รายรับ–รายจ่าย',
+                          title: l10n.statsComparison,
+                          sub: l10n.statsIncomeExpense,
                           onTap: () => context.push('/comparison'),
                         ),
                       ),
@@ -241,14 +246,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   SegmentedControl<bool>(
                     value: _byTag,
                     onChanged: (v) => setState(() => _byTag = v),
-                    segments: const [
-                      Segment(value: false, label: 'ตามหมวดหมู่'),
-                      Segment(value: true, label: 'ตามแท็ก'),
+                    segments: [
+                      Segment(value: false, label: l10n.statsByCategory),
+                      Segment(value: true, label: l10n.statsByTag),
                     ],
                   ),
                   if (!_byTag)
                     if (ranked.isEmpty)
-                      _emptyBreakdown(context, 'ยังไม่มีข้อมูล')
+                      _emptyBreakdown(context, l10n.noData)
                     else
                       Column(
                         children: [
@@ -271,7 +276,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                         ],
                       )
                   else if (rankedTags.isEmpty)
-                    _emptyBreakdown(context, 'ยังไม่มีรายการที่ติดแท็ก')
+                    _emptyBreakdown(context, l10n.statsNoTaggedItems)
                   else
                     Column(
                       children: [
@@ -419,6 +424,7 @@ class _TransferSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
@@ -441,7 +447,7 @@ class _TransferSummary extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ย้ายเงินรวม',
+                Text(l10n.statsTotalTransferred,
                     style: AppTypography.body(
                         size: 12.5, color: context.palette.ink3)),
                 const SizedBox(height: 2),
@@ -456,7 +462,7 @@ class _TransferSummary extends StatelessWidget {
               ],
             ),
           ),
-          Text('$count รายการ',
+          Text(l10n.statsItemCount(count),
               style:
                   AppTypography.body(size: 12.5, color: context.palette.ink3)),
         ],
@@ -533,6 +539,8 @@ class _CategoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     return Row(
       children: [
         if (category == null)
@@ -557,7 +565,7 @@ class _CategoryBar extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(category?.name ?? 'อื่นๆ',
+                  Text(category?.displayName(locale) ?? l10n.statsOther,
                       style: AppTypography.body(size: 14)),
                   Text(Money.compact(cents),
                       style: AppTypography.heading(

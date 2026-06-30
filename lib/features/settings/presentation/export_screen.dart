@@ -13,6 +13,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Settings → ส่งออกข้อมูล. Exports every transaction as a CSV: it is copied to
 /// the clipboard (paste into Sheets / email / Line) and saved as a file so the
@@ -31,8 +32,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   Widget build(BuildContext context) {
     final txns =
         ref.watch(allTransactionsProvider).value ?? const <TransactionRow>[];
+    final l10n = AppLocalizations.of(context);
     return SubScreenScaffold(
-      title: 'ส่งออกข้อมูล',
+      title: l10n.settingsExportData,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
@@ -53,8 +55,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 280),
               child: Text(
-                'ส่งออกรายการทั้งหมดเป็นไฟล์ CSV เพื่อสำรองข้อมูล '
-                'หรือเปิดใน Excel / Google Sheets',
+                l10n.settingsExportDescription,
                 textAlign: TextAlign.center,
                 style:
                     AppTypography.body(size: 13.5, color: context.palette.ink2),
@@ -75,7 +76,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                     size: 20, color: context.palette.ink3),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('จำนวนรายการทั้งหมด',
+                  child: Text(l10n.settingsTotalTransactions,
                       style: AppTypography.body(size: 15)),
                 ),
                 Text('${txns.length}',
@@ -86,7 +87,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           ),
           const SizedBox(height: 20),
           PrimaryButton(
-            label: 'ส่งออกเป็น CSV',
+            label: l10n.settingsExportCsv,
             icon: AppIcons.download,
             loading: _busy,
             onPressed: txns.isEmpty ? null : () => _export(txns),
@@ -94,7 +95,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           const SizedBox(height: 10),
           Center(
             child: Text(
-              'ไฟล์จะถูกคัดลอกไปยังคลิปบอร์ดและบันทึกในเครื่อง',
+              l10n.settingsExportClipboardNote,
               style: AppTypography.body(size: 12, color: context.palette.ink3),
             ),
           ),
@@ -104,6 +105,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   }
 
   Future<void> _export(List<TransactionRow> txns) async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
       final categories = {
@@ -128,15 +130,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(savedPath == null
-              ? 'คัดลอกข้อมูล CSV ไปยังคลิปบอร์ดแล้ว'
-              : 'คัดลอกไปคลิปบอร์ดแล้ว · บันทึกไฟล์ที่ $savedPath'),
+              ? l10n.settingsExportCopiedClipboard
+              : l10n.settingsExportCopiedSaved(savedPath)),
           duration: const Duration(seconds: 4),
         ),
       );
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ส่งออกไม่สำเร็จ')),
+          SnackBar(content: Text(l10n.settingsExportFailed)),
         );
       }
     } finally {

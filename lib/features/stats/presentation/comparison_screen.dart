@@ -12,6 +12,7 @@ import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// The spans shown on the comparison chart for the active mode, oldest → newest.
 List<DatePeriod> _comparisonPeriods(DatePeriod p) {
@@ -65,6 +66,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
     final allTxns = ref.watch(allTransactionsProvider).value ?? const [];
@@ -89,14 +91,17 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
         aggs.firstWhere((a) => a.period == _focused, orElse: () => current);
     final avgSaved =
         (aggs.fold<int>(0, (s, a) => s + a.saved) / aggs.length).round();
-    final unitWord =
-        period.isWeek ? 'สัปดาห์' : (period.isYear ? 'ปี' : 'เดือน');
+    final unitWord = period.isWeek
+        ? l10n.statsWeekUnit
+        : (period.isYear ? l10n.statsYearUnit : l10n.statsMonthUnit);
 
     // Week bars/rows are numbered within the month; months/years use the date.
-    String labelAt(int i) =>
-        period.isWeek ? 'สัปดาห์ ${i + 1}' : _barLabel(aggs[i].period, locale);
-    String rowLabelAt(int i) =>
-        period.isWeek ? 'สัปดาห์ ${i + 1}' : _rowLabel(aggs[i].period, locale);
+    String labelAt(int i) => period.isWeek
+        ? l10n.statsWeekN(i + 1)
+        : _barLabel(aggs[i].period, locale);
+    String rowLabelAt(int i) => period.isWeek
+        ? l10n.statsWeekN(i + 1)
+        : _rowLabel(aggs[i].period, locale);
 
     // Bottom list: month runs Jan→focused month (newest first) so tapping a bar
     // trims it; week ascends 1..N; year is newest first.
@@ -111,7 +116,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
     }
 
     return SubScreenScaffold(
-      title: 'เปรียบเทียบ',
+      title: l10n.statsComparison,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 28),
         children: [
@@ -126,7 +131,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
             children: [
               Expanded(
                 child: _HeroCard(
-                  label: 'เก็บได้${period.periodNoun(locale)}',
+                  label: l10n.statsSaved(period.periodNoun(locale)),
                   value: Money.compact(current.saved),
                   background: context.palette.greenTint,
                   foreground: context.palette.greenFg,
@@ -135,7 +140,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _HeroCard(
-                  label: 'เฉลี่ย ${aggs.length} $unitWord',
+                  label: l10n.statsAverageN(aggs.length, unitWord),
                   value: Money.compact(avgSaved),
                   background: context.palette.surface,
                   foreground: context.palette.ink,
@@ -159,15 +164,15 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('รายรับ vs รายจ่าย',
+                    Text(l10n.statsIncomeVsExpense,
                         style: AppTypography.heading(
                             size: 15, weight: FontWeight.w500)),
                     Row(
                       children: [
                         _Legend(
-                            color: context.palette.greenFg, label: 'รายรับ'),
+                            color: context.palette.greenFg, label: l10n.income),
                         const SizedBox(width: 12),
-                        const _Legend(color: AppColors.terra, label: 'รายจ่าย'),
+                        _Legend(color: AppColors.terra, label: l10n.expense),
                       ],
                     ),
                   ],
@@ -196,7 +201,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          Text('ราย$unitWord',
+          Text(l10n.statsPerUnit(unitWord),
               style: AppTypography.heading(size: 16, weight: FontWeight.w500)),
           const SizedBox(height: 10),
           Container(
@@ -237,6 +242,7 @@ class _TappedSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final saved = (income - expense) < 0 ? 0 : income - expense;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -249,11 +255,14 @@ class _TappedSummary extends StatelessWidget {
           Text(label,
               style: AppTypography.heading(size: 13, weight: FontWeight.w600)),
           const Spacer(),
-          _Stat(label: 'รายรับ', value: income, color: context.palette.greenFg),
+          _Stat(label: l10n.income, value: income, color: context.palette.greenFg),
           const SizedBox(width: 12),
-          _Stat(label: 'รายจ่าย', value: expense, color: AppColors.terra),
+          _Stat(label: l10n.expense, value: expense, color: AppColors.terra),
           const SizedBox(width: 12),
-          _Stat(label: 'เก็บได้', value: saved, color: context.palette.ink),
+          _Stat(
+              label: l10n.statsSavedShort,
+              value: saved,
+              color: context.palette.ink),
         ],
       ),
     );
@@ -375,6 +384,7 @@ class _PeriodRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       color: active ? context.palette.terraWash : Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -402,7 +412,7 @@ class _PeriodRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('เก็บได้',
+                Text(l10n.statsSavedShort,
                     style: AppTypography.body(
                         size: 11, color: context.palette.ink3)),
                 FittedBox(

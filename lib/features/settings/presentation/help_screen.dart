@@ -7,6 +7,7 @@ import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -28,45 +29,48 @@ class HelpScreen extends StatelessWidget {
     if (!opened && context.mounted) {
       await Clipboard.setData(ClipboardData(text: copyText));
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('คัดลอกแล้ว: $copyText')),
+          SnackBar(content: Text(l10n.settingsCopied(copyText))),
         );
       }
     }
   }
 
-  static const _faqs = [
-    (
-      AppIcons.scanLine,
-      'น้องบันอ่านสลิปได้ยังไง?',
-      'น้องบันอ่านรูปสลิปในแกลเลอรีของเครื่องอัตโนมัติ ดึงหน้าหลักลงเพื่อสแกนล่าสุด'
-    ),
-    (
-      AppIcons.layoutGrid,
-      'จัดการหมวดหมู่และแท็ก',
-      'ไปที่ ตั้งค่า → จัดการหมวดหมู่ หรือ จัดการแท็ก เพื่อเพิ่ม แก้ไข หรือจัดเรียง'
-    ),
-    (
-      AppIcons.wallet,
-      'ตั้งงบประมาณรายเดือน',
-      'ไปที่ สถิติ → งบประมาณ แล้วกดเพิ่มงบรายหมวด'
-    ),
-    (
-      AppIcons.shieldCheck,
-      'ความปลอดภัยของข้อมูล',
-      'ข้อมูลเก็บในเครื่องเป็นหลัก จะซิงค์ขึ้นคลาวด์เมื่อคุณล็อกอินเท่านั้น'
-    ),
-    (
-      AppIcons.refreshCw,
-      'ซิงค์ข้อมูลข้ามอุปกรณ์',
-      'ล็อกอินด้วยบัญชีเดียวกันบนอีกเครื่อง ข้อมูลจะซิงค์อัตโนมัติ'
-    ),
-  ];
+  static List<(IconData, String, String)> _faqs(AppLocalizations l10n) => [
+        (
+          AppIcons.scanLine,
+          l10n.settingsFaqScanQuestion,
+          l10n.settingsFaqScanAnswer,
+        ),
+        (
+          AppIcons.layoutGrid,
+          l10n.settingsFaqCategoriesQuestion,
+          l10n.settingsFaqCategoriesAnswer,
+        ),
+        (
+          AppIcons.wallet,
+          l10n.settingsFaqBudgetQuestion,
+          l10n.settingsFaqBudgetAnswer,
+        ),
+        (
+          AppIcons.shieldCheck,
+          l10n.settingsFaqSecurityQuestion,
+          l10n.settingsFaqSecurityAnswer,
+        ),
+        (
+          AppIcons.refreshCw,
+          l10n.settingsFaqSyncQuestion,
+          l10n.settingsFaqSyncAnswer,
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final faqs = _faqs(l10n);
     return SubScreenScaffold(
-      title: 'ช่วยเหลือ',
+      title: l10n.settingsHelp,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
@@ -82,14 +86,14 @@ class HelpScreen extends StatelessWidget {
               children: [
                 Icon(AppIcons.search, size: 18, color: context.palette.ink3),
                 const SizedBox(width: 10),
-                Text('ค้นหาคำถามที่พบบ่อย',
+                Text(l10n.settingsSearchFaq,
                     style: AppTypography.body(
                         size: 14.5, color: context.palette.ink3)),
               ],
             ),
           ),
           const SizedBox(height: 18),
-          Text('คำถามที่พบบ่อย',
+          Text(l10n.settingsFaqTitle,
               style: AppTypography.heading(size: 14, weight: FontWeight.w500)),
           const SizedBox(height: 10),
           Container(
@@ -100,13 +104,13 @@ class HelpScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
-                for (var i = 0; i < _faqs.length; i++) ...[
+                for (var i = 0; i < faqs.length; i++) ...[
                   if (i > 0)
                     const Divider(height: 1, indent: 16, endIndent: 16),
                   _FaqTile(
-                    icon: _faqs[i].$1,
-                    question: _faqs[i].$2,
-                    answer: _faqs[i].$3,
+                    icon: faqs[i].$1,
+                    question: faqs[i].$2,
+                    answer: faqs[i].$3,
                   ),
                 ],
               ],
@@ -118,7 +122,7 @@ class HelpScreen extends StatelessWidget {
               Expanded(
                 child: _ContactCard(
                   icon: AppIcons.messageCircle,
-                  label: 'แชทกับเรา',
+                  label: l10n.settingsChatWithUs,
                   sub: 'LINE: $_lineId',
                   background: AppColors.terra,
                   foreground: AppColors.reverse,
@@ -133,7 +137,7 @@ class HelpScreen extends StatelessWidget {
               Expanded(
                 child: _ContactCard(
                   icon: AppIcons.mail,
-                  label: 'อีเมลซัพพอร์ต',
+                  label: l10n.settingsEmailSupport,
                   sub: _email,
                   background: context.palette.surface,
                   foreground: context.palette.ink,
@@ -143,8 +147,8 @@ class HelpScreen extends StatelessWidget {
                     Uri(
                       scheme: 'mailto',
                       path: _email,
-                      queryParameters: const {
-                        'subject': 'MoneyBun — สอบถาม/แจ้งปัญหา',
+                      queryParameters: {
+                        'subject': l10n.settingsEmailSubject,
                       },
                     ),
                     _email,

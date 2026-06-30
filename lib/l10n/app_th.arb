@@ -2,20 +2,17 @@
   "@@locale": "th",
   "appTitle": "MoneyBun",
   "tagline": "น้องบันช่วยจดเงินให้",
-
   "navHome": "หน้าหลัก",
   "navStats": "สถิติ",
   "navAdd": "เพิ่ม",
   "navAccounts": "บัญชี",
   "navSettings": "ตั้งค่า",
-
   "income": "รายรับ",
   "expense": "รายจ่าย",
   "transfer": "ย้ายเงิน",
   "balance": "ยอดคงเหลือ",
   "total": "รวม",
   "today": "วันนี้",
-
   "addTransaction": "เพิ่มรายการ",
   "editTransaction": "แก้ไขรายการ",
   "amount": "จำนวนเงิน",
@@ -32,7 +29,6 @@
   "cancel": "ยกเลิก",
   "edit": "แก้ไข",
   "confirmDelete": "ต้องการลบรายการนี้ใช่ไหม?",
-
   "scanSlip": "สแกนสลิป",
   "pickFromGallery": "เลือกจากแกลเลอรี",
   "takePhoto": "ถ่ายรูป",
@@ -42,7 +38,6 @@
   "verifyOnline": "ตรวจสอบออนไลน์",
   "lowConfidence": "ความมั่นใจต่ำ โปรดตรวจสอบข้อมูล",
   "useAnyway": "ใช้ข้อมูลนี้",
-
   "accounts": "บัญชี",
   "addAccount": "เพิ่มบัญชี",
   "editAccount": "แก้ไขบัญชี",
@@ -55,12 +50,10 @@
   "acctCredit": "บัตรเครดิต",
   "openingBalance": "ยอดตั้งต้น",
   "quickTransfer": "ย้ายเงินด่วน",
-
   "stats": "สถิติ",
   "monthlySummary": "สรุปรายเดือน",
   "byCategory": "แยกตามหมวดหมู่",
   "noData": "ยังไม่มีข้อมูล",
-
   "settings": "ตั้งค่า",
   "language": "ภาษา",
   "langThai": "ไทย",
@@ -71,7 +64,11 @@
   "syncNow": "ซิงค์ตอนนี้",
   "syncedAt": "ซิงค์ล่าสุด {time}",
   "@syncedAt": {
-    "placeholders": { "time": { "type": "String" } }
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "notSignedIn": "ยังไม่ได้เข้าสู่ระบบ",
   "manageCategories": "จัดการหมวดหมู่",
@@ -79,10 +76,430 @@
   "slipApiDesc": "ตรวจสลิปแม่นยำขึ้น (ต้องต่อเน็ต และตั้งค่าเซิร์ฟเวอร์)",
   "about": "เกี่ยวกับ",
   "aboutBun": "MoneyBun • น้องบันตัวสีส้มพิกเซล 🐰",
-
   "emptyDayTitle": "ยังไม่มีรายการวันนี้",
   "emptyDaySubtitle": "แตะปุ่ม + เพื่อเพิ่มรายการแรก",
   "month": "เดือน",
   "requiredField": "กรุณากรอกข้อมูล",
-  "invalidAmount": "จำนวนเงินไม่ถูกต้อง"
+  "invalidAmount": "จำนวนเงินไม่ถูกต้อง",
+  "settingsAccountSection": "บัญชี",
+  "settingsMyProfile": "โปรไฟล์ของฉัน",
+  "settingsCurrency": "สกุลเงิน",
+  "settingsSavingsGoal": "เป้าหมายการออม",
+  "settingsDataSection": "จัดการข้อมูล",
+  "settingsManageTags": "จัดการแท็ก",
+  "settingsNotificationsSection": "การแจ้งเตือน",
+  "settingsGeneralSection": "ทั่วไป",
+  "settingsTheme": "ธีม",
+  "settingsExportData": "ส่งออกข้อมูล",
+  "settingsHelp": "ช่วยเหลือ",
+  "settingsCloudSection": "คลาวด์ (ซิงค์)",
+  "settingsSignInToSync": "เข้าสู่ระบบเพื่อซิงค์",
+  "settingsCloudNotConfigured": "ซิงค์คลาวด์ (ยังไม่ตั้งค่า Firebase)",
+  "settingsThemeLight": "สว่าง",
+  "settingsThemeDark": "มืด",
+  "settingsThemeSystem": "อัตโนมัติ",
+  "settingsLogReminder": "เตือนให้จดรายการ",
+  "settingsWeeklySummary": "สรุปรายสัปดาห์",
+  "settingsHandleFreeMember": "@{username} · สมาชิกฟรี",
+  "@settingsHandleFreeMember": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDisplayName": "ชื่อที่แสดง",
+  "settingsDisplayNameHint": "คุณบัน",
+  "settingsUsername": "ชื่อผู้ใช้",
+  "settingsEmail": "อีเมล",
+  "settingsPhone": "เบอร์โทร",
+  "settingsPhoneHint": "ไม่ระบุ",
+  "settingsProfileSaved": "บันทึกโปรไฟล์แล้ว",
+  "settingsCurrencyTHB": "บาทไทย",
+  "settingsCurrencyUSD": "ดอลลาร์สหรัฐ",
+  "settingsCurrencyEUR": "ยูโร",
+  "settingsCurrencyJPY": "เยนญี่ปุ่น",
+  "settingsCurrencyGBP": "ปอนด์",
+  "settingsCurrencyDisplayNote": "ใช้สำหรับการแสดงผลเท่านั้น ยอดเงินยังบันทึกเป็นสตางค์",
+  "settingsDisplayMode": "โหมดการแสดงผล",
+  "settingsSavedThisMonth": "เดือนนี้เก็บได้แล้ว",
+  "settingsGoalReached": "ถึงเป้าแล้ว {percent}%",
+  "@settingsGoalReached": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsGoalProgress": "ถึงเป้า {percent}%",
+  "@settingsGoalProgress": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsMonthlyGoal": "เป้าหมายต่อเดือน",
+  "settingsSaveGoal": "บันทึกเป้าหมาย",
+  "settingsExportDescription": "ส่งออกรายการทั้งหมดเป็นไฟล์ CSV เพื่อสำรองข้อมูล หรือเปิดใน Excel / Google Sheets",
+  "settingsTotalTransactions": "จำนวนรายการทั้งหมด",
+  "settingsExportCsv": "ส่งออกเป็น CSV",
+  "settingsExportClipboardNote": "ไฟล์จะถูกคัดลอกไปยังคลิปบอร์ดและบันทึกในเครื่อง",
+  "settingsExportCopiedClipboard": "คัดลอกข้อมูล CSV ไปยังคลิปบอร์ดแล้ว",
+  "settingsExportCopiedSaved": "คัดลอกไปคลิปบอร์ดแล้ว · บันทึกไฟล์ที่ {path}",
+  "@settingsExportCopiedSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsExportFailed": "ส่งออกไม่สำเร็จ",
+  "settingsCopied": "คัดลอกแล้ว: {value}",
+  "@settingsCopied": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchFaq": "ค้นหาคำถามที่พบบ่อย",
+  "settingsFaqTitle": "คำถามที่พบบ่อย",
+  "settingsFaqScanQuestion": "น้องบันอ่านสลิปได้ยังไง?",
+  "settingsFaqScanAnswer": "น้องบันอ่านรูปสลิปในแกลเลอรีของเครื่องอัตโนมัติ ดึงหน้าหลักลงเพื่อสแกนล่าสุด",
+  "settingsFaqCategoriesQuestion": "จัดการหมวดหมู่และแท็ก",
+  "settingsFaqCategoriesAnswer": "ไปที่ ตั้งค่า → จัดการหมวดหมู่ หรือ จัดการแท็ก เพื่อเพิ่ม แก้ไข หรือจัดเรียง",
+  "settingsFaqBudgetQuestion": "ตั้งงบประมาณรายเดือน",
+  "settingsFaqBudgetAnswer": "ไปที่ สถิติ → งบประมาณ แล้วกดเพิ่มงบรายหมวด",
+  "settingsFaqSecurityQuestion": "ความปลอดภัยของข้อมูล",
+  "settingsFaqSecurityAnswer": "ข้อมูลเก็บในเครื่องเป็นหลัก จะซิงค์ขึ้นคลาวด์เมื่อคุณล็อกอินเท่านั้น",
+  "settingsFaqSyncQuestion": "ซิงค์ข้อมูลข้ามอุปกรณ์",
+  "settingsFaqSyncAnswer": "ล็อกอินด้วยบัญชีเดียวกันบนอีกเครื่อง ข้อมูลจะซิงค์อัตโนมัติ",
+  "settingsChatWithUs": "แชทกับเรา",
+  "settingsEmailSupport": "อีเมลซัพพอร์ต",
+  "settingsEmailSubject": "MoneyBun — สอบถาม/แจ้งปัญหา",
+  "statsMoreThan": "มากกว่า{noun} {pct}%",
+  "@statsMoreThan": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "statsLessThan": "น้อยกว่า{noun} {pct}%",
+  "@statsLessThan": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "statsIncomeSources": "เงินมาจากไหน",
+  "statsExpenseBreakdown": "เงินหมดไปกับอะไร",
+  "statsTotalIncome": "รายรับรวม",
+  "statsTotalSpending": "ใช้จ่ายรวม",
+  "statsNoTransfers": "ยังไม่มีการย้ายเงิน",
+  "statsBudget": "งบประมาณ",
+  "statsBudgetCategoriesSet": "{count} หมวดที่ตั้งไว้",
+  "@statsBudgetCategoriesSet": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsSetCategoryBudget": "ตั้งงบรายหมวด",
+  "statsComparison": "เปรียบเทียบ",
+  "statsIncomeExpense": "รายรับ–รายจ่าย",
+  "statsByCategory": "ตามหมวดหมู่",
+  "statsByTag": "ตามแท็ก",
+  "statsNoTaggedItems": "ยังไม่มีรายการที่ติดแท็ก",
+  "statsTotalTransferred": "ย้ายเงินรวม",
+  "statsItemCount": "{count} รายการ",
+  "@statsItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsOther": "อื่นๆ",
+  "statsWeekUnit": "สัปดาห์",
+  "statsYearUnit": "ปี",
+  "statsMonthUnit": "เดือน",
+  "statsWeekN": "สัปดาห์ {n}",
+  "@statsWeekN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "statsSaved": "เก็บได้{noun}",
+  "@statsSaved": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      }
+    }
+  },
+  "statsAverageN": "เฉลี่ย {count} {unit}",
+  "@statsAverageN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "statsIncomeVsExpense": "รายรับ vs รายจ่าย",
+  "statsPerUnit": "ราย{unit}",
+  "@statsPerUnit": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "statsSavedShort": "เก็บได้",
+  "statsSpentFromTotal": "ใช้ไปแล้วจากงบรวม",
+  "statsRemainingDays": "เหลืออีก {remaining} · อีก {days} วัน{endNoun}",
+  "@statsRemainingDays": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      },
+      "endNoun": {
+        "type": "String"
+      }
+    }
+  },
+  "statsCategoryBudgets": "งบรายหมวด",
+  "statsNoCategoryBudgets": "ยังไม่มีงบรายหมวด",
+  "statsAddCategoryBudget": "เพิ่มงบหมวดใหม่",
+  "statsSetBudget": "ตั้งงบประมาณ",
+  "statsEditBudget": "แก้ไขงบประมาณ",
+  "statsSaveBudget": "บันทึกงบ",
+  "statsBudgetAmount": "จำนวนงบ",
+  "statsBudgetCycle": "รอบงบประมาณ",
+  "statsWeekly": "รายสัปดาห์",
+  "statsMonthly": "รายเดือน",
+  "statsYearly": "รายปี",
+  "statsAlertAt80": "เตือนเมื่อใช้ถึง 80%",
+  "statsDeleteBudget": "ลบงบประมาณนี้",
+  "statsSelectCategoryAndAmount": "เลือกหมวดหมู่และจำนวนงบ",
+  "statsSelectPeriod": "เลือกช่วงเวลา",
+  "statsThisMonth": "เดือนนี้",
+  "homeScanImported": "น้องบันอ่านสลิปใหม่ {count} รายการ",
+  "@homeScanImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeScanFailed": "สแกนไม่สำเร็จ ลองใหม่อีกครั้ง",
+  "homePhotoPermissionTitle": "ขอสิทธิ์เข้าถึงรูปภาพ",
+  "homePhotoPermissionBody": "MoneyBun ต้องเข้าถึงรูปในเครื่องเพื่ออ่านสลิปจากแกลเลอรี\n\nถ้าเคยกด \"ไม่อนุญาต\" ไปแล้ว ให้เปิดการตั้งค่า → สิทธิ์ → รูปภาพและวิดีโอ → อนุญาต",
+  "homeOpenSettings": "เปิดการตั้งค่า",
+  "homePullRelease": "ปล่อยเพื่อให้น้องบันอ่านสลิป",
+  "homePullHint": "ดึงลงเพื่ออัปเดตสลิป",
+  "homeGreetingMorning": "สวัสดีตอนเช้า",
+  "homeGreetingAfternoon": "สวัสดีตอนบ่าย",
+  "homeGreetingEvening": "สวัสดีตอนเย็น",
+  "homeDefaultName": "คุณบัน",
+  "homeSpentNoun": "ใช้จ่าย{noun}",
+  "@homeSpentNoun": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      }
+    }
+  },
+  "homeBudgetRemaining": "เหลือ {remaining} จากงบ {budget}",
+  "@homeBudgetRemaining": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      },
+      "budget": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNoBudget": "ยังไม่ได้ตั้งงบประมาณเดือนนี้",
+  "homeReadingSlip": "น้องบันกำลังอ่านสลิป…",
+  "homeLastReadSlip": "อ่านสลิปล่าสุด {time}",
+  "@homeLastReadSlip": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNeverRead": "ยังไม่เคยอ่าน",
+  "homeJustNow": "เมื่อสักครู่",
+  "homeMinutesAgo": "เมื่อ {minutes} นาทีที่แล้ว",
+  "@homeMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "homeHoursAgo": "เมื่อ {hours} ชม.ที่แล้ว",
+  "@homeHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "homeDaysAgo": "เมื่อ {days} วันก่อน",
+  "@homeDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "homeRecentTitle": "รายการล่าสุด",
+  "homeSeeAll": "ดูทั้งหมด",
+  "homeNothingToCategorize": "ไม่มีรายการที่ต้องจัดหมวด",
+  "homeNothingToCategorizeHint": "ดึงลงเพื่อให้น้องบันอ่านสลิป หรือกด +",
+  "txnOther": "อื่นๆ",
+  "txnAllTitle": "รายการทั้งหมด",
+  "txnNoneInPeriod": "ยังไม่มีรายการ{noun}",
+  "@txnNoneInPeriod": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      }
+    }
+  },
+  "txnSearchHint": "ค้นหารายการ…",
+  "txnSearchResults": "ผลการค้นหา · {count} รายการ",
+  "@txnSearchResults": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "txnSearchEmptyHint": "พิมพ์เพื่อค้นหารายการ",
+  "txnRecentSearches": "ค้นหาล่าสุด",
+  "txnFlowFrom": "โอนจาก",
+  "txnFlowAccount": "บัญชี",
+  "txnFlowInto": "เข้าบัญชี",
+  "txnFlowPaidFrom": "จ่ายจาก",
+  "txnFlowTo": "ไปยัง",
+  "txnFlowSender": "จาก",
+  "txnFlowCash": "เงินสด",
+  "txnFlowMerchant": "ร้านค้า",
+  "txnSlipOriginal": "สลิปต้นฉบับ",
+  "txnViewImage": "ดูรูป",
+  "txnDeleteEntry": "ลบรายการ",
+  "txnNewFromSlip": "รายการใหม่จากสลิป",
+  "txnAmountUnreadable": "อ่านยอดเงินไม่ได้ · แตะดูสลิป",
+  "txnUncategorizedAt": "ยังไม่จัดหมวด · {time}",
+  "@txnUncategorizedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "addtxnPickCategoryTag": "เลือกหมวดหมู่ / แท็ก",
+  "addtxnAddNote": "เพิ่มโน้ต",
+  "addtxnMore": "เพิ่มเติม",
+  "addtxnRecurring": "จดซ้ำล่วงหน้า",
+  "addtxnRecurringSoon": "จดซ้ำล่วงหน้า — เร็วๆ นี้",
+  "addtxnDeleteEntry": "ลบรายการนี้",
+  "addtxnTagSuffix": " · {count} แท็ก",
+  "@addtxnTagSuffix": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addtxnNoteTitle": "โน้ต",
+  "addtxnNoteDetailHint": "รายละเอียด (ไม่บังคับ)",
+  "addtxnEnterAmount": "กรุณากรอกจำนวนเงิน",
+  "addtxnConfirmDelete": "ต้องการลบรายการนี้ใช่ไหม?",
+  "addtxnViewSlip": "ดูสลิป",
+  "catReorderHint": "ลากไอคอนเพื่อจัดเรียง · แตะ − เพื่อลบ",
+  "catDone": "เสร็จ",
+  "catLongPressHint": "กดค้างที่ไอคอนเพื่อจัดเรียงหรือลบ",
+  "catConfirmDelete": "ลบหมวด \"{name}\" ใช่ไหม?\nรายการเก่าที่ใช้หมวดนี้จะกลายเป็น \"อื่นๆ\"",
+  "@catConfirmDelete": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catAddExpenseTitle": "เพิ่มหมวดรายจ่าย",
+  "catAddIncomeTitle": "เพิ่มหมวดรายรับ",
+  "catRenameTitle": "แก้ชื่อหมวดหมู่",
+  "catAdd": "เพิ่ม",
+  "tagNewTitle": "แท็กใหม่",
+  "tagNameHint": "ชื่อแท็ก เช่น จำเป็น",
+  "tagEditTitle": "แก้ไขแท็ก",
+  "tagAddChip": "เพิ่มแท็ก",
+  "tagManageTitle": "จัดการแท็ก",
+  "acctScanTitle": "บัญชีที่ให้น้องบันสแกนสลิป",
+  "acctReset": "รีเซ็ต",
+  "acctScanDesc": "ปิดธนาคารที่ไม่ต้องการให้อ่านสลิปจากอัลบั้ม",
+  "acctAllBanks": "ทุกธนาคาร",
+  "authLoginSubtitle": "เข้าสู่ระบบเพื่อจดเงินต่อ",
+  "authEmail": "อีเมล",
+  "authPassword": "รหัสผ่าน",
+  "authForgotPassword": "ลืมรหัสผ่าน?",
+  "authLogin": "เข้าสู่ระบบ",
+  "authOr": "หรือ",
+  "authNoAccount": "ยังไม่มีบัญชี? ",
+  "authSignUpNow": "สมัครเลย",
+  "authContinueGuest": "ใช้งานต่อแบบไม่ล็อกอิน",
+  "authFirebaseNotConfigured": "ยังไม่ได้ตั้งค่า Firebase — ใช้งานแบบไม่ล็อกอินได้เลย",
+  "authLoginFailed": "เข้าสู่ระบบไม่สำเร็จ",
+  "authCreateAccount": "สร้างบัญชีใหม่",
+  "authSignUpSubtitle": "เริ่มจดเงินกับน้องบันใน 1 นาที",
+  "authDisplayName": "ชื่อที่แสดง",
+  "authAgreePrefix": "ฉันยอมรับ ",
+  "authTermsOfService": "เงื่อนไขการใช้งาน",
+  "authAnd": " และ ",
+  "authPrivacyPolicy": "นโยบายความเป็นส่วนตัว",
+  "authSignUp": "สมัครสมาชิก",
+  "authHaveAccount": "มีบัญชีแล้ว? ",
+  "authMustAcceptTerms": "กรุณายอมรับเงื่อนไขการใช้งาน",
+  "authSignUpFailed": "สมัครสมาชิกไม่สำเร็จ",
+  "authForgotPasswordTitle": "ลืมรหัสผ่าน",
+  "authForgotPasswordDesc": "กรอกอีเมลของคุณ แล้วเราจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้",
+  "authSendLink": "ส่งลิงก์",
+  "authFirebaseNotSet": "ยังไม่ได้ตั้งค่า Firebase",
+  "authResetLinkSent": "ส่งลิงก์ไปที่อีเมลแล้ว",
+  "authResetLinkFailed": "ส่งไม่สำเร็จ ตรวจสอบอีเมลอีกครั้ง",
+  "onbSkip": "ข้าม",
+  "onbSlideTitle": "ให้น้องบันช่วยนับเงินให้",
+  "onbSlideBody": "จดทุกบาทที่ใช้ แล้วดูสรุปรายรับรายจ่ายของคุณ\nแบบเข้าใจง่ายในที่เดียว",
+  "onbGetStarted": "เริ่มใช้งาน",
+  "onbHaveAccount": "ฉันมีบัญชีอยู่แล้ว",
+  "splashTagline": "จดง่าย · ออมเก่ง · เข้าใจเงินตัวเอง",
+  "logoutTitle": "ออกจากระบบ?",
+  "logoutBody": "ข้อมูลของคุณถูกบันทึกไว้แล้ว เข้าสู่ระบบใหม่ได้ทุกเมื่อ",
+  "bunReadingSlips": "น้องบันกำลังอ่านสลิป",
+  "releaseToScan": "ปล่อยเพื่อให้น้องบันอ่านสลิป",
+  "pullToScan": "ดึงลงเพื่ออัปเดตสลิป"
 }

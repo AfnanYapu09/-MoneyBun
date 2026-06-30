@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_icons.dart';
 import '../../../../core/widgets/dashed_border.dart';
 import '../../../../core/widgets/pixel_icon.dart';
 import '../../../../data/local/database.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 /// Row for an uncategorised slip import ("รายการใหม่จากสลิป").
 ///
@@ -34,6 +35,7 @@ class ScannedTxnRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // A slip whose amount OCR failed (฿0): flag it so the user can open the
     // slip and fix or delete it, instead of the usual "categorise" affordance.
     final needsAmount =
@@ -83,15 +85,15 @@ class ScannedTxnRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('รายการใหม่จากสลิป',
+                Text(l10n.txnNewFromSlip,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.heading(
                         size: 15, weight: FontWeight.w500)),
                 Text(
                     needsAmount
-                        ? 'อ่านยอดเงินไม่ได้ · แตะดูสลิป'
-                        : 'ยังไม่จัดหมวด · $time',
+                        ? l10n.txnAmountUnreadable
+                        : l10n.txnUncategorizedAt(time),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTypography.body(

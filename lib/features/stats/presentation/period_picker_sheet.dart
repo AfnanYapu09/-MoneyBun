@@ -9,6 +9,7 @@ import '../../../core/utils/date_period.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Bottom-sheet period picker. Top toggle switches รายเดือน / รายสัปดาห์;
 /// monthly shows a 12-month grid with a year stepper, weekly shows the weeks of
@@ -61,9 +62,10 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     return SheetScaffold(
-      title: 'เลือกช่วงเวลา',
+      title: l10n.statsSelectPeriod,
       // Size to content; the body is locked to the month/year grid height so the
       // three modes match in height and the week list scrolls within it.
       sizeToContent: true,
@@ -76,10 +78,10 @@ class _PeriodPickerSheetState extends ConsumerState<PeriodPickerSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SegmentedControl<PeriodMode>(
-              segments: const [
-                Segment(value: PeriodMode.year, label: 'รายปี'),
-                Segment(value: PeriodMode.month, label: 'รายเดือน'),
-                Segment(value: PeriodMode.week, label: 'รายสัปดาห์'),
+              segments: [
+                Segment(value: PeriodMode.year, label: l10n.statsYearly),
+                Segment(value: PeriodMode.month, label: l10n.statsMonthly),
+                Segment(value: PeriodMode.week, label: l10n.statsWeekly),
               ],
               value: _mode,
               onChanged: (m) => setState(() => _mode = m),
@@ -247,6 +249,7 @@ class _WeekListState extends ConsumerState<_WeekList> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final period = ref.watch(selectedPeriodProvider);
     final monthEnd = AppDate.endOfMonth(widget.navMonth);
     // Every week (Sunday start) that overlaps the navigated month.
@@ -277,7 +280,7 @@ class _WeekListState extends ConsumerState<_WeekList> {
               final selected = selectedStart == weeks[i];
               return _PickTile(
                 key: selected ? _selectedKey : null,
-                label: 'สัปดาห์ ${i + 1}',
+                label: l10n.statsWeekN(i + 1),
                 subtitle:
                     AppDate.formatWeekRange(weeks[i], locale: widget.locale),
                 selected: selected,
@@ -459,6 +462,7 @@ class _TodayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(99),
       onTap: onTap,
@@ -468,7 +472,7 @@ class _TodayButton extends StatelessWidget {
           color: context.palette.terraWash,
           borderRadius: BorderRadius.circular(99),
         ),
-        child: Text('เดือนนี้',
+        child: Text(l10n.statsThisMonth,
             style: AppTypography.heading(
                 size: 13,
                 weight: FontWeight.w500,

@@ -9,6 +9,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/wordmark.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'widgets/auth_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -32,6 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: context.palette.bg,
       body: SafeArea(
@@ -44,20 +46,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const Center(child: Wordmark(size: 30)),
             const SizedBox(height: 8),
             Center(
-              child: Text('เข้าสู่ระบบเพื่อจดเงินต่อ',
+              child: Text(l10n.authLoginSubtitle,
                   style: AppTypography.body(
                       size: 14, color: context.palette.ink2)),
             ),
             const SizedBox(height: 30),
             AuthField(
                 icon: AppIcons.mail,
-                hint: 'อีเมล',
+                hint: l10n.authEmail,
                 controller: _email,
                 keyboardType: TextInputType.emailAddress),
             const SizedBox(height: 12),
             AuthField(
                 icon: AppIcons.lock,
-                hint: 'รหัสผ่าน',
+                hint: l10n.authPassword,
                 controller: _password,
                 obscure: true),
             const SizedBox(height: 10),
@@ -65,7 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               alignment: Alignment.centerRight,
               child: InkWell(
                 onTap: () => context.push('/forgot-password'),
-                child: Text('ลืมรหัสผ่าน?',
+                child: Text(l10n.authForgotPassword,
                     style: AppTypography.heading(
                         size: 13,
                         weight: FontWeight.w400,
@@ -74,13 +76,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 14),
             PrimaryButton(
-                label: 'เข้าสู่ระบบ', loading: _busy, onPressed: _login),
+                label: l10n.authLogin, loading: _busy, onPressed: _login),
             const SizedBox(height: 22),
             Row(children: [
               Expanded(child: Divider(color: context.palette.line)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text('หรือ',
+                child: Text(l10n.authOr,
                     style: AppTypography.body(
                         size: 13, color: context.palette.ink3)),
               ),
@@ -99,12 +101,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: GestureDetector(
                 onTap: () => context.push('/signup'),
                 child: Text.rich(TextSpan(
-                  text: 'ยังไม่มีบัญชี? ',
+                  text: l10n.authNoAccount,
                   style:
                       AppTypography.body(size: 14, color: context.palette.ink2),
                   children: [
                     TextSpan(
-                      text: 'สมัครเลย',
+                      text: l10n.authSignUpNow,
                       style: AppTypography.heading(
                           size: 14,
                           weight: FontWeight.w500,
@@ -118,7 +120,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Center(
               child: TextButton(
                 onPressed: () => context.go('/home'),
-                child: Text('ใช้งานต่อแบบไม่ล็อกอิน',
+                child: Text(l10n.authContinueGuest,
                     style: AppTypography.body(
                         size: 13, color: context.palette.ink3)),
               ),
@@ -132,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _run(Future<void> Function() action) async {
     final auth = ref.read(authServiceProvider);
     if (auth == null) {
-      _snack('ยังไม่ได้ตั้งค่า Firebase — ใช้งานแบบไม่ล็อกอินได้เลย');
+      _snack(AppLocalizations.of(context).authFirebaseNotConfigured);
       return;
     }
     setState(() => _busy = true);
@@ -142,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(syncEngineProvider)?.sync();
       if (mounted) context.go('/home');
     } catch (e) {
-      _snack('เข้าสู่ระบบไม่สำเร็จ');
+      _snack(AppLocalizations.of(context).authLoginFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

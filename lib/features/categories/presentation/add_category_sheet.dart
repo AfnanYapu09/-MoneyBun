@@ -9,24 +9,30 @@ import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// A labelled section of the icon picker, so icons are easy to find by topic.
+/// Carries both a Thai and an English heading so the picker follows the app
+/// language (see [_IconGroup.label]).
 class _IconGroup {
-  const _IconGroup(this.nameTh, this.income, this.ids);
+  const _IconGroup(this.nameTh, this.nameEn, this.income, this.ids);
   final String nameTh;
+  final String nameEn;
   final bool income;
   final List<String> ids;
+
+  String label(String locale) => locale.startsWith('en') ? nameEn : nameTh;
 }
 
 /// Icon-picker sections. Order = display order. Every catalogue id appears in
 /// exactly one group (84 expense across 15 groups, 19 income across 4).
 const List<_IconGroup> _groups = [
   // ---- Expense ----
-  _IconGroup('อาหาร & เครื่องดื่ม', false, [
+  _IconGroup('อาหาร & เครื่องดื่ม', 'Food & Drinks', false, [
     'food', 'coffee', 'groceries', 'rice', 'snacks', //
     'bakery', 'fruit', 'bbq', 'drinks', 'cigarette', 'waterdrink',
   ]),
-  _IconGroup('เดินทาง & รถ', false, [
+  _IconGroup('เดินทาง & รถ', 'Transport & Car', false, [
     'transport',
     'taxi',
     'train',
@@ -36,22 +42,22 @@ const List<_IconGroup> _groups = [
     'carcare',
     'parking',
   ]),
-  _IconGroup('ช้อปปิ้ง & ของใช้ส่วนตัว', false, [
+  _IconGroup('ช้อปปิ้ง & ของใช้ส่วนตัว', 'Shopping & Personal', false, [
     'shopping', 'clothes', 'shoes', 'bag', 'glasses', //
     'watch', 'flowers', 'souvenir', 'parcel',
   ]),
-  _IconGroup('ความงาม & ดูแลตัวเอง', false, [
+  _IconGroup('ความงาม & ดูแลตัวเอง', 'Beauty & Self-care', false, [
     'beauty',
     'haircut',
     'nails',
     'spa',
     'laundry',
   ]),
-  _IconGroup('บ้าน & ที่พัก', false, [
+  _IconGroup('บ้าน & ที่พัก', 'Home & Living', false, [
     'home', 'furniture', 'kitchenware', 'cleaning', //
     'repair', 'plant', 'condofee', 'housing',
   ]),
-  _IconGroup('บิล & สาธารณูปโภค', false, [
+  _IconGroup('บิล & สาธารณูปโภค', 'Bills & Utilities', false, [
     'bills',
     'water',
     'electric',
@@ -60,12 +66,12 @@ const List<_IconGroup> _groups = [
     'topup',
     'subscription',
   ]),
-  _IconGroup('อุปกรณ์ & ไอที', false, [
+  _IconGroup('อุปกรณ์ & ไอที', 'Devices & IT', false, [
     'electronics',
     'computer',
     'camera',
   ]),
-  _IconGroup('สุขภาพ', false, [
+  _IconGroup('สุขภาพ', 'Health', false, [
     'health',
     'pharmacy',
     'dentist',
@@ -73,69 +79,69 @@ const List<_IconGroup> _groups = [
     'fitness',
     'sports',
   ]),
-  _IconGroup('บันเทิง', false, [
+  _IconGroup('บันเทิง', 'Entertainment', false, [
     'game',
     'movies',
     'music',
     'hobby',
   ]),
-  _IconGroup('ท่องเที่ยว', false, [
+  _IconGroup('ท่องเที่ยว', 'Travel', false, [
     'travel',
     'flight',
     'hotel',
     'lottery',
   ]),
-  _IconGroup('การศึกษา', false, [
+  _IconGroup('การศึกษา', 'Education', false, [
     'education',
     'course',
     'books',
     'stationery',
   ]),
-  _IconGroup('ครอบครัว & สัตว์เลี้ยง', false, [
+  _IconGroup('ครอบครัว & สัตว์เลี้ยง', 'Family & Pets', false, [
     'kids',
     'toys',
     'family',
     'pet',
     'vet',
   ]),
-  _IconGroup('การเงิน & ภาระ', false, [
+  _IconGroup('การเงิน & ภาระ', 'Finance & Obligations', false, [
     'insurance',
     'tax',
     'fine',
     'debt',
   ]),
-  _IconGroup('บุญ & ความเชื่อ', false, [
+  _IconGroup('บุญ & ความเชื่อ', 'Merit & Beliefs', false, [
     'merit',
     'ceremony',
     'funeral',
     'amulet',
     'fortune',
   ]),
-  _IconGroup('อื่นๆ', false, [
+  _IconGroup('อื่นๆ', 'Other', false, [
     'misc',
   ]),
   // ---- Income ----
-  _IconGroup('งาน & เงินเดือน', true, [
+  _IconGroup('งาน & เงินเดือน', 'Work & Salary', true, [
     'salary',
     'freelance',
     'business',
     'assetsale',
     'rental',
   ]),
-  _IconGroup('โบนัส & พิเศษ', true, [
+  _IconGroup('โบนัส & พิเศษ', 'Bonus & Extra', true, [
     'bonus',
     'overtime',
     'commission',
     'tip',
   ]),
-  _IconGroup('ลงทุน & ดอกเบี้ย', true, [
+  _IconGroup('ลงทุน & ดอกเบี้ย', 'Investment & Interest', true, [
     'interest',
     'pension',
     'invest',
     'gold',
     'savings',
   ]),
-  _IconGroup('ได้รับ & อื่นๆ', true, [
+  _IconGroup('ได้รับ & อื่นๆ', 'Received & Other', true, [
     'prize',
     'refund',
     'angpao',
@@ -154,6 +160,8 @@ class AddCategorySheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final categories =
         ref.watch(categoriesProvider).value ?? const <CategoryRow>[];
     // Icons already used by a (non-deleted) category of this type.
@@ -183,7 +191,7 @@ class AddCategorySheet extends ConsumerWidget {
     }
 
     return SheetScaffold(
-      title: income ? 'เพิ่มหมวดรายรับ' : 'เพิ่มหมวดรายจ่าย',
+      title: income ? l10n.catAddIncomeTitle : l10n.catAddExpenseTitle,
       fullHeight: true,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -191,7 +199,7 @@ class AddCategorySheet extends ConsumerWidget {
           for (final g in groups) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 14, 4, 10),
-              child: Text(g.nameTh,
+              child: Text(g.label(locale),
                   style: AppTypography.heading(
                       size: 14,
                       weight: FontWeight.w600,
@@ -261,7 +269,10 @@ class _IconTile extends StatelessWidget {
             ),
             const SizedBox(height: 7),
             Flexible(
-              child: Text(info.nameTh,
+              child: Text(
+                  Localizations.localeOf(context).languageCode.startsWith('en')
+                      ? info.nameEn
+                      : info.nameTh,
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
