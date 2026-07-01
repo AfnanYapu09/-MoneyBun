@@ -50,7 +50,12 @@ class CategoryRepository {
   Future<void> delete(String id) => _db.deleteCategory(id);
 
   /// Rename a category, preserving all its other fields.
-  Future<void> rename(String id, String name) async {
+  ///
+  /// System categories carry both a Thai [CategoryRow.name] and an English
+  /// [CategoryRow.nameEn]; the UI shows whichever matches the current locale.
+  /// When [english] is true and the category has an English name, rename that
+  /// field so the change is visible in English; otherwise rename [name].
+  Future<void> rename(String id, String name, {bool english = false}) async {
     CategoryRow? existing;
     for (final c in await _db.getCategories()) {
       if (c.id == id) {
@@ -59,10 +64,12 @@ class CategoryRepository {
       }
     }
     if (existing == null) return;
+    final renameEn = english && (existing.nameEn?.isNotEmpty ?? false);
     await _db.upsertCategory(
       existing
           .copyWith(
-            name: name,
+            name: renameEn ? existing.name : name,
+            nameEn: renameEn ? Value(name) : Value(existing.nameEn),
             updatedAt: DateTime.now().millisecondsSinceEpoch,
             syncStatus: existing.syncStatus == SyncStatus.pendingCreate
                 ? SyncStatus.pendingCreate

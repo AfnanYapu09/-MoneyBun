@@ -120,8 +120,8 @@ class Slips extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// User-defined tags. Local-only for now (carries sync columns so it can be
-/// promoted to sync later without another migration).
+/// User-defined tags. Synced per-user (last-write-wins) like the other
+/// entities; a transaction's tag ids ride along inside its cloud document.
 @DataClassName('TagRow')
 class Tags extends Table {
   TextColumn get id => text()();
@@ -140,7 +140,8 @@ class Tags extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// Many-to-many link between transactions and tags. Local-only.
+/// Many-to-many link between transactions and tags. Synced by embedding the
+/// tag ids in each transaction's cloud document (no separate collection).
 @DataClassName('TransactionTagRow')
 class TransactionTags extends Table {
   TextColumn get transactionId => text()();

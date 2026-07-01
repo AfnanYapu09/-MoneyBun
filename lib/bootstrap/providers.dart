@@ -175,8 +175,8 @@ class ScanController extends Notifier<ScanState> {
     try {
       final result = await importer.scanNew();
       // Record when the scan ran — for the "last read at" label only. The
-      // scanner no longer uses a watermark (it reads the past 7 days and dedups
-      // by asset id), so this can never hide a just-saved slip.
+      // scanner reads only slips newer than the last imported one and dedups by
+      // asset id, so this timestamp is display-only and never gates scanning.
       await ref
           .read(settingsRepositoryProvider)
           .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);

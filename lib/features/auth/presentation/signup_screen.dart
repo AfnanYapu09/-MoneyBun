@@ -118,14 +118,23 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       height: 1.5,
                     ),
                     children: [
+                      // Emphasised (not link-styled) — the app ships no separate
+                      // Terms/Privacy pages, so these name the documents without
+                      // pretending to be tappable links that go nowhere.
                       TextSpan(
                         text: l10n.authTermsOfService,
-                        style: TextStyle(color: AppColors.terra),
+                        style: TextStyle(
+                          color: context.palette.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       TextSpan(text: l10n.authAnd),
                       TextSpan(
                         text: l10n.authPrivacyPolicy,
-                        style: TextStyle(color: AppColors.terra),
+                        style: TextStyle(
+                          color: context.palette.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -183,7 +192,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     try {
       await auth.signUpWithEmail(_name.text, _email.text, _password.text);
       final repo = ref.read(settingsRepositoryProvider);
-      await repo.setAuthMode('signedIn');
       if (_name.text.trim().isNotEmpty) {
         await repo.setDisplayName(_name.text.trim());
       }

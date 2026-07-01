@@ -50,7 +50,6 @@ class AppDatabase extends _$AppDatabase {
             await _seedAccounts();
             // Existing users must NOT be forced through onboarding/login.
             await setSetting('onboardingSeen', 'true');
-            await setSetting('authMode', 'guest');
           }
           // v4: income categories + extra expense defaults (idempotent re-seed).
           if (from < 4) {
@@ -513,7 +512,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> batchUpsertSlips(List<SlipsCompanion> rows) =>
       batch((b) => b.insertAllOnConflictUpdate(slips, rows));
 
-  // ---- Tags (local-only) -------------------------------------------------
+  // ---- Tags (synced) -----------------------------------------------------
 
   Stream<List<TagRow>> watchTags() => (select(tags)
         ..where((t) => t.deleted.equals(false))
@@ -540,7 +539,7 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  // ---- Transaction ↔ Tag links (local-only) ------------------------------
+  // ---- Transaction ↔ Tag links (synced via transaction docs) -------------
 
   Stream<List<TransactionTagRow>> watchAllTransactionTags() =>
       select(transactionTags).watch();
