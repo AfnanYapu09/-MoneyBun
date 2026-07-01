@@ -6,6 +6,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/utils/calculator.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/calculator_keypad.dart';
@@ -15,6 +16,7 @@ import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sheet_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../transactions/presentation/widgets/account_flow.dart';
 import 'category_picker_sheet.dart';
 
@@ -128,11 +130,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c
+        c.id: c,
     };
 
     return FullSheetScaffold(
@@ -148,21 +151,24 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           _persistLive();
         },
         segments: [
-          const Segment(
-              value: TxnType.expense,
-              label: 'รายจ่าย',
-              icon: AppIcons.arrowUpRight,
-              color: AppColors.terra),
           Segment(
-              value: TxnType.income,
-              label: 'รายรับ',
-              icon: AppIcons.arrowDownLeft,
-              color: context.palette.greenFg),
+            value: TxnType.expense,
+            label: l10n.expense,
+            icon: AppIcons.arrowUpRight,
+            color: AppColors.terra,
+          ),
           Segment(
-              value: TxnType.transfer,
-              label: 'ย้ายเงิน',
-              icon: AppIcons.arrowLeftRight,
-              color: context.palette.amberFg),
+            value: TxnType.income,
+            label: l10n.income,
+            icon: AppIcons.arrowDownLeft,
+            color: context.palette.greenFg,
+          ),
+          Segment(
+            value: TxnType.transfer,
+            label: l10n.transfer,
+            icon: AppIcons.arrowLeftRight,
+            color: context.palette.amberFg,
+          ),
         ],
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a
@@ -181,14 +187,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(AppIcons.calendar,
-                      size: 18, color: context.palette.terraFg),
+                  Icon(
+                    AppIcons.calendar,
+                    size: 18,
+                    color: context.palette.terraFg,
+                  ),
                   const SizedBox(width: 8),
-                  Text(AppDate.formatDayHeader(_occurredAt, locale: locale),
-                      style: AppTypography.heading(
-                          size: 15,
-                          weight: FontWeight.w500,
-                          color: context.palette.terraFg)),
+                  Text(
+                    AppDate.formatDayHeader(_occurredAt, locale: locale),
+                    style: AppTypography.heading(
+                      size: 15,
+                      weight: FontWeight.w500,
+                      color: context.palette.terraFg,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -221,9 +233,10 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                         enableInteractiveSelection: false,
                         onTap: _openCalculator,
                         style: AppTypography.heading(
-                            size: 40,
-                            weight: FontWeight.w600,
-                            color: context.palette.ink),
+                          size: 40,
+                          weight: FontWeight.w600,
+                          color: context.palette.ink,
+                        ),
                         decoration: InputDecoration(
                           isCollapsed: true,
                           border: InputBorder.none,
@@ -232,17 +245,21 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                           filled: false,
                           hintText: '0',
                           hintStyle: AppTypography.heading(
-                              size: 40,
-                              weight: FontWeight.w600,
-                              color: context.palette.ink3),
+                            size: 40,
+                            weight: FontWeight.w600,
+                            color: context.palette.ink3,
+                          ),
                         ),
                       ),
                     ),
-                    Text('฿',
-                        style: AppTypography.heading(
-                            size: 26,
-                            weight: FontWeight.w500,
-                            color: context.palette.ink3)),
+                    Text(
+                      '฿',
+                      style: AppTypography.heading(
+                        size: 26,
+                        weight: FontWeight.w500,
+                        color: context.palette.ink3,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -253,8 +270,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           if (_type != TxnType.transfer) ...[
             _Row(
               icon: AppIcons.layoutGrid,
-              label: 'เลือกหมวดหมู่ / แท็ก',
-              value: _categoryLabel(categories),
+              label: l10n.addtxnPickCategoryTag,
+              value: _categoryLabel(categories, l10n, locale),
               onTap: _pickCategory,
             ),
             const SizedBox(height: 14),
@@ -268,25 +285,29 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           // Note
           _Row(
             icon: AppIcons.pencilLine,
-            label: 'เพิ่มโน้ต',
+            label: l10n.addtxnAddNote,
             value: _note,
             onTap: _editNote,
           ),
           const SizedBox(height: 18),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-            child: Text('เพิ่มเติม',
-                style: AppTypography.heading(
-                    size: 13,
-                    weight: FontWeight.w500,
-                    color: context.palette.ink3)),
+            child: Text(
+              l10n.addtxnMore,
+              style: AppTypography.heading(
+                size: 13,
+                weight: FontWeight.w500,
+                color: context.palette.ink3,
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           _Row(
             icon: AppIcons.repeat,
-            label: 'จดซ้ำล่วงหน้า',
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('จดซ้ำล่วงหน้า — เร็วๆ นี้'))),
+            label: l10n.addtxnRecurring,
+            onTap: () => ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l10n.addtxnRecurringSoon))),
           ),
           if (widget.editId != null) ...[
             const SizedBox(height: 22),
@@ -302,14 +323,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(AppIcons.trash2,
-                        size: 19, color: context.palette.dangerFg),
+                    Icon(
+                      AppIcons.trash2,
+                      size: 19,
+                      color: context.palette.dangerFg,
+                    ),
                     const SizedBox(width: 8),
-                    Text('ลบรายการนี้',
-                        style: AppTypography.heading(
-                            size: 16,
-                            weight: FontWeight.w500,
-                            color: context.palette.dangerFg)),
+                    Text(
+                      l10n.addtxnDeleteEntry,
+                      style: AppTypography.heading(
+                        size: 16,
+                        weight: FontWeight.w500,
+                        color: context.palette.dangerFg,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -326,11 +353,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         TxnType.expense => AppIcons.arrowUpRight,
       };
 
-  String? _categoryLabel(Map<String, CategoryRow> categories) {
+  String? _categoryLabel(
+    Map<String, CategoryRow> categories,
+    AppLocalizations l10n,
+    String locale,
+  ) {
     if (_categoryId == null) return null;
     final c = categories[_categoryId];
-    final tagSuffix = _tagIds.isEmpty ? '' : ' · ${_tagIds.length} แท็ก';
-    return c == null ? null : '${c.name}$tagSuffix';
+    final tagSuffix =
+        _tagIds.isEmpty ? '' : l10n.addtxnTagSuffix(_tagIds.length);
+    return c == null ? null : '${c.displayName(locale)}$tagSuffix';
   }
 
   Future<void> _pickCategory() async {
@@ -355,22 +387,26 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _editNote() async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: _note);
     final note = await showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('โน้ต'),
+        title: Text(l10n.addtxnNoteTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'รายละเอียด (ไม่บังคับ)'),
+          decoration: InputDecoration(hintText: l10n.addtxnNoteDetailHint),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c), child: const Text('ยกเลิก')),
+            onPressed: () => Navigator.pop(c),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(c, controller.text.trim()),
-              child: const Text('บันทึก')),
+            onPressed: () => Navigator.pop(c, controller.text.trim()),
+            child: Text(l10n.save),
+          ),
         ],
       ),
     );
@@ -392,16 +428,24 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_occurredAt),
     );
-    setState(() => _occurredAt = DateTime(date.year, date.month, date.day,
-        time?.hour ?? _occurredAt.hour, time?.minute ?? _occurredAt.minute));
+    setState(
+      () => _occurredAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time?.hour ?? _occurredAt.hour,
+        time?.minute ?? _occurredAt.minute,
+      ),
+    );
     _persistLive();
   }
 
   /// Add mode keeps a commit button; edit mode saves live (no button).
   Widget? _footer(BuildContext context) {
     if (widget.editId != null) return null;
+    final l10n = AppLocalizations.of(context);
     return PrimaryButton(
-      label: 'บันทึก',
+      label: l10n.save,
       color: _fillAccentOf(),
       onPressed: _loaded ? _save : null,
       loading: !_loaded,
@@ -430,10 +474,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final cents = Money.parseToCents(_amount.text) ?? 0;
     if (cents <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.addtxnEnterAmount)));
       return;
     }
     final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
@@ -453,16 +499,20 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _confirmDelete() async {
+    final l10n = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        content: const Text('ต้องการลบรายการนี้ใช่ไหม?'),
+        content: Text(l10n.addtxnConfirmDelete),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('ยกเลิก')),
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(c, true), child: const Text('ลบ')),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(l10n.delete),
+          ),
         ],
       ),
     );
@@ -502,12 +552,15 @@ class _Row extends StatelessWidget {
             IconChip(icon: icon, size: 36, radius: 11, iconSize: 18),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(value ?? label,
-                  style: AppTypography.body(
-                      size: 15,
-                      color: value == null
-                          ? context.palette.ink2
-                          : context.palette.ink)),
+              child: Text(
+                value ?? label,
+                style: AppTypography.body(
+                  size: 15,
+                  color: value == null
+                      ? context.palette.ink2
+                      : context.palette.ink,
+                ),
+              ),
             ),
             Icon(AppIcons.chevronRight, size: 19, color: context.palette.ink3),
           ],

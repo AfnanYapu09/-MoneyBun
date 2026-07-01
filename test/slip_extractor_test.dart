@@ -29,8 +29,9 @@ void main() {
 
     test('confidence rises with more signals', () {
       final low = SlipExtractor.extract('nothing useful here');
-      final high =
-          SlipExtractor.extract('KBANK 1,000.00 15/06/2025 AB1234567890');
+      final high = SlipExtractor.extract(
+        'KBANK 1,000.00 15/06/2025 AB1234567890',
+      );
       expect(high.confidence, greaterThan(low.confidence));
     });
   });

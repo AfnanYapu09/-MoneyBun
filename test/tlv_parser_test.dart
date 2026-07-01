@@ -8,8 +8,9 @@ String tlv(String id, String value) =>
 /// Append the EMVCo CRC (tag 63, len 04) to a payload body.
 String withCrc(String body) {
   final base = '${body}6304';
-  final crc =
-      EmvTlvParser.crc16(base).toRadixString(16).toUpperCase().padLeft(4, '0');
+  final crc = EmvTlvParser.crc16(
+    base,
+  ).toRadixString(16).toUpperCase().padLeft(4, '0');
   return '$base$crc';
 }
 
@@ -22,8 +23,9 @@ void main() {
 
   group('parseFields', () {
     test('splits flat TLV triplets', () {
-      final fields =
-          EmvTlvParser.parseFields(tlv('00', '01') + tlv('01', '004'));
+      final fields = EmvTlvParser.parseFields(
+        tlv('00', '01') + tlv('01', '004'),
+      );
       expect(fields.length, 2);
       expect(fields[0].id, '00');
       expect(fields[0].value, '01');

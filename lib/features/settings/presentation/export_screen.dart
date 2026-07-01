@@ -13,6 +13,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 /// Settings → ส่งออกข้อมูล. Exports every transaction as a CSV: it is copied to
 /// the clipboard (paste into Sheets / email / Line) and saved as a file so the
@@ -31,8 +32,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   Widget build(BuildContext context) {
     final txns =
         ref.watch(allTransactionsProvider).value ?? const <TransactionRow>[];
+    final l10n = AppLocalizations.of(context);
     return SubScreenScaffold(
-      title: 'ส่งออกข้อมูล',
+      title: l10n.settingsExportData,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
@@ -44,8 +46,11 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                 color: context.palette.terraWash,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(AppIcons.download,
-                  size: 30, color: context.palette.terraFg),
+              child: Icon(
+                AppIcons.download,
+                size: 30,
+                color: context.palette.terraFg,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -53,11 +58,12 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 280),
               child: Text(
-                'ส่งออกรายการทั้งหมดเป็นไฟล์ CSV เพื่อสำรองข้อมูล '
-                'หรือเปิดใน Excel / Google Sheets',
+                l10n.settingsExportDescription,
                 textAlign: TextAlign.center,
-                style:
-                    AppTypography.body(size: 13.5, color: context.palette.ink2),
+                style: AppTypography.body(
+                  size: 13.5,
+                  color: context.palette.ink2,
+                ),
               ),
             ),
           ),
@@ -71,22 +77,31 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
             ),
             child: Row(
               children: [
-                Icon(AppIcons.receiptText,
-                    size: 20, color: context.palette.ink3),
+                Icon(
+                  AppIcons.receiptText,
+                  size: 20,
+                  color: context.palette.ink3,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('จำนวนรายการทั้งหมด',
-                      style: AppTypography.body(size: 15)),
+                  child: Text(
+                    l10n.settingsTotalTransactions,
+                    style: AppTypography.body(size: 15),
+                  ),
                 ),
-                Text('${txns.length}',
-                    style: AppTypography.heading(
-                        size: 16, weight: FontWeight.w600)),
+                Text(
+                  '${txns.length}',
+                  style: AppTypography.heading(
+                    size: 16,
+                    weight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
           PrimaryButton(
-            label: 'ส่งออกเป็น CSV',
+            label: l10n.settingsExportCsv,
             icon: AppIcons.download,
             loading: _busy,
             onPressed: txns.isEmpty ? null : () => _export(txns),
@@ -94,7 +109,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           const SizedBox(height: 10),
           Center(
             child: Text(
-              'ไฟล์จะถูกคัดลอกไปยังคลิปบอร์ดและบันทึกในเครื่อง',
+              l10n.settingsExportClipboardNote,
               style: AppTypography.body(size: 12, color: context.palette.ink3),
             ),
           ),
@@ -104,12 +119,13 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   }
 
   Future<void> _export(List<TransactionRow> txns) async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
       final categories = {
         for (final c
             in ref.read(categoriesProvider).value ?? const <CategoryRow>[])
-          c.id: c
+          c.id: c,
       };
       final csv = _buildCsv(txns, categories);
 
@@ -127,17 +143,19 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(savedPath == null
-              ? 'คัดลอกข้อมูล CSV ไปยังคลิปบอร์ดแล้ว'
-              : 'คัดลอกไปคลิปบอร์ดแล้ว · บันทึกไฟล์ที่ $savedPath'),
+          content: Text(
+            savedPath == null
+                ? l10n.settingsExportCopiedClipboard
+                : l10n.settingsExportCopiedSaved(savedPath),
+          ),
           duration: const Duration(seconds: 4),
         ),
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ส่งออกไม่สำเร็จ')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.settingsExportFailed)));
       }
     } finally {
       // Always clear the spinner, even if the clipboard channel throws, so the
@@ -149,7 +167,9 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   /// A spreadsheet-safe CSV: a fixed header, raw decimal amounts (no thousand
   /// separators that would split a column) and quoted text fields.
   String _buildCsv(
-      List<TransactionRow> txns, Map<String, CategoryRow> categories) {
+    List<TransactionRow> txns,
+    Map<String, CategoryRow> categories,
+  ) {
     String cell(String value) => '"${value.replaceAll('"', '""')}"';
     final buffer = StringBuffer('date,type,amount,category,note\n');
     for (final t in txns) {
@@ -157,8 +177,10 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final amount = (t.amountCents / 100).toStringAsFixed(2);
       final category =
           t.categoryId == null ? '' : (categories[t.categoryId]?.name ?? '');
-      buffer.writeln('$date,${t.type.name},$amount,'
-          '${cell(category)},${cell(t.note ?? '')}');
+      buffer.writeln(
+        '$date,${t.type.name},$amount,'
+        '${cell(category)},${cell(t.note ?? '')}',
+      );
     }
     return buffer.toString();
   }

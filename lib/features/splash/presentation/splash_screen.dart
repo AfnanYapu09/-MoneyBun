@@ -6,6 +6,7 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/wordmark.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -25,11 +26,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final settings = await ref.read(settingsRepositoryProvider).read();
     await Future.delayed(const Duration(milliseconds: 1400));
     if (!mounted) return;
-    context.go(settings.onboardingSeen ? '/home' : '/onboarding');
+    if (!settings.onboardingSeen) {
+      context.go('/onboarding');
+      return;
+    }
+    // Cloud-only: when Firebase is configured, require a signed-in account
+    // (Firebase persists the session, so this only forces login after a
+    // sign-out). Without Firebase, fall back to local use.
+    final auth = ref.read(authServiceProvider);
+    final needLogin = auth != null && auth.currentUser == null;
+    context.go(needLogin ? '/login' : '/home');
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.terra,
       body: Stack(
@@ -51,11 +62,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 const SizedBox(height: 26),
                 const Wordmark(size: 44, color: AppColors.reverse),
                 const SizedBox(height: 10),
-                Text('จดง่าย · ออมเก่ง · เข้าใจเงินตัวเอง',
-                    style: TextStyle(
-                      color: AppColors.reverse.withValues(alpha: 0.82),
-                      fontSize: 15,
-                    )),
+                Text(
+                  l10n.splashTagline,
+                  style: TextStyle(
+                    color: AppColors.reverse.withValues(alpha: 0.82),
+                    fontSize: 15,
+                  ),
+                ),
               ],
             ),
           ),
@@ -73,8 +86,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 3.5),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color:
-                        AppColors.reverse.withValues(alpha: i == 0 ? 1 : 0.4),
+                    color: AppColors.reverse.withValues(
+                      alpha: i == 0 ? 1 : 0.4,
+                    ),
                   ),
                 ),
               ),

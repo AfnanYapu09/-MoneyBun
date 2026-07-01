@@ -63,8 +63,13 @@ class EmvTlvParser {
       if (len == null) return const [];
       final end = i + 4 + len;
       if (end > value.length) return const [];
-      children.add(TlvField(
-          value.substring(i, i + 2), value.substring(i + 4, end), const []));
+      children.add(
+        TlvField(
+          value.substring(i, i + 2),
+          value.substring(i + 4, end),
+          const [],
+        ),
+      );
       i = end;
     }
     // Only treat as a template if it consumed the whole value cleanly.

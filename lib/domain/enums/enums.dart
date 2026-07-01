@@ -5,11 +5,7 @@
 library;
 
 /// Kind of a transaction.
-enum TxnType {
-  income,
-  expense,
-  transfer,
-}
+enum TxnType { income, expense, transfer }
 
 /// Kind of wallet / account.
 enum AccountType {
@@ -21,31 +17,15 @@ enum AccountType {
 }
 
 /// Sync state of a locally stored row relative to Firestore.
-enum SyncStatus {
-  synced,
-  pendingCreate,
-  pendingUpdate,
-  pendingDelete,
-}
+enum SyncStatus { synced, pendingCreate, pendingUpdate, pendingDelete }
 
 /// How a slip's data was obtained.
-enum SlipSource {
-  qrOnly,
-  ocr,
-  apiVerified,
-}
+enum SlipSource { qrOnly, ocr, apiVerified }
 
 /// Budgeting period (used by the budgets feature).
 ///
 /// NOTE: persisted by index — only append, never reorder.
-enum BudgetPeriod {
-  monthly,
-  weekly,
-  yearly,
-}
+enum BudgetPeriod { monthly, weekly, yearly }
 
 /// Category direction. Transfers never carry a category.
-enum CategoryType {
-  income,
-  expense,
-}
+enum CategoryType { income, expense }

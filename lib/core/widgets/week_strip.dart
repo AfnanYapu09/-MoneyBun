@@ -14,9 +14,9 @@ List<int> weeklyExpenseCents(DateTime weekStart, List<TransactionRow> txns) {
   final daily = List<int>.filled(7, 0);
   for (final t in txns) {
     if (t.type != TxnType.expense) continue;
-    final i = AppDate.startOfDay(AppDate.fromMillis(t.occurredAt))
-        .difference(start)
-        .inDays;
+    final i = AppDate.startOfDay(
+      AppDate.fromMillis(t.occurredAt),
+    ).difference(start).inDays;
     if (i >= 0 && i < 7) daily[i] += t.amountCents;
   }
   return daily;
@@ -105,9 +105,9 @@ class _DayColumn extends StatelessWidget {
               cents == 0 ? '–' : Money.compact(cents),
               maxLines: 1,
               style: AppTypography.body(
-                  size: 9.5,
-                  color:
-                      cents == 0 ? context.palette.ink3 : context.palette.ink2),
+                size: 9.5,
+                color: cents == 0 ? context.palette.ink3 : context.palette.ink2,
+              ),
             ),
           ),
           const SizedBox(height: 4),

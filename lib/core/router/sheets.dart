@@ -10,6 +10,7 @@ import '../../features/stats/presentation/budget_sheet.dart';
 import '../../features/stats/presentation/period_picker_sheet.dart';
 import '../../data/local/database.dart';
 import '../../domain/enums/enums.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
 import '../widgets/app_icons.dart';
@@ -35,8 +36,10 @@ class _FormSheetSize extends StatelessWidget {
 /// Runs [show] while marking a sheet open in [openSheetsProvider], so the home
 /// FAB hides for the sheet's whole lifetime (and reappears once it closes).
 Future<T?> _tracked<T>(BuildContext context, Future<T?> Function() show) async {
-  final notifier = ProviderScope.containerOf(context, listen: false)
-      .read(openSheetsProvider.notifier);
+  final notifier = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(openSheetsProvider.notifier);
   notifier.increment();
   try {
     return await show();
@@ -142,15 +145,14 @@ Future<bool?> showAddCategorySheet(
       useSafeArea: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => _FormSheetSize(
-        child: AddCategorySheet(type: type),
-      ),
+      builder: (_) => _FormSheetSize(child: AddCategorySheet(type: type)),
     ),
   );
 }
 
 /// Centered logout confirmation dialog. Returns true if confirmed.
 Future<bool> confirmLogout(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
   final ok = await showDialog<bool>(
     context: context,
     barrierColor: _barrier,
@@ -169,27 +171,32 @@ Future<bool> confirmLogout(BuildContext context) async {
                 color: context.palette.dangerWash,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Icon(AppIcons.logOut,
-                  color: context.palette.dangerFg, size: 28),
+              child: Icon(
+                AppIcons.logOut,
+                color: context.palette.dangerFg,
+                size: 28,
+              ),
             ),
             const SizedBox(height: 12),
-            Text('ออกจากระบบ?',
-                style:
-                    AppTypography.heading(size: 19, weight: FontWeight.w600)),
+            Text(
+              l10n.logoutTitle,
+              style: AppTypography.heading(size: 19, weight: FontWeight.w600),
+            ),
             const SizedBox(height: 6),
-            Text('ข้อมูลของคุณถูกบันทึกไว้แล้ว เข้าสู่ระบบใหม่ได้ทุกเมื่อ',
-                textAlign: TextAlign.center,
-                style:
-                    AppTypography.body(size: 14, color: context.palette.ink2)),
+            Text(
+              l10n.logoutBody,
+              textAlign: TextAlign.center,
+              style: AppTypography.body(size: 14, color: context.palette.ink2),
+            ),
             const SizedBox(height: 18),
             PrimaryButton(
-              label: 'ออกจากระบบ',
+              label: l10n.signOut,
               color: AppColors.danger,
               onPressed: () => Navigator.pop(c, true),
             ),
             const SizedBox(height: 10),
             SecondaryButton(
-              label: 'ยกเลิก',
+              label: l10n.cancel,
               onPressed: () => Navigator.pop(c, false),
             ),
           ],

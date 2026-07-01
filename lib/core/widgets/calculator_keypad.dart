@@ -34,11 +34,8 @@ Future<void> showAmountCalculator(
     isScrollControlled: true,
     barrierColor: Colors.transparent,
     backgroundColor: Colors.transparent,
-    builder: (_) => _CalculatorSheet(
-      initial: initial,
-      accent: color,
-      onChanged: onChanged,
-    ),
+    builder: (_) =>
+        _CalculatorSheet(initial: initial, accent: color, onChanged: onChanged),
   );
 }
 
@@ -287,10 +284,7 @@ class CalcHistoryLine extends StatelessWidget {
     if (text.isEmpty) return const SizedBox.shrink();
     return Align(
       alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 2),
-        child: label,
-      ),
+      child: Padding(padding: const EdgeInsets.only(bottom: 2), child: label),
     );
   }
 }

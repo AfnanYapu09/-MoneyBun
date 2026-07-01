@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../core/theme/colors.dart';
+import '../../../core/utils/account_l10n.dart';
 import '../../../core/utils/app_date.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
 import '../../../data/local/database.dart';
@@ -34,6 +36,7 @@ TxnDisplay txnDisplay(
   bool withDate = false,
   BuildContext? context,
 }) {
+  final isThai = locale.startsWith('th');
   final category = t.categoryId == null ? null : categories[t.categoryId];
   final categoryColor =
       category == null ? null : AppColors.forHex(category.colorHex);
@@ -44,35 +47,64 @@ TxnDisplay txnDisplay(
   final date =
       withDate ? '${AppDate.formatDayShort(when, locale: locale)} · ' : '';
 
+  // Short fallback nouns. Date helpers and category names are already
+  // bilingual, so we only branch the literals this function owns.
+  final accountWord = isThai ? 'บัญชี' : 'Account';
+  final incomeWord = isThai ? 'รายรับ' : 'Income';
+  final otherWord = isThai ? 'อื่นๆ' : 'Other';
+
   switch (t.type) {
     case TxnType.transfer:
-      final from = accounts[t.accountId]?.name ?? 'บัญชี';
-      final to = accounts[t.toAccountId]?.name ?? 'บัญชี';
-      return TxnDisplay(AppIcons.arrowLeftRight, 'ย้ายเงิน', '$date$from → $to',
-          color: context?.palette.amberFg ?? AppColors.amber);
+      final from = accounts[t.accountId]?.displayName(locale) ?? accountWord;
+      final to = accounts[t.toAccountId]?.displayName(locale) ?? accountWord;
+      final transferWord = isThai ? 'ย้ายเงิน' : 'Transfer';
+      return TxnDisplay(
+        AppIcons.arrowLeftRight,
+        transferWord,
+        '$date$from → $to',
+        color: context?.palette.amberFg ?? AppColors.amber,
+      );
     case TxnType.income:
+      final categoryName = category?.displayName(locale);
       final title = (t.note != null && t.note!.isNotEmpty)
           ? t.note!
-          : (category?.name ?? 'รายรับ');
-      final sub = category != null
-          ? '$date${category.name}${withTime ? ' · $time' : ''}'
-          : '$dateรายรับ${withTime ? ' · $time' : ''}';
+          : (categoryName ?? incomeWord);
+      final sub = categoryName != null
+          ? '$date$categoryName${withTime ? ' · $time' : ''}'
+          : '$date$incomeWord${withTime ? ' · $time' : ''}';
       final icon = category != null
           ? CategoryIcons.forKey(category.iconKey)
           : AppIcons.banknote;
-      return TxnDisplay(icon, title, sub,
-          color: categoryColor, iconKey: category?.iconKey);
+      return TxnDisplay(
+        icon,
+        title,
+        sub,
+        color: categoryColor,
+        iconKey: category?.iconKey,
+      );
     case TxnType.expense:
       if (t.categoryId == null) {
-        return TxnDisplay(AppIcons.receiptText, 'รายการใหม่จากสลิป',
-            '$dateยังไม่จัดหมวด · $time');
+        final fromSlip = isThai ? 'รายการใหม่จากสลิป' : 'New item from slip';
+        final uncategorized = isThai ? 'ยังไม่จัดหมวด' : 'Uncategorized';
+        return TxnDisplay(
+          AppIcons.receiptText,
+          fromSlip,
+          '$date$uncategorized · $time',
+        );
       }
+      final categoryName = category?.displayName(locale);
+      final itemWord = isThai ? 'รายการ' : 'Item';
       final title = (t.note != null && t.note!.isNotEmpty)
           ? t.note!
-          : (category?.name ?? 'รายการ');
+          : (categoryName ?? itemWord);
       final sub =
-          '$date${category?.name ?? 'อื่นๆ'}${withTime ? ' · $time' : ''}';
-      return TxnDisplay(CategoryIcons.forKey(category?.iconKey), title, sub,
-          color: categoryColor, iconKey: category?.iconKey);
+          '$date${categoryName ?? otherWord}${withTime ? ' · $time' : ''}';
+      return TxnDisplay(
+        CategoryIcons.forKey(category?.iconKey),
+        title,
+        sub,
+        color: categoryColor,
+        iconKey: category?.iconKey,
+      );
   }
 }

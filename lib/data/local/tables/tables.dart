@@ -25,8 +25,9 @@ class Accounts extends Table {
       boolean().withDefault(const Constant(true))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
-  IntColumn get syncStatus => intEnum<SyncStatus>()
-      .withDefault(Constant(SyncStatus.pendingCreate.index))();
+  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(
+        Constant(SyncStatus.pendingCreate.index),
+      )();
   TextColumn get remoteId => text().nullable()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
@@ -48,8 +49,9 @@ class Categories extends Table {
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
-  IntColumn get syncStatus => intEnum<SyncStatus>()
-      .withDefault(Constant(SyncStatus.pendingCreate.index))();
+  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(
+        Constant(SyncStatus.pendingCreate.index),
+      )();
   TextColumn get remoteId => text().nullable()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
@@ -71,8 +73,9 @@ class Transactions extends Table {
   TextColumn get slipId => text().nullable()();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
-  IntColumn get syncStatus => intEnum<SyncStatus>()
-      .withDefault(Constant(SyncStatus.pendingCreate.index))();
+  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(
+        Constant(SyncStatus.pendingCreate.index),
+      )();
   TextColumn get remoteId => text().nullable()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
@@ -87,6 +90,11 @@ class Slips extends Table {
 
   /// Source gallery asset id (Android album auto-scan) — used to skip re-imports.
   TextColumn get assetId => text().nullable()();
+
+  /// When the source photo was created in the gallery (epoch ms). Synced, so
+  /// the "read slips newer than the latest one" watermark survives a reinstall
+  /// or sign-out/in: it is recomputed as the max of this over imported slips.
+  IntColumn get photoTakenAt => integer().nullable()();
   IntColumn get source => intEnum<SlipSource>()();
   TextColumn get bankCode => text().nullable()();
   TextColumn get transRef => text().nullable()();
@@ -102,8 +110,9 @@ class Slips extends Table {
   BoolColumn get verified => boolean().withDefault(const Constant(false))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
-  IntColumn get syncStatus => intEnum<SyncStatus>()
-      .withDefault(Constant(SyncStatus.pendingCreate.index))();
+  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(
+        Constant(SyncStatus.pendingCreate.index),
+      )();
   TextColumn get remoteId => text().nullable()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
@@ -121,8 +130,9 @@ class Tags extends Table {
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
-  IntColumn get syncStatus => intEnum<SyncStatus>()
-      .withDefault(Constant(SyncStatus.pendingCreate.index))();
+  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(
+        Constant(SyncStatus.pendingCreate.index),
+      )();
   TextColumn get remoteId => text().nullable()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 
@@ -163,8 +173,9 @@ class Budgets extends Table {
   BoolColumn get rollover => boolean().withDefault(const Constant(false))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
-  IntColumn get syncStatus => intEnum<SyncStatus>()
-      .withDefault(Constant(SyncStatus.pendingCreate.index))();
+  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(
+        Constant(SyncStatus.pendingCreate.index),
+      )();
   TextColumn get remoteId => text().nullable()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 

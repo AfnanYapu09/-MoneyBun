@@ -15,9 +15,7 @@ Future<void> _pump(WidgetTester tester, ThemeData theme) {
   return tester.pumpWidget(
     MaterialApp(
       theme: theme,
-      home: Scaffold(
-        body: Text('฿100', style: AppTypography.body(size: 15)),
-      ),
+      home: Scaffold(body: Text('฿100', style: AppTypography.body(size: 15))),
     ),
   );
 }
@@ -34,8 +32,9 @@ void main() {
     expect(_resolvedTextColor(tester), AppColors.ink);
   });
 
-  testWidgets('unstyled text inherits a light ink in dark mode',
-      (tester) async {
+  testWidgets('unstyled text inherits a light ink in dark mode', (
+    tester,
+  ) async {
     await _pump(tester, AppTheme.dark());
     final color = _resolvedTextColor(tester);
     // In dark mode the same label must flip to the dark-theme ink…

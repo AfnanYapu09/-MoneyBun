@@ -1,7 +1,3 @@
-import 'dart:convert';
-
-import 'package:crypto/crypto.dart';
-
 import '../local/database.dart';
 
 /// Immutable snapshot of app settings (stored in the key/value Settings table).
@@ -10,13 +6,8 @@ class AppSettings {
     this.onboardingSeen = false,
     this.authMode = 'guest',
     this.themeMode = 'system',
-    this.accentColor = 'FFC4694A',
     this.currencyCode = 'THB',
     this.locale = 'th',
-    this.hideBalance = false,
-    this.pinEnabled = false,
-    this.pinHash,
-    this.biometricEnabled = false,
     this.savingsGoalCents = 0,
     this.lastSlipReadAt,
     this.disabledScanIds = const {},
@@ -29,13 +20,8 @@ class AppSettings {
   final bool onboardingSeen;
   final String authMode; // 'guest' | 'signedIn'
   final String themeMode; // 'light' | 'dark' | 'system'
-  final String accentColor; // ARGB hex
   final String currencyCode;
   final String locale; // 'th' | 'en'
-  final bool hideBalance;
-  final bool pinEnabled;
-  final String? pinHash;
-  final bool biometricEnabled;
   final int savingsGoalCents;
   final int? lastSlipReadAt;
 
@@ -55,13 +41,8 @@ class AppSettings {
       onboardingSeen: b(SettingsKeys.onboardingSeen),
       authMode: m[SettingsKeys.authMode] ?? 'guest',
       themeMode: m[SettingsKeys.themeMode] ?? 'system',
-      accentColor: m[SettingsKeys.accentColor] ?? 'FFC4694A',
       currencyCode: m[SettingsKeys.currencyCode] ?? 'THB',
       locale: m[SettingsKeys.locale] ?? 'th',
-      hideBalance: b(SettingsKeys.hideBalance),
-      pinEnabled: b(SettingsKeys.pinEnabled),
-      pinHash: m[SettingsKeys.pinHash],
-      biometricEnabled: b(SettingsKeys.biometricEnabled),
       savingsGoalCents: i(SettingsKeys.savingsGoalCents),
       lastSlipReadAt: m[SettingsKeys.lastSlipReadAt] == null
           ? null
@@ -83,13 +64,8 @@ class SettingsKeys {
   static const onboardingSeen = 'onboardingSeen';
   static const authMode = 'authMode';
   static const themeMode = 'themeMode';
-  static const accentColor = 'accentColor';
   static const currencyCode = 'currencyCode';
   static const locale = 'locale';
-  static const hideBalance = 'hideBalance';
-  static const pinEnabled = 'pinEnabled';
-  static const pinHash = 'pinHash';
-  static const biometricEnabled = 'biometricEnabled';
   static const savingsGoalCents = 'savingsGoalCents';
   static const lastSlipReadAt = 'lastSlipReadAt';
   static const disabledScanIds = 'disabledScanIds';
@@ -105,10 +81,6 @@ class SettingsRepository {
   SettingsRepository(this._db);
 
   final AppDatabase _db;
-
-  /// Salt for the PIN hash. Not a security boundary (local-only convenience
-  /// lock), just avoids storing the PIN in plain text.
-  static const _pinSalt = 'moneybun.pin.v1';
 
   Stream<AppSettings> watch() => _db.watchSettings().map(_toSettings);
 
@@ -131,12 +103,8 @@ class SettingsRepository {
       setBool(SettingsKeys.onboardingSeen, v);
   Future<void> setAuthMode(String v) => set(SettingsKeys.authMode, v);
   Future<void> setThemeMode(String v) => set(SettingsKeys.themeMode, v);
-  Future<void> setAccentColor(String hex) => set(SettingsKeys.accentColor, hex);
   Future<void> setCurrency(String code) => set(SettingsKeys.currencyCode, code);
   Future<void> setLocale(String code) => set(SettingsKeys.locale, code);
-  Future<void> setHideBalance(bool v) => setBool(SettingsKeys.hideBalance, v);
-  Future<void> setBiometricEnabled(bool v) =>
-      setBool(SettingsKeys.biometricEnabled, v);
   Future<void> setSavingsGoal(int cents) =>
       setInt(SettingsKeys.savingsGoalCents, cents);
   Future<void> setLastSlipReadAt(int ms) =>
@@ -147,23 +115,4 @@ class SettingsRepository {
   Future<void> setAvatarPath(String path) => set(SettingsKeys.avatarPath, path);
   Future<void> setUsername(String v) => set(SettingsKeys.username, v);
   Future<void> setPhone(String v) => set(SettingsKeys.phone, v);
-
-  // ---- PIN ----
-  String _hash(String pin) =>
-      sha256.convert(utf8.encode('$_pinSalt:$pin')).toString();
-
-  Future<void> setPin(String pin) async {
-    await set(SettingsKeys.pinHash, _hash(pin));
-    await setBool(SettingsKeys.pinEnabled, true);
-  }
-
-  Future<void> clearPin() async {
-    await set(SettingsKeys.pinHash, '');
-    await setBool(SettingsKeys.pinEnabled, false);
-  }
-
-  Future<bool> verifyPin(String pin) async {
-    final stored = await _db.getSetting(SettingsKeys.pinHash);
-    return stored != null && stored.isNotEmpty && stored == _hash(pin);
-  }
 }

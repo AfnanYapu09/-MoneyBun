@@ -34,17 +34,24 @@ class StatChip extends StatelessWidget {
             children: [
               Icon(icon, size: 17, color: accent),
               const SizedBox(width: 8),
-              Text(label,
-                  style: AppTypography.body(
-                      size: 13, color: context.palette.ink2)),
+              Text(
+                label,
+                style: AppTypography.body(
+                  size: 13,
+                  color: context.palette.ink2,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(amount,
-              style: AppTypography.heading(
-                  size: 19,
-                  weight: FontWeight.w500,
-                  color: amountColor ?? context.palette.ink)),
+          Text(
+            amount,
+            style: AppTypography.heading(
+              size: 19,
+              weight: FontWeight.w500,
+              color: amountColor ?? context.palette.ink,
+            ),
+          ),
         ],
       ),
     );

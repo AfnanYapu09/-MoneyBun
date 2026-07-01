@@ -20,6 +20,7 @@ import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/stat_chip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../transactions/presentation/widgets/account_flow.dart';
 import '../../transactions/presentation/widgets/txn_day_group.dart';
 
@@ -45,17 +46,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
     final txns = ref.watch(periodTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c
+        c.id: c,
     };
     final accounts = {
       for (final a in ref.watch(accountsProvider).value ?? const <AccountRow>[])
-        a.id: a
+        a.id: a,
     };
     final budgets = ref.watch(budgetsProvider).value ?? const <BudgetRow>[];
     final settings = ref.watch(appSettingsProvider).value;
@@ -72,7 +74,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Every budget (weekly / monthly / yearly) converted to the active window
     // so the spending card compares like-for-like with the period's spending.
     final totalBudget = budgets.fold<int>(
-        0, (s, b) => s + budgetForWindow(b.amountCents, b.period, period));
+      0,
+      (s, b) => s + budgetForWindow(b.amountCents, b.period, period),
+    );
 
     // The home recent list surfaces only the actionable, still-uncategorised
     // slip imports (newest first, capped); everything else lives on
@@ -90,7 +94,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Bouncing physics on every platform so the Cupertino-style refresh
           // control (Bun scanning block) can be revealed by overscroll.
           physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics()),
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           slivers: [
             // Pull-to-refresh: NO Material spinner — just a pull hint. The
             // "น้องบันกำลังอ่านสลิป" scanning block now lives in the body
@@ -130,7 +135,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         Expanded(
                           child: StatChip(
                             icon: AppIcons.arrowDownLeft,
-                            label: 'รายรับ',
+                            label: l10n.income,
                             amount: Money.compact(income),
                             accent: context.palette.greenFg,
                             amountColor: context.palette.greenFg,
@@ -140,7 +145,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         Expanded(
                           child: StatChip(
                             icon: AppIcons.arrowUpRight,
-                            label: 'รายจ่าย',
+                            label: l10n.expense,
                             amount: Money.compact(expense),
                             accent: AppColors.terra,
                           ),
@@ -148,7 +153,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ],
                     ),
                     _RecentHeader(
-                        onSeeAll: () => context.push('/transactions')),
+                      onSeeAll: () => context.push('/transactions'),
+                    ),
                     _RecentList(
                       uncategorized: recentUncategorized,
                       categories: categories,
@@ -190,6 +196,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _listenScan() {
+    final l10n = AppLocalizations.of(context);
     ref.listen<ScanState>(scanControllerProvider, (prev, next) {
       if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
         _permissionDialog();
@@ -198,11 +205,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           next.error == null &&
           next.result != null) {
         final r = next.result!;
+        // Always give feedback when a scan finishes — a silent "nothing
+        // happened" looks like a bug. Distinguish "no bank album on this
+        // device" from "album(s) found but no new slips".
         if (r.imported > 0) {
-          _snack('น้องบันอ่านสลิปใหม่ ${r.imported} รายการ');
+          _snack(l10n.homeScanImported(r.imported));
+          // If the newest import lands outside the month currently shown
+          // (an older slip, or a date read from the slip itself), snap the
+          // period onto it so the imports are never invisible.
+          final ms = r.newestImportedAt;
+          if (ms != null) {
+            final period = ref.read(selectedPeriodProvider);
+            if (ms < period.start || ms > period.end) {
+              final when = DateTime.fromMillisecondsSinceEpoch(ms);
+              ref.read(selectedPeriodProvider.notifier).setMonth(when);
+            }
+          }
+        } else if (next.limited) {
+          // Only selected photos shared (Android 14 partial grant) — the bank
+          // album is likely hidden, so explain how to widen access.
+          _snack(l10n.homeScanLimited);
+        } else if (r.matchedAlbums == 0) {
+          _snack(l10n.homeScanNoAlbum);
+        } else {
+          _snack(l10n.homeScanNoNew);
         }
       } else if (next.error != null && prev?.error != next.error) {
-        _snack('สแกนไม่สำเร็จ ลองใหม่อีกครั้ง');
+        _snack(l10n.homeScanFailed);
       }
     });
   }
@@ -256,22 +285,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _permissionDialog() async {
+    final l10n = AppLocalizations.of(context);
     final open = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('ขอสิทธิ์เข้าถึงรูปภาพ'),
-        content: const Text(
-          'MoneyBun ต้องเข้าถึงรูปในเครื่องเพื่ออ่านสลิปจากแกลเลอรี\n\n'
-          'ถ้าเคยกด "ไม่อนุญาต" ไปแล้ว ให้เปิดการตั้งค่า → สิทธิ์ → '
-          'รูปภาพและวิดีโอ → อนุญาต',
-        ),
+        title: Text(l10n.homePhotoPermissionTitle),
+        content: Text(l10n.homePhotoPermissionBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('ยกเลิก')),
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l10n.cancel),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: const Text('เปิดการตั้งค่า')),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(l10n.homeOpenSettings),
+          ),
         ],
       ),
     );
@@ -286,6 +314,7 @@ class _PullHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
@@ -296,14 +325,19 @@ class _PullHint extends StatelessWidget {
             AnimatedRotation(
               turns: armed ? 0.5 : 0,
               duration: const Duration(milliseconds: 200),
-              child: const Icon(AppIcons.arrowDown,
-                  size: 16, color: AppColors.terra),
+              child: const Icon(
+                AppIcons.arrowDown,
+                size: 16,
+                color: AppColors.terra,
+              ),
             ),
             const SizedBox(width: 8),
             Text(
-              armed ? 'ปล่อยเพื่อให้น้องบันอ่านสลิป' : 'ดึงลงเพื่ออัปเดตสลิป',
-              style:
-                  AppTypography.body(size: 13.5, color: context.palette.ink3),
+              armed ? l10n.homePullRelease : l10n.homePullHint,
+              style: AppTypography.body(
+                size: 13.5,
+                color: context.palette.ink3,
+              ),
             ),
           ],
         ),
@@ -317,23 +351,30 @@ class _Header extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final hour = DateTime.now().hour;
     final greeting = hour < 12
-        ? 'สวัสดีตอนเช้า'
-        : (hour < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น');
-    final name = ref.watch(appSettingsProvider).value?.displayName ?? 'คุณบัน';
+        ? l10n.homeGreetingMorning
+        : (hour < 17 ? l10n.homeGreetingAfternoon : l10n.homeGreetingEvening);
+    final name = ref.watch(appSettingsProvider).value?.displayName ??
+        l10n.homeDefaultName;
     return Row(
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(greeting,
-                  style: AppTypography.body(
-                      size: 13, color: context.palette.ink3)),
-              Text(name,
-                  style:
-                      AppTypography.heading(size: 20, weight: FontWeight.w600)),
+              Text(
+                greeting,
+                style: AppTypography.body(
+                  size: 13,
+                  color: context.palette.ink3,
+                ),
+              ),
+              Text(
+                name,
+                style: AppTypography.heading(size: 20, weight: FontWeight.w600),
+              ),
             ],
           ),
         ),
@@ -385,6 +426,7 @@ class _SpendingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasBudget = budgetCents > 0;
     final remaining = budgetCents - spentCents;
     final progress =
@@ -410,23 +452,34 @@ class _SpendingCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('ใช้จ่าย$subtitleNoun',
-                  style: AppTypography.body(
-                      size: 14,
-                      color: AppColors.reverse.withValues(alpha: 0.82))),
+              Text(
+                l10n.homeSpentNoun(subtitleNoun),
+                style: AppTypography.body(
+                  size: 14,
+                  color: AppColors.reverse.withValues(alpha: 0.82),
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(Money.compact(spentCents),
-                  style: AppTypography.heading(
-                      size: 38,
-                      weight: FontWeight.w600,
-                      color: AppColors.reverse)),
+              Text(
+                Money.compact(spentCents),
+                style: AppTypography.heading(
+                  size: 38,
+                  weight: FontWeight.w600,
+                  color: AppColors.reverse,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
                 hasBudget
-                    ? 'เหลือ ${Money.compact(remaining)} จากงบ ${Money.compact(budgetCents)}'
-                    : 'ยังไม่ได้ตั้งงบประมาณเดือนนี้',
+                    ? l10n.homeBudgetRemaining(
+                        Money.compact(remaining),
+                        Money.compact(budgetCents),
+                      )
+                    : l10n.homeNoBudget,
                 style: AppTypography.body(
-                    size: 13, color: AppColors.reverse.withValues(alpha: 0.82)),
+                  size: 13,
+                  color: AppColors.reverse.withValues(alpha: 0.82),
+                ),
               ),
               const SizedBox(height: 14),
               ClipRRect(
@@ -445,23 +498,31 @@ class _SpendingCard extends StatelessWidget {
                 onTap: scanning ? null : () => onRefresh(),
                 child: Row(
                   children: [
-                    Icon(scanning ? AppIcons.loader : AppIcons.receiptText,
-                        size: 14, color: AppColors.reverse),
+                    Icon(
+                      scanning ? AppIcons.loader : AppIcons.receiptText,
+                      size: 14,
+                      color: AppColors.reverse,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         scanning
-                            ? 'น้องบันกำลังอ่านสลิป…'
-                            : 'อ่านสลิปล่าสุด ${_relative(lastReadAt)}',
+                            ? l10n.homeReadingSlip
+                            : l10n.homeLastReadSlip(
+                                _relative(lastReadAt, l10n),
+                              ),
                         style: AppTypography.body(
-                            size: 12,
-                            color: AppColors.reverse.withValues(alpha: 0.82)),
+                          size: 12,
+                          color: AppColors.reverse.withValues(alpha: 0.82),
+                        ),
                       ),
                     ),
                     if (!scanning)
-                      Icon(AppIcons.rotateCw,
-                          size: 14,
-                          color: AppColors.reverse.withValues(alpha: 0.7)),
+                      Icon(
+                        AppIcons.rotateCw,
+                        size: 14,
+                        color: AppColors.reverse.withValues(alpha: 0.7),
+                      ),
                   ],
                 ),
               ),
@@ -472,14 +533,15 @@ class _SpendingCard extends StatelessWidget {
     );
   }
 
-  String _relative(int? ms) {
-    if (ms == null) return 'ยังไม่เคยอ่าน';
-    final diff =
-        DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ms));
-    if (diff.inMinutes < 1) return 'เมื่อสักครู่';
-    if (diff.inMinutes < 60) return 'เมื่อ ${diff.inMinutes} นาทีที่แล้ว';
-    if (diff.inHours < 24) return 'เมื่อ ${diff.inHours} ชม.ที่แล้ว';
-    return 'เมื่อ ${diff.inDays} วันก่อน';
+  String _relative(int? ms, AppLocalizations l10n) {
+    if (ms == null) return l10n.homeNeverRead;
+    final diff = DateTime.now().difference(
+      DateTime.fromMillisecondsSinceEpoch(ms),
+    );
+    if (diff.inMinutes < 1) return l10n.homeJustNow;
+    if (diff.inMinutes < 60) return l10n.homeMinutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.homeHoursAgo(diff.inHours);
+    return l10n.homeDaysAgo(diff.inDays);
   }
 }
 
@@ -489,16 +551,24 @@ class _RecentHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text('รายการล่าสุด',
-            style: AppTypography.heading(size: 16, weight: FontWeight.w500)),
+        Text(
+          l10n.homeRecentTitle,
+          style: AppTypography.heading(size: 16, weight: FontWeight.w500),
+        ),
         InkWell(
           onTap: onSeeAll,
-          child: Text('ดูทั้งหมด',
-              style: AppTypography.heading(
-                  size: 13, weight: FontWeight.w400, color: AppColors.terra)),
+          child: Text(
+            l10n.homeSeeAll,
+            style: AppTypography.heading(
+              size: 13,
+              weight: FontWeight.w400,
+              color: AppColors.terra,
+            ),
+          ),
         ),
       ],
     );
@@ -526,6 +596,7 @@ class _RecentList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (uncategorized.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 28),
@@ -533,13 +604,15 @@ class _RecentList extends StatelessWidget {
           children: [
             const BunAvatar(size: 72),
             const SizedBox(height: 12),
-            Text('ไม่มีรายการที่ต้องจัดหมวด',
-                style:
-                    AppTypography.heading(size: 15, weight: FontWeight.w500)),
+            Text(
+              l10n.homeNothingToCategorize,
+              style: AppTypography.heading(size: 15, weight: FontWeight.w500),
+            ),
             const SizedBox(height: 4),
-            Text('ดึงลงเพื่อให้น้องบันอ่านสลิป หรือกด +',
-                style:
-                    AppTypography.body(size: 13, color: context.palette.ink3)),
+            Text(
+              l10n.homeNothingToCategorizeHint,
+              style: AppTypography.body(size: 13, color: context.palette.ink3),
+            ),
           ],
         ),
       );

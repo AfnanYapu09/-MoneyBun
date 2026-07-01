@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/bank_codes.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/typography.dart';
+import '../../../../core/utils/account_l10n.dart';
 import '../../../../core/widgets/app_icons.dart';
 import '../../../../core/widgets/icon_chip.dart';
 import '../../../../core/widgets/slip_image.dart';
 import '../../../../data/local/database.dart';
 import '../../../../domain/enums/enums.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 
 /// True when the slip's sender and receiver names match (own-account move).
 bool isSelfTransfer(SlipRow? slip) {
@@ -25,11 +27,14 @@ bool isSelfTransfer(SlipRow? slip) {
 Widget accountFlowFor({
   required TxnType type,
   required Map<String, AccountRow> accounts,
+  required AppLocalizations l10n,
+  required String locale,
   String? accountId,
   String? toAccountId,
   SlipRow? slip,
 }) {
-  final account = accountId == null ? null : accounts[accountId]?.name;
+  final account =
+      accountId == null ? null : accounts[accountId]?.displayName(locale);
 
   final fromBank = BankCodes.byCode(slip?.senderBank)?.nameTh;
   final toBank = BankCodes.byCode(slip?.receiverBank)?.nameTh;
@@ -40,10 +45,10 @@ Widget accountFlowFor({
     final hasReceiver = receiver != null && receiver.isNotEmpty;
     return AccountFlowCard(
       fromIcon: AppIcons.landmark,
-      fromLabel: fromBank ?? 'โอนจาก',
-      fromName: hasSender ? sender : (account ?? 'บัญชี'),
+      fromLabel: fromBank ?? l10n.txnFlowFrom,
+      fromName: hasSender ? sender : (account ?? l10n.txnFlowAccount),
       toIcon: AppIcons.landmark,
-      toLabel: toBank ?? 'เข้าบัญชี',
+      toLabel: toBank ?? l10n.txnFlowInto,
       toName: hasReceiver ? receiver : toBank,
     );
   }
@@ -51,19 +56,21 @@ Widget accountFlowFor({
   switch (type) {
     case TxnType.transfer:
       return AccountFlowCard(
-        fromLabel: 'จ่ายจาก',
-        fromName: account ?? 'บัญชี',
-        toLabel: 'ไปยัง',
-        toName: (toAccountId == null ? null : accounts[toAccountId]?.name) ??
-            'บัญชี',
+        fromLabel: l10n.txnFlowPaidFrom,
+        fromName: account ?? l10n.txnFlowAccount,
+        toLabel: l10n.txnFlowTo,
+        toName: (toAccountId == null
+                ? null
+                : accounts[toAccountId]?.displayName(locale)) ??
+            l10n.txnFlowAccount,
       );
     case TxnType.income:
       final sender = slip?.senderName;
       final hasSender = sender != null && sender.isNotEmpty;
       return AccountFlowCard(
-        fromLabel: 'เข้าบัญชี',
-        fromName: account ?? 'บัญชี',
-        toLabel: hasSender ? 'จาก' : null,
+        fromLabel: l10n.txnFlowInto,
+        fromName: account ?? l10n.txnFlowAccount,
+        toLabel: hasSender ? l10n.txnFlowSender : null,
         toName: hasSender ? sender : null,
         toIcon: AppIcons.userRound,
       );
@@ -71,9 +78,9 @@ Widget accountFlowFor({
       final merchant = slip?.receiverName;
       final hasMerchant = merchant != null && merchant.isNotEmpty;
       return AccountFlowCard(
-        fromLabel: 'จ่ายจาก',
-        fromName: account ?? 'เงินสด',
-        toLabel: hasMerchant ? 'ร้านค้า' : null,
+        fromLabel: l10n.txnFlowPaidFrom,
+        fromName: account ?? l10n.txnFlowCash,
+        toLabel: hasMerchant ? l10n.txnFlowMerchant : null,
         toName: hasMerchant ? merchant : null,
         toIcon: AppIcons.store,
       );
@@ -119,14 +126,22 @@ class AccountFlowCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(fromLabel,
-                          style: AppTypography.body(
-                              size: 11.5, color: context.palette.ink3)),
-                      Text(fromName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.heading(
-                              size: 14, weight: FontWeight.w500)),
+                      Text(
+                        fromLabel,
+                        style: AppTypography.body(
+                          size: 11.5,
+                          color: context.palette.ink3,
+                        ),
+                      ),
+                      Text(
+                        fromName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.heading(
+                          size: 14,
+                          weight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -136,8 +151,11 @@ class AccountFlowCard extends StatelessWidget {
           if (hasTo) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Icon(AppIcons.arrowRight,
-                  size: 18, color: context.palette.ink3),
+              child: Icon(
+                AppIcons.arrowRight,
+                size: 18,
+                color: context.palette.ink3,
+              ),
             ),
             Expanded(
               child: Row(
@@ -146,15 +164,23 @@ class AccountFlowCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(toLabel ?? '',
-                            style: AppTypography.body(
-                                size: 11.5, color: context.palette.ink3)),
-                        Text(toName!,
-                            textAlign: TextAlign.right,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.heading(
-                                size: 14, weight: FontWeight.w500)),
+                        Text(
+                          toLabel ?? '',
+                          style: AppTypography.body(
+                            size: 11.5,
+                            color: context.palette.ink3,
+                          ),
+                        ),
+                        Text(
+                          toName!,
+                          textAlign: TextAlign.right,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.heading(
+                            size: 14,
+                            weight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -184,6 +210,7 @@ class SlipChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -197,14 +224,26 @@ class SlipChip extends StatelessWidget {
         child: Row(
           children: [
             const IconChip(
-                icon: AppIcons.receiptText, size: 40, radius: 11, iconSize: 19),
+              icon: AppIcons.receiptText,
+              size: 40,
+              radius: 11,
+              iconSize: 19,
+            ),
             const SizedBox(width: 14),
             Expanded(
-              child: Text('สลิปต้นฉบับ', style: AppTypography.body(size: 14.5)),
+              child: Text(
+                l10n.txnSlipOriginal,
+                style: AppTypography.body(size: 14.5),
+              ),
             ),
-            Text('ดูรูป',
-                style: AppTypography.heading(
-                    size: 13, weight: FontWeight.w400, color: AppColors.terra)),
+            Text(
+              l10n.txnViewImage,
+              style: AppTypography.heading(
+                size: 13,
+                weight: FontWeight.w400,
+                color: AppColors.terra,
+              ),
+            ),
           ],
         ),
       ),
@@ -214,8 +253,12 @@ class SlipChip extends StatelessWidget {
 
 /// Full-screen viewer for the stored slip image. Pass [onDelete] to show a
 /// "ลบรายการ" button (e.g. for a slip whose amount couldn't be read).
-void showSlipViewer(BuildContext context, SlipRow slip,
-    {VoidCallback? onDelete}) {
+void showSlipViewer(
+  BuildContext context,
+  SlipRow slip, {
+  VoidCallback? onDelete,
+}) {
+  final l10n = AppLocalizations.of(context);
   showDialog<void>(
     context: context,
     barrierColor: const Color(0xE6211C18),
@@ -254,7 +297,9 @@ void showSlipViewer(BuildContext context, SlipRow slip,
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 11),
+                      horizontal: 18,
+                      vertical: 11,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.danger,
                       borderRadius: BorderRadius.circular(99),
@@ -262,14 +307,20 @@ void showSlipViewer(BuildContext context, SlipRow slip,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(AppIcons.trash2,
-                            size: 18, color: Colors.white),
+                        const Icon(
+                          AppIcons.trash2,
+                          size: 18,
+                          color: Colors.white,
+                        ),
                         const SizedBox(width: 8),
-                        Text('ลบรายการ',
-                            style: AppTypography.heading(
-                                size: 14,
-                                weight: FontWeight.w500,
-                                color: Colors.white)),
+                        Text(
+                          l10n.txnDeleteEntry,
+                          style: AppTypography.heading(
+                            size: 14,
+                            weight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
                       ],
                     ),
                   ),

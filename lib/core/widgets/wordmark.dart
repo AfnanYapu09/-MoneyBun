@@ -22,13 +22,18 @@ class Wordmark extends StatelessWidget {
           TextSpan(
             text: 'money',
             style: AppTypography.display(
-                    size: size, weight: FontWeight.w500, color: c)
-                .copyWith(color: c.withValues(alpha: 0.78)),
+              size: size,
+              weight: FontWeight.w500,
+              color: c,
+            ).copyWith(color: c.withValues(alpha: 0.78)),
           ),
           TextSpan(
             text: 'Bun',
             style: AppTypography.display(
-                size: size, weight: FontWeight.w600, color: c),
+              size: size,
+              weight: FontWeight.w600,
+              color: c,
+            ),
           ),
         ],
       ),

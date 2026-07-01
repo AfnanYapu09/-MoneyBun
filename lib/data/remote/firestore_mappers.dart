@@ -34,8 +34,9 @@ class FirestoreMappers {
         bankCode: Value(m['bankCode'] as String?),
         iconKey: Value(m['iconKey'] as String?),
         colorHex: Value(m['colorHex'] as String?),
-        openingBalanceCents:
-            Value((m['openingBalanceCents'] as num?)?.toInt() ?? 0),
+        openingBalanceCents: Value(
+          (m['openingBalanceCents'] as num?)?.toInt() ?? 0,
+        ),
         currency: Value(m['currency'] as String? ?? 'THB'),
         sortOrder: Value((m['sortOrder'] as num?)?.toInt() ?? 0),
         archived: Value(m['archived'] == true),
@@ -64,7 +65,9 @@ class FirestoreMappers {
       };
 
   static CategoriesCompanion categoryFromMap(
-          String id, Map<String, dynamic> m) =>
+    String id,
+    Map<String, dynamic> m,
+  ) =>
       CategoriesCompanion(
         id: Value(id),
         name: Value(m['name'] as String? ?? ''),
@@ -100,7 +103,9 @@ class FirestoreMappers {
       };
 
   static TransactionsCompanion transactionFromMap(
-          String id, Map<String, dynamic> m) =>
+    String id,
+    Map<String, dynamic> m,
+  ) =>
       TransactionsCompanion(
         id: Value(id),
         type: Value(_enum(TxnType.values, m['type'])),
@@ -120,8 +125,13 @@ class FirestoreMappers {
       );
 
   // ---- Slips ----
+  // Note: imagePath is intentionally NOT synced (it is a device-local file
+  // path). assetId IS synced so gallery dedup survives a cloud restore on the
+  // same device.
   static Map<String, dynamic> slipToMap(SlipRow r) => {
         'source': r.source.index,
+        'assetId': r.assetId,
+        'photoTakenAt': r.photoTakenAt,
         'bankCode': r.bankCode,
         'transRef': r.transRef,
         'qrPayload': r.qrPayload,
@@ -142,6 +152,8 @@ class FirestoreMappers {
       SlipsCompanion(
         id: Value(id),
         source: Value(_enum(SlipSource.values, m['source'])),
+        assetId: Value(m['assetId'] as String?),
+        photoTakenAt: Value((m['photoTakenAt'] as num?)?.toInt()),
         bankCode: Value(m['bankCode'] as String?),
         transRef: Value(m['transRef'] as String?),
         qrPayload: Value(m['qrPayload'] as String?),
@@ -153,6 +165,58 @@ class FirestoreMappers {
         receiverBank: Value(m['receiverBank'] as String?),
         confidence: Value((m['confidence'] as num?)?.toDouble() ?? 0),
         verified: Value(m['verified'] == true),
+        createdAt: Value((m['createdAt'] as num?)?.toInt() ?? 0),
+        updatedAt: Value((m['updatedAt'] as num?)?.toInt() ?? 0),
+        deleted: Value(m['deleted'] == true),
+        remoteId: Value(id),
+        syncStatus: const Value(SyncStatus.synced),
+      );
+
+  // ---- Budgets ----
+  static Map<String, dynamic> budgetToMap(BudgetRow r) => {
+        'categoryId': r.categoryId,
+        'period': r.period.index,
+        'amountCents': r.amountCents,
+        'startDate': r.startDate,
+        'endDate': r.endDate,
+        'rollover': r.rollover,
+        'createdAt': r.createdAt,
+        'updatedAt': r.updatedAt,
+        'deleted': r.deleted,
+      };
+
+  static BudgetsCompanion budgetFromMap(String id, Map<String, dynamic> m) =>
+      BudgetsCompanion(
+        id: Value(id),
+        categoryId: Value(m['categoryId'] as String?),
+        period: Value(_enum(BudgetPeriod.values, m['period'])),
+        amountCents: Value((m['amountCents'] as num?)?.toInt() ?? 0),
+        startDate: Value((m['startDate'] as num?)?.toInt() ?? 0),
+        endDate: Value((m['endDate'] as num?)?.toInt()),
+        rollover: Value(m['rollover'] == true),
+        createdAt: Value((m['createdAt'] as num?)?.toInt() ?? 0),
+        updatedAt: Value((m['updatedAt'] as num?)?.toInt() ?? 0),
+        deleted: Value(m['deleted'] == true),
+        remoteId: Value(id),
+        syncStatus: const Value(SyncStatus.synced),
+      );
+
+  // ---- Tags ----
+  static Map<String, dynamic> tagToMap(TagRow r) => {
+        'name': r.name,
+        'colorHex': r.colorHex,
+        'sortOrder': r.sortOrder,
+        'createdAt': r.createdAt,
+        'updatedAt': r.updatedAt,
+        'deleted': r.deleted,
+      };
+
+  static TagsCompanion tagFromMap(String id, Map<String, dynamic> m) =>
+      TagsCompanion(
+        id: Value(id),
+        name: Value(m['name'] as String? ?? ''),
+        colorHex: Value(m['colorHex'] as String?),
+        sortOrder: Value((m['sortOrder'] as num?)?.toInt() ?? 0),
         createdAt: Value((m['createdAt'] as num?)?.toInt() ?? 0),
         updatedAt: Value((m['updatedAt'] as num?)?.toInt() ?? 0),
         deleted: Value(m['deleted'] == true),

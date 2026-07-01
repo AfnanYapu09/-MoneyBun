@@ -46,9 +46,10 @@ class SheetScaffold extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(title,
-                style:
-                    AppTypography.heading(size: 17, weight: FontWeight.w600)),
+            child: Text(
+              title,
+              style: AppTypography.heading(size: 17, weight: FontWeight.w600),
+            ),
           ),
           if (action != null) action!,
           IconButton(
@@ -63,7 +64,11 @@ class SheetScaffold extends StatelessWidget {
         ? null
         : Padding(
             padding: EdgeInsets.fromLTRB(
-                20, 4, 20, 16 + MediaQuery.of(context).padding.bottom),
+              20,
+              4,
+              20,
+              16 + MediaQuery.of(context).padding.bottom,
+            ),
             child: footer!,
           );
     final decoration = BoxDecoration(

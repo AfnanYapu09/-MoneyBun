@@ -2,28 +2,23 @@
   "@@locale": "en",
   "appTitle": "MoneyBun",
   "tagline": "Bun helps you track money",
-
   "navHome": "Home",
   "navStats": "Stats",
   "navAdd": "Add",
   "navAccounts": "Accounts",
   "navSettings": "Settings",
-
   "income": "Income",
   "expense": "Expense",
   "transfer": "Transfer",
   "balance": "Balance",
   "total": "Total",
   "today": "Today",
-
   "addTransaction": "Add transaction",
   "editTransaction": "Edit transaction",
   "amount": "Amount",
   "category": "Category",
   "selectCategory": "Select category",
   "account": "Account",
-  "fromAccount": "From account",
-  "toAccount": "To account",
   "note": "Note",
   "noteHint": "Details (optional)",
   "dateTime": "Date & time",
@@ -32,35 +27,19 @@
   "cancel": "Cancel",
   "edit": "Edit",
   "confirmDelete": "Delete this transaction?",
-
   "scanSlip": "Scan slip",
   "pickFromGallery": "Pick from gallery",
   "takePhoto": "Take photo",
   "scanning": "Reading slip...",
   "slipDetected": "Slip read successfully",
   "slipNotDetected": "Could not read slip. Retry or enter manually.",
-  "verifyOnline": "Verify online",
   "lowConfidence": "Low confidence, please check the values",
   "useAnyway": "Use this data",
-
   "accounts": "Accounts",
-  "addAccount": "Add account",
-  "editAccount": "Edit account",
-  "accountName": "Account name",
-  "accountType": "Account type",
-  "acctCash": "Cash",
-  "acctBank": "Bank",
-  "acctEwallet": "Wallet",
-  "acctSavings": "Savings",
-  "acctCredit": "Credit card",
-  "openingBalance": "Opening balance",
-  "quickTransfer": "Quick transfer",
-
   "stats": "Stats",
   "monthlySummary": "Monthly summary",
   "byCategory": "By category",
   "noData": "No data yet",
-
   "settings": "Settings",
   "language": "Language",
   "langThai": "ไทย",
@@ -71,18 +50,480 @@
   "syncNow": "Sync now",
   "syncedAt": "Last synced {time}",
   "@syncedAt": {
-    "placeholders": { "time": { "type": "String" } }
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "notSignedIn": "Not signed in",
   "manageCategories": "Manage categories",
-  "slipApiToggle": "Use online slip verify API",
-  "slipApiDesc": "More accurate slip reading (needs internet and a configured server)",
   "about": "About",
   "aboutBun": "MoneyBun • Bun, the orange pixel buddy 🐰",
-
   "emptyDayTitle": "No transactions yet",
   "emptyDaySubtitle": "Tap + to add your first one",
   "month": "Month",
   "requiredField": "This field is required",
-  "invalidAmount": "Invalid amount"
+  "invalidAmount": "Invalid amount",
+  "settingsAccountSection": "Account",
+  "settingsMyProfile": "My Profile",
+  "settingsCurrency": "Currency",
+  "settingsSavingsGoal": "Savings Goal",
+  "settingsDataSection": "Manage Data",
+  "settingsManageTags": "Manage Tags",
+  "settingsGeneralSection": "General",
+  "settingsTheme": "Theme",
+  "settingsExportData": "Export Data",
+  "settingsHelp": "Help",
+  "settingsCloudSection": "Cloud (Sync)",
+  "settingsSignInToSync": "Sign in to sync",
+  "settingsCloudNotConfigured": "Cloud sync (Firebase not configured)",
+  "settingsThemeLight": "Light",
+  "settingsThemeDark": "Dark",
+  "settingsThemeSystem": "System",
+  "settingsHandleFreeMember": "@{username} · Free member",
+  "@settingsHandleFreeMember": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDisplayName": "Display name",
+  "settingsDisplayNameHint": "Khun Bun",
+  "settingsUsername": "Username",
+  "settingsEmail": "Email",
+  "settingsPhone": "Phone number",
+  "settingsPhoneHint": "Not set",
+  "settingsProfileSaved": "Profile saved",
+  "settingsCurrencyTHB": "Thai Baht",
+  "settingsCurrencyUSD": "US Dollar",
+  "settingsCurrencyEUR": "Euro",
+  "settingsCurrencyJPY": "Japanese Yen",
+  "settingsCurrencyGBP": "Pound Sterling",
+  "settingsCurrencyDisplayNote": "For display only; amounts are still stored in satang.",
+  "settingsDisplayMode": "Display mode",
+  "settingsSavedThisMonth": "Saved this month",
+  "settingsGoalReached": "Goal reached {percent}%",
+  "@settingsGoalReached": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsGoalProgress": "{percent}% to goal",
+  "@settingsGoalProgress": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsMonthlyGoal": "Monthly goal",
+  "settingsSaveGoal": "Save goal",
+  "settingsExportDescription": "Export all transactions as a CSV file to back up your data or open it in Excel / Google Sheets",
+  "settingsTotalTransactions": "Total transactions",
+  "settingsExportCsv": "Export as CSV",
+  "settingsExportClipboardNote": "The file will be copied to the clipboard and saved on the device",
+  "settingsExportCopiedClipboard": "CSV data copied to clipboard",
+  "settingsExportCopiedSaved": "Copied to clipboard · File saved at {path}",
+  "@settingsExportCopiedSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsExportFailed": "Export failed",
+  "settingsCopied": "Copied: {value}",
+  "@settingsCopied": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchFaq": "Search FAQs",
+  "settingsFaqTitle": "Frequently asked questions",
+  "settingsFaqScanQuestion": "How does Bun read slips?",
+  "settingsFaqScanAnswer": "Bun automatically reads slip images in your device gallery. Pull down on the home page to scan the latest one.",
+  "settingsFaqCategoriesQuestion": "Manage categories and tags",
+  "settingsFaqCategoriesAnswer": "Go to Settings → Manage Categories or Manage Tags to add, edit, or reorder them.",
+  "settingsFaqBudgetQuestion": "Set a monthly budget",
+  "settingsFaqBudgetAnswer": "Go to Stats → Budget and tap to add a budget per category.",
+  "settingsFaqSecurityQuestion": "Data security",
+  "settingsFaqSecurityAnswer": "Data is stored on your device by default and only synced to the cloud when you sign in.",
+  "settingsFaqSyncQuestion": "Sync data across devices",
+  "settingsFaqSyncAnswer": "Sign in with the same account on another device and your data will sync automatically.",
+  "settingsChatWithUs": "Chat with us",
+  "settingsEmailSupport": "Email support",
+  "settingsEmailSubject": "MoneyBun — Question / Report an issue",
+  "statsMoreThan": "{pct}% more than {noun}",
+  "@statsMoreThan": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "statsLessThan": "{pct}% less than {noun}",
+  "@statsLessThan": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "statsIncomeSources": "Where money comes from",
+  "statsExpenseBreakdown": "Where money goes",
+  "statsTotalIncome": "Total income",
+  "statsTotalSpending": "Total spending",
+  "statsNoTransfers": "No transfers yet",
+  "statsBudget": "Budget",
+  "statsBudgetCategoriesSet": "{count} categories set",
+  "@statsBudgetCategoriesSet": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsSetCategoryBudget": "Set category budgets",
+  "statsComparison": "Comparison",
+  "statsIncomeExpense": "Income vs. expenses",
+  "statsByCategory": "By category",
+  "statsByTag": "By tag",
+  "statsNoTaggedItems": "No tagged items yet",
+  "statsTotalTransferred": "Total transferred",
+  "statsItemCount": "{count} items",
+  "@statsItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "statsOther": "Other",
+  "statsWeekUnit": "weeks",
+  "statsYearUnit": "years",
+  "statsMonthUnit": "months",
+  "statsWeekN": "Week {n}",
+  "@statsWeekN": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "statsSaved": "Saved {noun}",
+  "@statsSaved": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      }
+    }
+  },
+  "statsAverageN": "Average of {count} {unit}",
+  "@statsAverageN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "statsIncomeVsExpense": "Income vs. expenses",
+  "statsPerUnit": "Per {unit}",
+  "@statsPerUnit": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "statsSavedShort": "Saved",
+  "statsSpentFromTotal": "Spent from total budget",
+  "statsRemainingDays": "{remaining} left · {days} days left {endNoun}",
+  "@statsRemainingDays": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      },
+      "endNoun": {
+        "type": "String"
+      }
+    }
+  },
+  "statsCategoryBudgets": "Category budgets",
+  "statsNoCategoryBudgets": "No category budgets yet",
+  "statsAddCategoryBudget": "Add a category budget",
+  "statsSetBudget": "Set budget",
+  "statsEditBudget": "Edit budget",
+  "statsSaveBudget": "Save budget",
+  "statsBudgetAmount": "Budget amount",
+  "statsBudgetCycle": "Budget cycle",
+  "statsWeekly": "Weekly",
+  "statsMonthly": "Monthly",
+  "statsYearly": "Yearly",
+  "statsAlertAt80": "Alert when 80% used",
+  "statsDeleteBudget": "Delete this budget",
+  "statsSelectCategoryAndAmount": "Select a category and budget amount",
+  "statsSelectPeriod": "Select period",
+  "statsThisMonth": "This month",
+  "homeScanImported": "Bun read {count} new slip(s)",
+  "@homeScanImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeScanFailed": "Scan failed, please try again",
+  "homeScanNoNew": "No new slips found",
+  "homeScanNoAlbum": "No bank slip album found — Bun only reads photos saved by your banking apps",
+  "homeScanLimited": "Only selected photos are shared. Allow access to all photos so Bun can find your bank slip album.",
+  "homePhotoPermissionTitle": "Photo access permission",
+  "homePhotoPermissionBody": "MoneyBun needs access to your photos to read slips from the gallery.\n\nIf you previously tapped \"Don't allow\", open Settings → Permissions → Photos and videos → Allow",
+  "homeOpenSettings": "Open settings",
+  "homePullRelease": "Release to let Bun read slips",
+  "homePullHint": "Pull down to update slips",
+  "homeGreetingMorning": "Good morning",
+  "homeGreetingAfternoon": "Good afternoon",
+  "homeGreetingEvening": "Good evening",
+  "homeDefaultName": "Bun",
+  "homeSpentNoun": "Spending {noun}",
+  "@homeSpentNoun": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      }
+    }
+  },
+  "homeBudgetRemaining": "{remaining} left of {budget} budget",
+  "@homeBudgetRemaining": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      },
+      "budget": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNoBudget": "No budget set for this month",
+  "homeReadingSlip": "Bun is reading slips…",
+  "homeLastReadSlip": "Slips last read {time}",
+  "@homeLastReadSlip": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "homeNeverRead": "never",
+  "homeJustNow": "just now",
+  "homeMinutesAgo": "{minutes} min ago",
+  "@homeMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "homeHoursAgo": "{hours} hr ago",
+  "@homeHoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "homeDaysAgo": "{days} day(s) ago",
+  "@homeDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "homeRecentTitle": "Recent transactions",
+  "homeSeeAll": "See all",
+  "homeNothingToCategorize": "Nothing to categorize",
+  "homeNothingToCategorizeHint": "Pull down to let Bun read slips, or tap +",
+  "txnOther": "Other",
+  "txnAllTitle": "All transactions",
+  "txnNoneInPeriod": "No transactions {noun}",
+  "@txnNoneInPeriod": {
+    "placeholders": {
+      "noun": {
+        "type": "String"
+      }
+    }
+  },
+  "txnSearchHint": "Search transactions…",
+  "txnSearchResults": "Results · {count} item(s)",
+  "@txnSearchResults": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "txnSearchEmptyHint": "Type to search transactions",
+  "txnRecentSearches": "Recent searches",
+  "txnFlowFrom": "Transfer from",
+  "txnFlowAccount": "Account",
+  "txnFlowInto": "Into account",
+  "txnFlowPaidFrom": "Paid from",
+  "txnFlowTo": "To",
+  "txnFlowSender": "From",
+  "txnFlowCash": "Cash",
+  "txnFlowMerchant": "Merchant",
+  "txnSlipOriginal": "Original slip",
+  "txnViewImage": "View image",
+  "txnDeleteEntry": "Delete entry",
+  "txnNewFromSlip": "New from slip",
+  "txnAmountUnreadable": "Couldn't read amount · tap to view slip",
+  "txnUncategorizedAt": "Uncategorized · {time}",
+  "@txnUncategorizedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "addtxnPickCategoryTag": "Select category / tag",
+  "addtxnAddNote": "Add note",
+  "addtxnMore": "More",
+  "addtxnRecurring": "Schedule recurring",
+  "addtxnRecurringSoon": "Recurring entries — coming soon",
+  "addtxnDeleteEntry": "Delete this entry",
+  "addtxnTagSuffix": " · {count} tags",
+  "@addtxnTagSuffix": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addtxnNoteTitle": "Note",
+  "addtxnNoteDetailHint": "Details (optional)",
+  "addtxnEnterAmount": "Please enter an amount",
+  "addtxnConfirmDelete": "Delete this entry?",
+  "addtxnViewSlip": "View slip",
+  "catReorderHint": "Drag icons to reorder · tap − to delete",
+  "catDone": "Done",
+  "catLongPressHint": "Long-press an icon to reorder or delete",
+  "catConfirmDelete": "Delete category \"{name}\"?\nPast entries in this category will become \"Other\".",
+  "@catConfirmDelete": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catAddExpenseTitle": "Add expense category",
+  "catAddIncomeTitle": "Add income category",
+  "catRenameTitle": "Rename category",
+  "catAdd": "Add",
+  "tagNewTitle": "New tag",
+  "tagNameHint": "Tag name, e.g. essential",
+  "tagEditTitle": "Edit tag",
+  "tagAddChip": "Add tag",
+  "tagManageTitle": "Manage tags",
+  "acctScanTitle": "Accounts Bun scans for slips",
+  "acctReset": "Reset",
+  "acctScanDesc": "Turn off banks whose album slips you don't want read",
+  "acctAllBanks": "All banks",
+  "authLoginSubtitle": "Sign in to keep tracking your money",
+  "authEmail": "Email",
+  "authPassword": "Password",
+  "authForgotPassword": "Forgot password?",
+  "authLogin": "Sign in",
+  "authOr": "or",
+  "authNoAccount": "Don't have an account? ",
+  "authSignUpNow": "Sign up",
+  "authContinueGuest": "Continue without signing in",
+  "authFirebaseNotConfigured": "Firebase isn't set up — you can continue without signing in",
+  "authLoginFailed": "Sign in failed",
+  "authCreateAccount": "Create a new account",
+  "authSignUpSubtitle": "Start tracking money with Bun in 1 minute",
+  "authDisplayName": "Display name",
+  "authAgreePrefix": "I accept ",
+  "authTermsOfService": "Terms of Service",
+  "authAnd": " and ",
+  "authPrivacyPolicy": "Privacy Policy",
+  "authSignUp": "Sign up",
+  "authHaveAccount": "Already have an account? ",
+  "authMustAcceptTerms": "Please accept the Terms of Service",
+  "authSignUpFailed": "Sign up failed",
+  "authForgotPasswordTitle": "Forgot password",
+  "authForgotPasswordDesc": "Enter your email and we'll send you a link to reset your password",
+  "authSendLink": "Send link",
+  "authFirebaseNotSet": "Firebase isn't set up",
+  "authResetLinkSent": "A link has been sent to your email",
+  "authResetLinkFailed": "Couldn't send. Please check your email and try again",
+  "onbSkip": "Skip",
+  "onbSlideTitle": "Let Bun count your money for you",
+  "onbSlideBody": "Track every baht you spend, then see your income and expense summary, easy to understand, all in one place",
+  "onbGetStarted": "Get started",
+  "onbHaveAccount": "I already have an account",
+  "splashTagline": "Track easily · Save smart · Understand your money",
+  "logoutTitle": "Log out?",
+  "logoutBody": "Your data is saved. You can sign back in anytime.",
+  "bunReadingSlips": "Bun is reading slips",
+  "releaseToScan": "Release to let Bun read slips",
+  "pullToScan": "Pull down to refresh slips",
+  "settingsFaqAddManualQuestion": "How do I add income or expense manually?",
+  "settingsFaqAddManualAnswer": "Tap the + button in the middle of the bottom bar, pick the Expense, Income, or Transfer tab, enter the amount with the calculator keypad, choose a category, then tap Save. You can also add a note or tags.",
+  "settingsFaqEditDeleteQuestion": "How do I edit or delete a transaction?",
+  "settingsFaqEditDeleteAnswer": "Tap a transaction to open it, change any field and tap Save, or scroll to the bottom and tap Delete to remove it.",
+  "settingsFaqTransferQuestion": "How do I record a transfer between accounts?",
+  "settingsFaqTransferAnswer": "When adding a transaction, choose the ‘Transfer’ tab. It is recorded as a money move and is not counted as income or expense in your stats.",
+  "settingsFaqTagsQuestion": "What are tags for?",
+  "settingsFaqTagsAnswer": "Tags group transactions across categories, e.g. #ChiangMaiTrip. Pick tags when adding or editing a transaction, then view totals by tag on the Stats screen.",
+  "settingsFaqSavingsQuestion": "How do I set a savings goal?",
+  "settingsFaqSavingsAnswer": "Go to Settings → Savings Goal, set how much you want to save each month, and the app shows your progress toward that goal.",
+  "settingsFaqAccountsQuestion": "How do I manage accounts and which banks are scanned?",
+  "settingsFaqAccountsAnswer": "Open the Accounts/Wallets panel to turn the banks Bun reads slips for on or off. Turn off banks you don't use so their slip albums aren't scanned.",
+  "settingsFaqLanguageQuestion": "How do I switch between Thai and English?",
+  "settingsFaqLanguageAnswer": "Go to Settings → Language and tap to switch between ไทย and English. The whole app changes language right away.",
+  "settingsFaqThemeQuestion": "How do I change the light or dark theme?",
+  "settingsFaqThemeAnswer": "Go to Settings → Theme and choose Light, Dark, or System. System follows your device setting automatically.",
+  "settingsFaqCurrencyQuestion": "How do I change the currency?",
+  "settingsFaqCurrencyAnswer": "Go to Settings → Currency and pick one. This changes how amounts are displayed in the app.",
+  "settingsFaqExportQuestion": "How do I export my data as CSV?",
+  "settingsFaqExportAnswer": "Go to Settings → Export Data and tap Export as CSV. The file is copied to the clipboard and saved on your device, ready to open in Excel or Google Sheets.",
+  "settingsFaqSlipFailedQuestion": "What if a slip can't be read?",
+  "settingsFaqSlipFailedAnswer": "Make sure the slip image is clear and in your device gallery, then pull down on the home page to scan again. If it still fails, you can always add the entry manually with the + button.",
+  "settingsHelpContactPrompt": "Didn't find your answer? Get in touch.",
+  "settingsFaqNoResults": "No FAQs match “{query}”",
+  "@settingsFaqNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsFaqSearchMoreHint": "Search to see all questions",
+  "authErrEmailInUse": "This email is already registered. Try logging in instead.",
+  "authErrInvalidEmail": "Invalid email address.",
+  "authErrWeakPassword": "Password is too short (at least 6 characters).",
+  "authErrWrongCredentials": "Incorrect email or password.",
+  "authErrUserDisabled": "This account has been disabled.",
+  "authErrTooManyRequests": "Too many attempts. Please try again later.",
+  "authErrNetwork": "No internet connection. Check your network.",
+  "authErrOperationNotAllowed": "This sign-in method isn't enabled in Firebase (Email/Password)."
 }

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/date_period.dart';
 import '../data/local/database.dart';
 import '../data/remote/auth_service.dart';
+import '../data/remote/sync_controller.dart';
 import '../data/remote/sync_engine.dart';
 import '../data/repositories/account_repository.dart';
 import '../data/repositories/category_repository.dart';
@@ -63,7 +64,27 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
   final auth = ref.watch(authServiceProvider);
   if (auth == null) return null;
   return SyncEngine(
-      ref.watch(databaseProvider), FirebaseFirestore.instance, auth);
+    ref.watch(databaseProvider),
+    FirebaseFirestore.instance,
+    auth,
+  );
+});
+
+/// Owns automatic sync (on sign-in, app launch, resume, and after edits).
+/// Watch it once (in the app root) to keep it alive for the app's lifetime.
+final syncControllerProvider = Provider<SyncController?>((ref) {
+  final engine = ref.watch(syncEngineProvider);
+  final auth = ref.watch(authServiceProvider);
+  if (engine == null || auth == null) return null;
+  final controller = SyncController(engine, auth);
+  // Upload pending changes shortly after any local data change.
+  ref.listen(allTransactionsProvider, (_, __) => controller.nudgePush());
+  ref.listen(accountsProvider, (_, __) => controller.nudgePush());
+  ref.listen(categoriesProvider, (_, __) => controller.nudgePush());
+  ref.listen(tagsProvider, (_, __) => controller.nudgePush());
+  ref.listen(budgetsProvider, (_, __) => controller.nudgePush());
+  ref.onDispose(controller.dispose);
+  return controller;
 });
 
 final authStateProvider = StreamProvider<User?>((ref) {
@@ -90,6 +111,8 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     slips: ref.watch(slipRepositoryProvider),
     transactions: ref.watch(transactionRepositoryProvider),
     importedAssetIds: db.importedAssetIds,
+    importedSlipRefs: db.importedSlipRefs,
+    latestSlipPhotoTime: db.latestSlipPhotoTime,
     // Banks turned off in the accounts sheet (their scan-catalog ids).
     disabledScanIds: () async =>
         (await ref.read(settingsRepositoryProvider).read()).disabledScanIds,
@@ -125,6 +148,17 @@ class ScanController extends Notifier<ScanState> {
   Future<void> autoScanOnce() async {
     if (_autoScanned) return;
     _autoScanned = true;
+    // When signed in, wait for the first cloud sync to finish so the restored
+    // slips + watermark exist before scanning — otherwise the scan would
+    // re-read slips that are about to arrive from the cloud (creating dupes).
+    // Bounded so an offline/slow sync can't block the scan indefinitely.
+    final sync = ref.read(syncControllerProvider);
+    if (sync != null) {
+      await sync.awaitInitialSync().timeout(
+            const Duration(seconds: 25),
+            onTimeout: () {},
+          );
+    }
     await scan();
   }
 
@@ -153,8 +187,9 @@ class ScanController extends Notifier<ScanState> {
   }
 }
 
-final scanControllerProvider =
-    NotifierProvider<ScanController, ScanState>(ScanController.new);
+final scanControllerProvider = NotifierProvider<ScanController, ScanState>(
+  ScanController.new,
+);
 
 // ---- Reactive data ---------------------------------------------------------
 
@@ -176,8 +211,9 @@ class SelectedPeriod extends Notifier<DatePeriod> {
   void previous() => state = state.previous();
 }
 
-final selectedPeriodProvider =
-    NotifierProvider<SelectedPeriod, DatePeriod>(SelectedPeriod.new);
+final selectedPeriodProvider = NotifierProvider<SelectedPeriod, DatePeriod>(
+  SelectedPeriod.new,
+);
 
 /// Number of modal bottom sheets currently open. The home FAB hides while > 0
 /// so the floating "+" doesn't peek behind an open popup.
@@ -207,14 +243,17 @@ final monthTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {
 });
 
 /// A single transaction by id (Transaction detail screen).
-final transactionByIdProvider =
-    StreamProvider.family<TransactionRow?, String>((ref, id) {
+final transactionByIdProvider = StreamProvider.family<TransactionRow?, String>((
+  ref,
+  id,
+) {
   return ref.watch(databaseProvider).watchTransaction(id);
 });
 
 /// All transaction↔tag links (for resolving a transaction's tags reactively).
-final allTransactionTagsProvider =
-    StreamProvider<List<TransactionTagRow>>((ref) {
+final allTransactionTagsProvider = StreamProvider<List<TransactionTagRow>>((
+  ref,
+) {
   return ref.watch(databaseProvider).watchAllTransactionTags();
 });
 

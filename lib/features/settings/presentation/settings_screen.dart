@@ -10,6 +10,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/profile_avatar.dart';
 import '../../../core/widgets/setting_row.dart';
 import '../../../data/repositories/settings_repository.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -22,6 +23,7 @@ class SettingsScreen extends ConsumerWidget {
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final user = ref.watch(authStateProvider).value;
     final currencyLabel = settings.currencyCode;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: SafeArea(
@@ -29,9 +31,10 @@ class SettingsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
           children: [
-            Text('ตั้งค่า',
-                style:
-                    AppTypography.heading(size: 22, weight: FontWeight.w600)),
+            Text(
+              l10n.settings,
+              style: AppTypography.heading(size: 22, weight: FontWeight.w600),
+            ),
             const SizedBox(height: 16),
             // Profile card
             _ProfileCard(
@@ -41,106 +44,119 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => context.push('/settings/profile'),
             ),
             const SizedBox(height: 18),
-            const SettingSectionLabel('บัญชี'),
-            SettingGroup(children: [
-              SettingRow(
-                icon: AppIcons.userRound,
-                label: 'โปรไฟล์ของฉัน',
-                onTap: () => context.push('/settings/profile'),
-              ),
-              SettingRow(
-                icon: AppIcons.banknote,
-                label: 'สกุลเงิน',
-                value: currencyLabel,
-                onTap: () => context.push('/settings/currency'),
-              ),
-              SettingRow(
-                icon: AppIcons.target,
-                label: 'เป้าหมายการออม',
-                onTap: () => context.push('/settings/savings'),
-              ),
-            ]),
-            const SizedBox(height: 18),
-            const SettingSectionLabel('จัดการข้อมูล'),
-            SettingGroup(children: [
-              SettingRow(
-                icon: AppIcons.layoutGrid,
-                label: 'จัดการหมวดหมู่',
-                onTap: () => context.push('/settings/categories'),
-              ),
-              SettingRow(
-                icon: AppIcons.hash,
-                label: 'จัดการแท็ก',
-                onTap: () => context.push('/settings/tags'),
-              ),
-            ]),
-            const SizedBox(height: 18),
-            const SettingSectionLabel('การแจ้งเตือน'),
-            const _NotificationsGroup(),
-            const SizedBox(height: 18),
-            const SettingSectionLabel('ทั่วไป'),
-            SettingGroup(children: [
-              SettingRow(
-                icon: AppIcons.palette,
-                label: 'ธีม',
-                value: _themeLabel(settings.themeMode),
-                onTap: () => context.push('/settings/theme'),
-              ),
-              SettingRow(
-                icon: AppIcons.globe,
-                label: 'ภาษา',
-                value: settings.locale == 'th' ? 'ไทย' : 'English',
-                onTap: () =>
-                    repo.setLocale(settings.locale == 'th' ? 'en' : 'th'),
-              ),
-              SettingRow(
-                icon: AppIcons.download,
-                label: 'ส่งออกข้อมูล',
-                onTap: () => context.push('/settings/export'),
-              ),
-              SettingRow(
-                icon: AppIcons.circleHelp,
-                label: 'ช่วยเหลือ',
-                onTap: () => context.push('/settings/help'),
-              ),
-            ]),
-            const SizedBox(height: 18),
-            const SettingSectionLabel('คลาวด์ (ซิงค์)'),
-            SettingGroup(children: [
-              if (firebaseReady && user == null)
+            SettingSectionLabel(l10n.settingsAccountSection),
+            SettingGroup(
+              children: [
                 SettingRow(
-                  icon: AppIcons.google,
-                  label: 'เข้าสู่ระบบเพื่อซิงค์',
-                  onTap: () => context.push('/login'),
+                  icon: AppIcons.userRound,
+                  label: l10n.settingsMyProfile,
+                  onTap: () => context.push('/settings/profile'),
                 ),
-              if (firebaseReady && user != null)
                 SettingRow(
-                  icon: AppIcons.rotateCw,
-                  label: 'ซิงค์ตอนนี้',
-                  onTap: () => ref.read(syncEngineProvider)?.sync(),
+                  icon: AppIcons.banknote,
+                  label: l10n.settingsCurrency,
+                  value: currencyLabel,
+                  onTap: () => context.push('/settings/currency'),
                 ),
-              if (!firebaseReady)
                 SettingRow(
-                  icon: AppIcons.info,
-                  label: 'ซิงค์คลาวด์ (ยังไม่ตั้งค่า Firebase)',
+                  icon: AppIcons.target,
+                  label: l10n.settingsSavingsGoal,
+                  onTap: () => context.push('/settings/savings'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            SettingSectionLabel(l10n.settingsDataSection),
+            SettingGroup(
+              children: [
+                SettingRow(
+                  icon: AppIcons.layoutGrid,
+                  label: l10n.manageCategories,
+                  onTap: () => context.push('/settings/categories'),
+                ),
+                SettingRow(
+                  icon: AppIcons.hash,
+                  label: l10n.settingsManageTags,
+                  onTap: () => context.push('/settings/tags'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            SettingSectionLabel(l10n.settingsGeneralSection),
+            SettingGroup(
+              children: [
+                SettingRow(
+                  icon: AppIcons.palette,
+                  label: l10n.settingsTheme,
+                  value: _themeLabel(settings.themeMode, l10n),
+                  onTap: () => context.push('/settings/theme'),
+                ),
+                SettingRow(
+                  icon: AppIcons.globe,
+                  label: l10n.language,
+                  value: settings.locale == 'th'
+                      ? l10n.langThai
+                      : l10n.langEnglish,
+                  onTap: () =>
+                      repo.setLocale(settings.locale == 'th' ? 'en' : 'th'),
+                ),
+                SettingRow(
+                  icon: AppIcons.download,
+                  label: l10n.settingsExportData,
+                  onTap: () => context.push('/settings/export'),
+                ),
+                SettingRow(
+                  icon: AppIcons.circleHelp,
+                  label: l10n.settingsHelp,
+                  onTap: () => context.push('/settings/help'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            SettingSectionLabel(l10n.settingsCloudSection),
+            SettingGroup(
+              children: [
+                if (firebaseReady && user == null)
+                  SettingRow(
+                    icon: AppIcons.google,
+                    label: l10n.settingsSignInToSync,
+                    onTap: () => context.push('/login'),
+                  ),
+                if (firebaseReady && user != null)
+                  SettingRow(
+                    icon: AppIcons.rotateCw,
+                    label: l10n.syncNow,
+                    onTap: () => ref.read(syncEngineProvider)?.sync(),
+                  ),
+                if (!firebaseReady)
+                  SettingRow(
+                    icon: AppIcons.info,
+                    label: l10n.settingsCloudNotConfigured,
+                    showChevron: false,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            SettingGroup(
+              children: [
+                SettingRow(
+                  icon: AppIcons.logOut,
+                  label: l10n.signOut,
+                  danger: true,
                   showChevron: false,
+                  onTap: () => _logout(context, ref),
                 ),
-            ]),
-            const SizedBox(height: 18),
-            SettingGroup(children: [
-              SettingRow(
-                icon: AppIcons.logOut,
-                label: 'ออกจากระบบ',
-                danger: true,
-                showChevron: false,
-                onTap: () => _logout(context, ref),
-              ),
-            ]),
+              ],
+            ),
             const SizedBox(height: 20),
             Center(
-              child: Text('moneyBun v1.0.0',
-                  style: AppTypography.body(
-                      size: 12, color: context.palette.ink3)),
+              child: Text(
+                'moneyBun v1.0.0',
+                style: AppTypography.body(
+                  size: 12,
+                  color: context.palette.ink3,
+                ),
+              ),
             ),
           ],
         ),
@@ -148,10 +164,10 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  String _themeLabel(String mode) => switch (mode) {
-        'light' => 'สว่าง',
-        'dark' => 'มืด',
-        _ => 'อัตโนมัติ',
+  String _themeLabel(String mode, AppLocalizations l10n) => switch (mode) {
+        'light' => l10n.settingsThemeLight,
+        'dark' => l10n.settingsThemeDark,
+        _ => l10n.settingsThemeSystem,
       };
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
@@ -160,37 +176,6 @@ class SettingsScreen extends ConsumerWidget {
     await ref.read(authServiceProvider)?.signOut();
     await ref.read(settingsRepositoryProvider).setAuthMode('guest');
     if (context.mounted) context.go('/login');
-  }
-}
-
-/// Notification preferences — local UI state (no notification backend yet).
-class _NotificationsGroup extends StatefulWidget {
-  const _NotificationsGroup();
-
-  @override
-  State<_NotificationsGroup> createState() => _NotificationsGroupState();
-}
-
-class _NotificationsGroupState extends State<_NotificationsGroup> {
-  bool _logReminder = true;
-  bool _weeklySummary = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return SettingGroup(children: [
-      SettingRow(
-        icon: AppIcons.bell,
-        label: 'เตือนให้จดรายการ',
-        toggleValue: _logReminder,
-        onToggle: (v) => setState(() => _logReminder = v),
-      ),
-      SettingRow(
-        icon: AppIcons.calendarCheck,
-        label: 'สรุปรายสัปดาห์',
-        toggleValue: _weeklySummary,
-        onToggle: (v) => setState(() => _weeklySummary = v),
-      ),
-    ]);
   }
 }
 
@@ -208,6 +193,7 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
@@ -231,15 +217,21 @@ class _ProfileCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name,
-                      style: AppTypography.heading(
-                          size: 18,
-                          weight: FontWeight.w600,
-                          color: AppColors.reverse)),
-                  Text('@$username · สมาชิกฟรี',
-                      style: AppTypography.body(
-                          size: 13,
-                          color: AppColors.reverse.withValues(alpha: 0.85))),
+                  Text(
+                    name,
+                    style: AppTypography.heading(
+                      size: 18,
+                      weight: FontWeight.w600,
+                      color: AppColors.reverse,
+                    ),
+                  ),
+                  Text(
+                    l10n.settingsHandleFreeMember(username),
+                    style: AppTypography.body(
+                      size: 13,
+                      color: AppColors.reverse.withValues(alpha: 0.85),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -8,16 +8,18 @@ import 'tables/tables.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [
-  Accounts,
-  Categories,
-  Transactions,
-  Slips,
-  Budgets,
-  Tags,
-  TransactionTags,
-  Settings,
-])
+@DriftDatabase(
+  tables: [
+    Accounts,
+    Categories,
+    Transactions,
+    Slips,
+    Budgets,
+    Tags,
+    TransactionTags,
+    Settings,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'moneybun'));
 
@@ -25,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +63,11 @@ class AppDatabase extends _$AppDatabase {
             await _seedCategories();
             await _reskinSystemCategories();
           }
+          // v6: remember each slip's source-photo time so the scan watermark
+          // (read only slips newer than the latest one) survives reinstall/sync.
+          if (from < 6) {
+            await m.addColumn(slips, slips.photoTakenAt);
+          }
         },
       );
 
@@ -71,15 +78,14 @@ class AppDatabase extends _$AppDatabase {
     final now = DateTime.now().millisecondsSinceEpoch;
     await batch((b) {
       b.insertAll(
-        categories,
-        [
-          for (var i = 0; i < SeedData.categories.length; i++)
-            _categoryFromSeed(SeedData.categories[i], i, now),
-          for (var i = 0; i < SeedData.incomeCategories.length; i++)
-            _categoryFromSeed(SeedData.incomeCategories[i], i, now),
-        ],
-        mode: InsertMode.insertOrIgnore,
-      );
+          categories,
+          [
+            for (var i = 0; i < SeedData.categories.length; i++)
+              _categoryFromSeed(SeedData.categories[i], i, now),
+            for (var i = 0; i < SeedData.incomeCategories.length; i++)
+              _categoryFromSeed(SeedData.incomeCategories[i], i, now),
+          ],
+          mode: InsertMode.insertOrIgnore);
     });
   }
 
@@ -89,15 +95,18 @@ class AppDatabase extends _$AppDatabase {
   Future<void> _reskinSystemCategories() async {
     final now = DateTime.now().millisecondsSinceEpoch;
     for (final s in [...SeedData.categories, ...SeedData.incomeCategories]) {
-      await (update(categories)
-            ..where((c) => c.id.equals(s.id) & c.isSystem.equals(true)))
-          .write(CategoriesCompanion(
-        iconKey: Value(s.iconKey),
-        colorHex: Value(s.colorHex),
-        nameEn: Value(s.nameEn),
-        updatedAt: Value(now),
-        syncStatus: const Value(SyncStatus.pendingUpdate),
-      ));
+      await (update(
+        categories,
+      )..where((c) => c.id.equals(s.id) & c.isSystem.equals(true)))
+          .write(
+        CategoriesCompanion(
+          iconKey: Value(s.iconKey),
+          colorHex: Value(s.colorHex),
+          nameEn: Value(s.nameEn),
+          updatedAt: Value(now),
+          syncStatus: const Value(SyncStatus.pendingUpdate),
+        ),
+      );
     }
   }
 
@@ -106,13 +115,12 @@ class AppDatabase extends _$AppDatabase {
     final now = DateTime.now().millisecondsSinceEpoch;
     await batch((b) {
       b.insertAll(
-        accounts,
-        [
-          for (var i = 0; i < AccountSeedData.accounts.length; i++)
-            _accountFromSeed(AccountSeedData.accounts[i], i, now),
-        ],
-        mode: InsertMode.insertOrIgnore,
-      );
+          accounts,
+          [
+            for (var i = 0; i < AccountSeedData.accounts.length; i++)
+              _accountFromSeed(AccountSeedData.accounts[i], i, now),
+          ],
+          mode: InsertMode.insertOrIgnore);
     });
   }
 
@@ -179,6 +187,11 @@ class AppDatabase extends _$AppDatabase {
     return (select(categories)..where((c) => c.deleted.equals(false))).get();
   }
 
+  /// Unfiltered single-row fetch (includes soft-deleted rows) — used by sync's
+  /// last-write-wins check so a local delete isn't resurrected by a pull.
+  Future<CategoryRow?> getCategory(String id) =>
+      (select(categories)..where((c) => c.id.equals(id))).getSingleOrNull();
+
   Future<void> upsertCategory(CategoriesCompanion row) =>
       into(categories).insertOnConflictUpdate(row);
 
@@ -218,11 +231,15 @@ class AppDatabase extends _$AppDatabase {
   // ---- Transactions ------------------------------------------------------
 
   Stream<List<TransactionRow>> watchTransactionsBetween(
-      int startMs, int endMs) {
+    int startMs,
+    int endMs,
+  ) {
     return (select(transactions)
-          ..where((t) =>
-              t.deleted.equals(false) &
-              t.occurredAt.isBetweenValues(startMs, endMs))
+          ..where(
+            (t) =>
+                t.deleted.equals(false) &
+                t.occurredAt.isBetweenValues(startMs, endMs),
+          )
           ..orderBy([
             (t) =>
                 OrderingTerm(expression: t.occurredAt, mode: OrderingMode.desc),
@@ -233,7 +250,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<TransactionRow>> watchActiveTransactions() {
-    return (select(transactions)..where((t) => t.deleted.equals(false)))
+    return (select(
+      transactions,
+    )..where((t) => t.deleted.equals(false)))
         .watch();
   }
 
@@ -242,12 +261,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<TransactionRow?> getTransaction(String id) {
-    return (select(transactions)..where((t) => t.id.equals(id)))
+    return (select(
+      transactions,
+    )..where((t) => t.id.equals(id)))
         .getSingleOrNull();
   }
 
   Stream<TransactionRow?> watchTransaction(String id) {
-    return (select(transactions)..where((t) => t.id.equals(id)))
+    return (select(
+      transactions,
+    )..where((t) => t.id.equals(id)))
         .watchSingleOrNull();
   }
 
@@ -285,6 +308,35 @@ class AppDatabase extends _$AppDatabase {
     return rows.map((r) => r.read(slips.assetId)).whereType<String>().toSet();
   }
 
+  /// The source-photo time (epoch ms) of the most recently imported slip, or
+  /// null when none have been imported. Drives the scan watermark: the scanner
+  /// reads only photos newer than this, so it continues after the latest slip
+  /// instead of re-reading old ones — and because [Slips.photoTakenAt] syncs,
+  /// this survives a sign-out/reinstall (it is recomputed from restored data).
+  Future<int?> latestSlipPhotoTime() async {
+    final query = select(slips)
+      ..where((s) => s.deleted.equals(false) & s.photoTakenAt.isNotNull())
+      ..orderBy([(s) => OrderingTerm.desc(s.photoTakenAt)])
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row?.photoTakenAt;
+  }
+
+  /// Stable bank transaction references already imported. Used as a second
+  /// dedup key so the same slip is not re-imported after a cloud restore (where
+  /// the gallery asset id may be missing or differ).
+  Future<Set<String>> importedSlipRefs() async {
+    final query = selectOnly(slips)
+      ..addColumns([slips.transRef])
+      ..where(slips.transRef.isNotNull() & slips.deleted.equals(false));
+    final rows = await query.get();
+    return rows
+        .map((r) => r.read(slips.transRef))
+        .whereType<String>()
+        .where((s) => s.isNotEmpty)
+        .toSet();
+  }
+
   // ---- Budgets -----------------------------------------------------------
 
   Stream<List<BudgetRow>> watchBudgets() {
@@ -307,37 +359,159 @@ class AppDatabase extends _$AppDatabase {
 
   // ---- Sync helpers ------------------------------------------------------
 
-  Future<List<TransactionRow>> pendingTransactions() => (select(transactions)
-        ..where((t) => t.syncStatus.isNotValue(SyncStatus.synced.index)))
-      .get();
+  Future<List<TransactionRow>> pendingTransactions() => (select(
+        transactions,
+      )..where((t) => t.syncStatus.isNotValue(SyncStatus.synced.index)))
+          .get();
 
-  Future<List<AccountRow>> pendingAccounts() => (select(accounts)
-        ..where((a) => a.syncStatus.isNotValue(SyncStatus.synced.index)))
-      .get();
+  Future<List<AccountRow>> pendingAccounts() => (select(
+        accounts,
+      )..where((a) => a.syncStatus.isNotValue(SyncStatus.synced.index)))
+          .get();
 
-  Future<List<CategoryRow>> pendingCategories() => (select(categories)
-        ..where((c) => c.syncStatus.isNotValue(SyncStatus.synced.index)))
-      .get();
+  Future<List<CategoryRow>> pendingCategories() => (select(
+        categories,
+      )..where((c) => c.syncStatus.isNotValue(SyncStatus.synced.index)))
+          .get();
 
-  Future<List<SlipRow>> pendingSlips() => (select(slips)
-        ..where((s) => s.syncStatus.isNotValue(SyncStatus.synced.index)))
-      .get();
+  Future<List<SlipRow>> pendingSlips() => (select(
+        slips,
+      )..where((s) => s.syncStatus.isNotValue(SyncStatus.synced.index)))
+          .get();
 
-  Future<void> markTransactionSynced(String id) => (update(transactions)
-        ..where((t) => t.id.equals(id)))
-      .write(const TransactionsCompanion(syncStatus: Value(SyncStatus.synced)));
+  Future<void> markTransactionSynced(String id) =>
+      (update(transactions)..where((t) => t.id.equals(id))).write(
+        const TransactionsCompanion(syncStatus: Value(SyncStatus.synced)),
+      );
 
   Future<void> markAccountSynced(String id) =>
-      (update(accounts)..where((a) => a.id.equals(id)))
-          .write(const AccountsCompanion(syncStatus: Value(SyncStatus.synced)));
+      (update(accounts)..where((a) => a.id.equals(id))).write(
+        const AccountsCompanion(syncStatus: Value(SyncStatus.synced)),
+      );
 
-  Future<void> markCategorySynced(String id) => (update(categories)
-        ..where((c) => c.id.equals(id)))
-      .write(const CategoriesCompanion(syncStatus: Value(SyncStatus.synced)));
+  Future<void> markCategorySynced(String id) =>
+      (update(categories)..where((c) => c.id.equals(id))).write(
+        const CategoriesCompanion(syncStatus: Value(SyncStatus.synced)),
+      );
 
   Future<void> markSlipSynced(String id) =>
-      (update(slips)..where((s) => s.id.equals(id)))
-          .write(const SlipsCompanion(syncStatus: Value(SyncStatus.synced)));
+      (update(slips)..where((s) => s.id.equals(id))).write(
+        const SlipsCompanion(syncStatus: Value(SyncStatus.synced)),
+      );
+
+  Future<List<BudgetRow>> pendingBudgets() => (select(
+        budgets,
+      )..where((b) => b.syncStatus.isNotValue(SyncStatus.synced.index)))
+          .get();
+
+  Future<BudgetRow?> getBudget(String id) =>
+      (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
+
+  Future<void> markBudgetSynced(String id) =>
+      (update(budgets)..where((b) => b.id.equals(id))).write(
+        const BudgetsCompanion(syncStatus: Value(SyncStatus.synced)),
+      );
+
+  Future<List<TagRow>> pendingTags() => (select(
+        tags,
+      )..where((t) => t.syncStatus.isNotValue(SyncStatus.synced.index)))
+          .get();
+
+  Future<TagRow?> getTag(String id) =>
+      (select(tags)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<void> markTagSynced(String id) =>
+      (update(tags)..where((t) => t.id.equals(id))).write(
+        const TagsCompanion(syncStatus: Value(SyncStatus.synced)),
+      );
+
+  // ---- Bulk pull helpers (write a whole collection in one batch) ----------
+
+  /// Local updatedAt keyed by transaction id — one query, so the pull doesn't
+  /// read every row individually before deciding what to upsert.
+  Future<Map<String, int>> transactionsUpdatedAt() async {
+    final q = selectOnly(transactions);
+    q.addColumns([transactions.id, transactions.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(transactions.id)!] = r.read(transactions.updatedAt) ?? 0;
+    }
+    return result;
+  }
+
+  // Each of these selects every row (including soft-deleted ones) so the pull
+  // can decide what to upsert from a single query instead of one read per
+  // remote doc — and a locally-deleted row isn't resurrected, since its
+  // tombstone's updatedAt is still in the map.
+  Future<Map<String, int>> accountsUpdatedAt() async {
+    final q = selectOnly(accounts);
+    q.addColumns([accounts.id, accounts.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(accounts.id)!] = r.read(accounts.updatedAt) ?? 0;
+    }
+    return result;
+  }
+
+  Future<Map<String, int>> categoriesUpdatedAt() async {
+    final q = selectOnly(categories);
+    q.addColumns([categories.id, categories.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(categories.id)!] = r.read(categories.updatedAt) ?? 0;
+    }
+    return result;
+  }
+
+  Future<Map<String, int>> tagsUpdatedAt() async {
+    final q = selectOnly(tags);
+    q.addColumns([tags.id, tags.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(tags.id)!] = r.read(tags.updatedAt) ?? 0;
+    }
+    return result;
+  }
+
+  Future<Map<String, int>> budgetsUpdatedAt() async {
+    final q = selectOnly(budgets);
+    q.addColumns([budgets.id, budgets.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(budgets.id)!] = r.read(budgets.updatedAt) ?? 0;
+    }
+    return result;
+  }
+
+  Future<Map<String, int>> slipsUpdatedAt() async {
+    final q = selectOnly(slips);
+    q.addColumns([slips.id, slips.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(slips.id)!] = r.read(slips.updatedAt) ?? 0;
+    }
+    return result;
+  }
+
+  // insertAllOnConflictUpdate only writes the provided columns, so columns the
+  // sync mappers omit (e.g. a slip's local imagePath) are preserved.
+  Future<void> batchUpsertTransactions(List<TransactionsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(transactions, rows));
+
+  Future<void> batchUpsertAccounts(List<AccountsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(accounts, rows));
+
+  Future<void> batchUpsertCategories(List<CategoriesCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(categories, rows));
+
+  Future<void> batchUpsertTags(List<TagsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(tags, rows));
+
+  Future<void> batchUpsertBudgets(List<BudgetsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(budgets, rows));
+
+  Future<void> batchUpsertSlips(List<SlipsCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(slips, rows));
 
   // ---- Tags (local-only) -------------------------------------------------
 
@@ -353,8 +527,17 @@ class AppDatabase extends _$AppDatabase {
       into(tags).insertOnConflictUpdate(row);
 
   Future<void> deleteTagCascade(String id) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
     await (delete(transactionTags)..where((l) => l.tagId.equals(id))).go();
-    await (delete(tags)..where((t) => t.id.equals(id))).go();
+    // Soft-delete (not hard) so the deletion syncs as a tombstone and the tag
+    // isn't resurrected by the next pull from the cloud.
+    await (update(tags)..where((t) => t.id.equals(id))).write(
+      TagsCompanion(
+        deleted: const Value(true),
+        syncStatus: const Value(SyncStatus.pendingDelete),
+        updatedAt: Value(now),
+      ),
+    );
   }
 
   // ---- Transaction ↔ Tag links (local-only) ------------------------------
@@ -366,8 +549,9 @@ class AppDatabase extends _$AppDatabase {
       select(transactionTags).get();
 
   Future<List<String>> tagIdsForTransaction(String txnId) async {
-    final rows = await (select(transactionTags)
-          ..where((l) => l.transactionId.equals(txnId)))
+    final rows = await (select(
+      transactionTags,
+    )..where((l) => l.transactionId.equals(txnId)))
         .get();
     return rows.map((r) => r.tagId).toList();
   }
@@ -375,8 +559,9 @@ class AppDatabase extends _$AppDatabase {
   /// Replace the tag set for a transaction atomically.
   Future<void> setTransactionTags(String txnId, List<String> tagIds) async {
     await transaction(() async {
-      await (delete(transactionTags)
-            ..where((l) => l.transactionId.equals(txnId)))
+      await (delete(
+        transactionTags,
+      )..where((l) => l.transactionId.equals(txnId)))
           .go();
       for (final tagId in tagIds) {
         await into(transactionTags).insert(
@@ -390,7 +575,9 @@ class AppDatabase extends _$AppDatabase {
   // ---- Settings (key/value, local-only) ----------------------------------
 
   Future<String?> getSetting(String key) async {
-    final row = await (select(settings)..where((s) => s.key.equals(key)))
+    final row = await (select(
+      settings,
+    )..where((s) => s.key.equals(key)))
         .getSingleOrNull();
     return row?.value;
   }
@@ -398,9 +585,11 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<SettingRow>> watchSettings() => select(settings).watch();
 
   Future<void> setSetting(String key, String value) =>
-      into(settings).insertOnConflictUpdate(SettingsCompanion.insert(
-        key: key,
-        value: value,
-        updatedAt: DateTime.now().millisecondsSinceEpoch,
-      ));
+      into(settings).insertOnConflictUpdate(
+        SettingsCompanion.insert(
+          key: key,
+          value: value,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
 }

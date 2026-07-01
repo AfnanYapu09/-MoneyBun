@@ -6,6 +6,7 @@ import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/budget_math.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/category_icons.dart';
@@ -17,12 +18,14 @@ import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class BudgetScreen extends ConsumerWidget {
   const BudgetScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final period = ref.watch(selectedPeriodProvider);
     final txns = ref.watch(periodTransactionsProvider).value ?? const [];
@@ -35,23 +38,28 @@ class BudgetScreen extends ConsumerWidget {
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c
+        c.id: c,
     };
 
     final spentByCat = <String, int>{};
     for (final t in txns.where((t) => t.type == TxnType.expense)) {
       if (t.categoryId == null) continue;
-      spentByCat.update(t.categoryId!, (v) => v + t.amountCents,
-          ifAbsent: () => t.amountCents);
+      spentByCat.update(
+        t.categoryId!,
+        (v) => v + t.amountCents,
+        ifAbsent: () => t.amountCents,
+      );
     }
     final totalBudget = budgets.fold<int>(0, (s, b) => s + target(b));
-    final totalSpent =
-        budgets.fold<int>(0, (s, b) => s + (spentByCat[b.categoryId] ?? 0));
+    final totalSpent = budgets.fold<int>(
+      0,
+      (s, b) => s + (spentByCat[b.categoryId] ?? 0),
+    );
     final remaining = totalBudget - totalSpent;
     final daysLeft = period.daysRemaining;
 
     return SubScreenScaffold(
-      title: 'งบประมาณ',
+      title: l10n.statsBudget,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 28),
         children: [
@@ -72,10 +80,13 @@ class BudgetScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ใช้ไปแล้วจากงบรวม',
-                    style: AppTypography.body(
-                        size: 14,
-                        color: AppColors.reverse.withValues(alpha: 0.82))),
+                Text(
+                  l10n.statsSpentFromTotal,
+                  style: AppTypography.body(
+                    size: 14,
+                    color: AppColors.reverse.withValues(alpha: 0.82),
+                  ),
+                ),
                 const SizedBox(height: 2),
                 FittedBox(
                   fit: BoxFit.scaleDown,
@@ -85,16 +96,18 @@ class BudgetScreen extends ConsumerWidget {
                     text: TextSpan(
                       text: Money.compact(totalSpent),
                       style: AppTypography.heading(
-                          size: 34,
-                          weight: FontWeight.w600,
-                          color: AppColors.reverse),
+                        size: 34,
+                        weight: FontWeight.w600,
+                        color: AppColors.reverse,
+                      ),
                       children: [
                         TextSpan(
                           text: ' / ${Money.compact(totalBudget)}',
                           style: AppTypography.heading(
-                              size: 18,
-                              weight: FontWeight.w500,
-                              color: AppColors.reverse.withValues(alpha: 0.8)),
+                            size: 18,
+                            weight: FontWeight.w500,
+                            color: AppColors.reverse.withValues(alpha: 0.8),
+                          ),
                         ),
                       ],
                     ),
@@ -114,24 +127,35 @@ class BudgetScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'เหลืออีก ${Money.compact(remaining)} · อีก $daysLeft วัน${period.periodEndNoun(locale)}',
+                  l10n.statsRemainingDays(
+                    Money.compact(remaining),
+                    daysLeft,
+                    period.periodEndNoun(locale),
+                  ),
                   style: AppTypography.body(
-                      size: 13,
-                      color: AppColors.reverse.withValues(alpha: 0.82)),
+                    size: 13,
+                    color: AppColors.reverse.withValues(alpha: 0.82),
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 18),
-          Text('งบรายหมวด',
-              style: AppTypography.heading(size: 16, weight: FontWeight.w500)),
+          Text(
+            l10n.statsCategoryBudgets,
+            style: AppTypography.heading(size: 16, weight: FontWeight.w500),
+          ),
           const SizedBox(height: 10),
           if (budgets.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text('ยังไม่มีงบรายหมวด',
-                  style: AppTypography.body(
-                      size: 14, color: context.palette.ink3)),
+              child: Text(
+                l10n.statsNoCategoryBudgets,
+                style: AppTypography.body(
+                  size: 14,
+                  color: context.palette.ink3,
+                ),
+              ),
             )
           else
             Container(
@@ -152,8 +176,10 @@ class BudgetScreen extends ConsumerWidget {
                         category: categories[budgets[i].categoryId],
                         spent: spentByCat[budgets[i].categoryId] ?? 0,
                         limit: target(budgets[i]),
-                        periodLabel:
-                            budgetPeriodLabel(budgets[i].period, locale),
+                        periodLabel: budgetPeriodLabel(
+                          budgets[i].period,
+                          locale,
+                        ),
                       ),
                     ),
                   ],
@@ -182,6 +208,8 @@ class _BudgetBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
     final pct = limit == 0 ? 0.0 : spent / limit;
     final over = pct > 1.0;
     final color = over
@@ -217,21 +245,29 @@ class _BudgetBar extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Flexible(
-                          child: Text(category?.name ?? 'อื่นๆ',
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.body(size: 14.5)),
+                          child: Text(
+                            category?.displayName(locale) ?? l10n.statsOther,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.body(size: 14.5),
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: context.palette.surfaceAlt,
                             borderRadius: BorderRadius.circular(99),
                           ),
-                          child: Text(periodLabel,
-                              style: AppTypography.body(
-                                  size: 10.5, color: context.palette.ink3)),
+                          child: Text(
+                            periodLabel,
+                            style: AppTypography.body(
+                              size: 10.5,
+                              color: context.palette.ink3,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -240,16 +276,19 @@ class _BudgetBar extends StatelessWidget {
                     text: TextSpan(
                       text: Money.compact(spent),
                       style: AppTypography.heading(
-                          size: 13,
-                          weight: FontWeight.w500,
-                          color: over
-                              ? context.palette.dangerFg
-                              : context.palette.ink),
+                        size: 13,
+                        weight: FontWeight.w500,
+                        color: over
+                            ? context.palette.dangerFg
+                            : context.palette.ink,
+                      ),
                       children: [
                         TextSpan(
                           text: ' / ${Money.compact(limit)}',
                           style: AppTypography.body(
-                              size: 13, color: context.palette.ink3),
+                            size: 13,
+                            color: context.palette.ink3,
+                          ),
                         ),
                       ],
                     ),
@@ -272,6 +311,7 @@ class _DashedAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -285,11 +325,14 @@ class _DashedAddButton extends StatelessWidget {
             children: [
               const Icon(AppIcons.plus, size: 20, color: AppColors.terra),
               const SizedBox(width: 8),
-              Text('เพิ่มงบหมวดใหม่',
-                  style: AppTypography.heading(
-                      size: 16,
-                      weight: FontWeight.w500,
-                      color: AppColors.terra)),
+              Text(
+                l10n.statsAddCategoryBudget,
+                style: AppTypography.heading(
+                  size: 16,
+                  weight: FontWeight.w500,
+                  color: AppColors.terra,
+                ),
+              ),
             ],
           ),
         ),

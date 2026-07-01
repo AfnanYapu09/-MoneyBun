@@ -5,32 +5,39 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
+import '../../../l10n/generated/app_localizations.dart';
 
 class ThemeScreen extends ConsumerWidget {
   const ThemeScreen({super.key});
 
-  static const _modes = [
-    ('light', 'สว่าง'),
-    ('dark', 'มืด'),
-    ('system', 'อัตโนมัติ'),
-  ];
+  static const _modes = ['light', 'dark', 'system'];
+
+  String _modeLabel(String mode, AppLocalizations l10n) => switch (mode) {
+        'light' => l10n.settingsThemeLight,
+        'dark' => l10n.settingsThemeDark,
+        _ => l10n.settingsThemeSystem,
+      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider).value;
     final mode = settings?.themeMode ?? 'system';
     final repo = ref.read(settingsRepositoryProvider);
+    final l10n = AppLocalizations.of(context);
 
     return SubScreenScaffold(
-      title: 'ธีม',
+      title: l10n.settingsTheme,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
         children: [
-          Text('โหมดการแสดงผล',
-              style: AppTypography.heading(
-                  size: 14,
-                  weight: FontWeight.w500,
-                  color: context.palette.ink3)),
+          Text(
+            l10n.settingsDisplayMode,
+            style: AppTypography.heading(
+              size: 14,
+              weight: FontWeight.w500,
+              color: context.palette.ink3,
+            ),
+          ),
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,10 +45,10 @@ class ThemeScreen extends ConsumerWidget {
               for (final m in _modes) ...[
                 Expanded(
                   child: _ModeSwatch(
-                    mode: m.$1,
-                    label: m.$2,
-                    selected: mode == m.$1,
-                    onTap: () => repo.setThemeMode(m.$1),
+                    mode: m,
+                    label: _modeLabel(m, l10n),
+                    selected: mode == m,
+                    onTap: () => repo.setThemeMode(m),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -106,8 +113,9 @@ class _ModeSwatch extends StatelessWidget {
                 child: Container(
                   height: 8,
                   decoration: BoxDecoration(
-                    color:
-                        (isDark ? AppColors.cream : fg).withValues(alpha: 0.5),
+                    color: (isDark ? AppColors.cream : fg).withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -116,11 +124,13 @@ class _ModeSwatch extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(label,
-            style: AppTypography.body(
-                size: 13,
-                color:
-                    selected ? context.palette.terraFg : context.palette.ink2)),
+        Text(
+          label,
+          style: AppTypography.body(
+            size: 13,
+            color: selected ? context.palette.terraFg : context.palette.ink2,
+          ),
+        ),
       ],
     );
   }

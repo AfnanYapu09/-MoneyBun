@@ -30,12 +30,14 @@ void main() {
 
   test('save() persists a full transaction with tags', () async {
     final repo = TransactionRepository(db);
-    await db.upsertTag(TagsCompanion.insert(
-      id: 't1',
-      name: 'จำเป็น',
-      createdAt: 0,
-      updatedAt: 0,
-    ));
+    await db.upsertTag(
+      TagsCompanion.insert(
+        id: 't1',
+        name: 'จำเป็น',
+        createdAt: 0,
+        updatedAt: 0,
+      ),
+    );
     final id = await repo.save(
       type: TxnType.expense,
       amountCents: 84550,
@@ -53,8 +55,10 @@ void main() {
 
   test('slip-import defaults keep working (type=expense)', () async {
     final repo = TransactionRepository(db);
-    final id =
-        await repo.save(amountCents: 12000, occurredAt: DateTime(2026, 6, 1));
+    final id = await repo.save(
+      amountCents: 12000,
+      occurredAt: DateTime(2026, 6, 1),
+    );
     final row = await repo.get(id);
     expect(row!.type, TxnType.expense);
     expect(row.accountId, '');

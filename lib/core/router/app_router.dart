@@ -50,26 +50,36 @@ GoRouter buildRouter(Ref ref) {
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainShell(shell: shell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/home', builder: (c, s) => const HomeScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/stats', builder: (c, s) => const StatsScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-                path: '/settings', builder: (c, s) => const SettingsScreen()),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/home', builder: (c, s) => const HomeScreen()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/stats', builder: (c, s) => const StatsScreen()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (c, s) => const SettingsScreen(),
+              ),
+            ],
+          ),
         ],
       ),
 
       // Transactions
       GoRoute(
         path: '/transactions',
-        pageBuilder: (c, s) => slidePage(AllTransactionsScreen(
-          categoryId: s.uri.queryParameters['categoryId'],
-          tagId: s.uri.queryParameters['tagId'],
-        )),
+        pageBuilder: (c, s) => slidePage(
+          AllTransactionsScreen(
+            categoryId: s.uri.queryParameters['categoryId'],
+            tagId: s.uri.queryParameters['tagId'],
+          ),
+        ),
       ),
       GoRoute(
         path: '/search',

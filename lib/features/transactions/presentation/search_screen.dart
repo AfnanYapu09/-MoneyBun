@@ -6,8 +6,10 @@ import '../../../bootstrap/providers.dart';
 import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/utils/category_l10n.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../data/local/database.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'txn_display.dart';
 import 'widgets/txn_row.dart';
 
@@ -43,16 +45,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final txns = ref.watch(allTransactionsProvider).value ?? const [];
     final categories = {
       for (final c
           in ref.watch(categoriesProvider).value ?? const <CategoryRow>[])
-        c.id: c
+        c.id: c,
     };
     final accounts = {
       for (final a in ref.watch(accountsProvider).value ?? const <AccountRow>[])
-        a.id: a
+        a.id: a,
     };
 
     final q = _query.trim().toLowerCase();
@@ -61,7 +64,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         : txns.where((t) {
             final cat = t.categoryId == null
                 ? ''
-                : categories[t.categoryId]?.name ?? '';
+                : categories[t.categoryId]?.displayName(locale) ?? '';
             return (t.note ?? '').toLowerCase().contains(q) ||
                 cat.toLowerCase().contains(q);
           }).toList();
@@ -89,8 +92,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(AppIcons.search,
-                              size: 18, color: context.palette.ink3),
+                          Icon(
+                            AppIcons.search,
+                            size: 18,
+                            color: context.palette.ink3,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: TextField(
@@ -100,14 +106,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               onChanged: (v) => setState(() => _query = v),
                               onSubmitted: _runQuery,
                               style: AppTypography.body(size: 14.5),
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 isDense: true,
                                 contentPadding: EdgeInsets.zero,
                                 filled: false,
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
-                                hintText: 'ค้นหารายการ…',
+                                hintText: l10n.txnSearchHint,
                               ),
                             ),
                           ),
@@ -117,8 +123,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 _controller.clear();
                                 setState(() => _query = '');
                               },
-                              child: Icon(AppIcons.x,
-                                  size: 18, color: context.palette.ink3),
+                              child: Icon(
+                                AppIcons.x,
+                                size: 18,
+                                color: context.palette.ink3,
+                              ),
                             ),
                         ],
                       ),
@@ -134,7 +143,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           ? _recent
                           : categories.values
                               .take(3)
-                              .map((c) => c.name)
+                              .map((c) => c.displayName(locale))
                               .toList(),
                       onTap: (s) {
                         _controller.text = s;
@@ -146,32 +155,42 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4),
-                          child: Text('ผลการค้นหา · ${results.length} รายการ',
-                              style: AppTypography.heading(
-                                  size: 14, weight: FontWeight.w500)),
+                          child: Text(
+                            l10n.txnSearchResults(results.length),
+                            style: AppTypography.heading(
+                              size: 14,
+                              weight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                         for (var i = 0; i < results.length; i++) ...[
                           if (i > 0) const Divider(height: 1),
-                          Builder(builder: (context) {
-                            final t = results[i];
-                            final d = txnDisplay(t,
+                          Builder(
+                            builder: (context) {
+                              final t = results[i];
+                              final d = txnDisplay(
+                                t,
                                 categories: categories,
                                 accounts: accounts,
                                 locale: locale,
                                 withDate: true,
-                                context: context);
-                            return TxnRow(
-                              icon: d.icon,
-                              title: d.title,
-                              sub: d.sub,
-                              iconColor: d.color,
-                              iconKey: d.iconKey,
-                              amountCents: t.amountCents,
-                              type: t.type,
-                              onTap: () => showAddTransactionSheet(context,
-                                  editId: t.id),
-                            );
-                          }),
+                                context: context,
+                              );
+                              return TxnRow(
+                                icon: d.icon,
+                                title: d.title,
+                                sub: d.sub,
+                                iconColor: d.color,
+                                iconKey: d.iconKey,
+                                amountCents: t.amountCents,
+                                type: t.type,
+                                onTap: () => showAddTransactionSheet(
+                                  context,
+                                  editId: t.id,
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ],
                     ),
@@ -191,10 +210,13 @@ class _RecentSearches extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (recent.isEmpty) {
       return Center(
-        child: Text('พิมพ์เพื่อค้นหารายการ',
-            style: AppTypography.body(size: 14, color: context.palette.ink3)),
+        child: Text(
+          l10n.txnSearchEmptyHint,
+          style: AppTypography.body(size: 14, color: context.palette.ink3),
+        ),
       );
     }
     return ListView(
@@ -202,11 +224,14 @@ class _RecentSearches extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: Text('ค้นหาล่าสุด',
-              style: AppTypography.heading(
-                  size: 13,
-                  weight: FontWeight.w500,
-                  color: context.palette.ink3)),
+          child: Text(
+            l10n.txnRecentSearches,
+            style: AppTypography.heading(
+              size: 13,
+              weight: FontWeight.w500,
+              color: context.palette.ink3,
+            ),
+          ),
         ),
         Wrap(
           spacing: 8,
@@ -217,8 +242,10 @@ class _RecentSearches extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
                 onTap: () => onTap(r),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: context.palette.surface,
                     borderRadius: BorderRadius.circular(999),
@@ -227,12 +254,19 @@ class _RecentSearches extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(AppIcons.clock,
-                          size: 14, color: context.palette.ink3),
+                      Icon(
+                        AppIcons.clock,
+                        size: 14,
+                        color: context.palette.ink3,
+                      ),
                       const SizedBox(width: 6),
-                      Text(r,
-                          style: AppTypography.body(
-                              size: 13.5, color: context.palette.ink2)),
+                      Text(
+                        r,
+                        style: AppTypography.body(
+                          size: 13.5,
+                          color: context.palette.ink2,
+                        ),
+                      ),
                     ],
                   ),
                 ),
