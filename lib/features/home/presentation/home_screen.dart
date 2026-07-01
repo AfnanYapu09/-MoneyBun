@@ -93,9 +93,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final hasLocalData =
         (ref.watch(allTransactionsProvider).value ?? const <TransactionRow>[])
             .isNotEmpty;
-    final showLoading = ref.watch(initialSyncingProvider) &&
-        !firstSyncDone &&
-        !hasLocalData;
+    final showLoading =
+        ref.watch(initialSyncingProvider) && !firstSyncDone && !hasLocalData;
 
     final periodChip = PeriodChip(
       label: period.label(locale),
