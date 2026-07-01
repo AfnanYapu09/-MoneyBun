@@ -32,12 +32,22 @@ class TagRepository {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final tagId = id ?? _uuid.v4();
+    var order = sortOrder;
+    // A brand-new tag with no explicit order goes to the end, so tags keep a
+    // stable, user-visible sequence instead of all sharing sortOrder 0.
+    if (order == null && id == null) {
+      var maxOrder = -1;
+      for (final t in await _db.getTags()) {
+        if (t.sortOrder > maxOrder) maxOrder = t.sortOrder;
+      }
+      order = maxOrder + 1;
+    }
     await _db.upsertTag(
       TagsCompanion.insert(
         id: tagId,
         name: name,
         colorHex: Value(colorHex),
-        sortOrder: Value(sortOrder ?? 0),
+        sortOrder: Value(order ?? 0),
         createdAt: now,
         updatedAt: now,
       ),

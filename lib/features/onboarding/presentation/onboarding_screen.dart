@@ -82,10 +82,7 @@ class OnboardingScreen extends ConsumerWidget {
                   if (ref.read(firebaseReadyProvider)) {
                     context.go('/signup');
                   } else {
-                    await ref
-                        .read(settingsRepositoryProvider)
-                        .setAuthMode('guest');
-                    if (context.mounted) context.go('/home');
+                    context.go('/home');
                   }
                 },
               ),

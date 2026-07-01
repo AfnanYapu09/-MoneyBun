@@ -50,6 +50,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
       _categoryId = b.categoryId;
       _amount.text = Money.toEditString(b.amountCents);
       _period = b.period;
+      _alert80 = b.alertEnabled;
     }
   }
 
@@ -373,6 +374,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
             period: _period,
             amountCents: cents,
             startDate: start,
+            alertEnabled: Value(_alert80),
             createdAt: b?.createdAt ?? now.millisecondsSinceEpoch,
             updatedAt: now.millisecondsSinceEpoch,
           ),

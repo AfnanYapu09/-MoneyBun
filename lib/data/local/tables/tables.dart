@@ -120,8 +120,8 @@ class Slips extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// User-defined tags. Local-only for now (carries sync columns so it can be
-/// promoted to sync later without another migration).
+/// User-defined tags. Synced per-user (last-write-wins) like the other
+/// entities; a transaction's tag ids ride along inside its cloud document.
 @DataClassName('TagRow')
 class Tags extends Table {
   TextColumn get id => text()();
@@ -140,7 +140,8 @@ class Tags extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-/// Many-to-many link between transactions and tags. Local-only.
+/// Many-to-many link between transactions and tags. Synced by embedding the
+/// tag ids in each transaction's cloud document (no separate collection).
 @DataClassName('TransactionTagRow')
 class TransactionTags extends Table {
   TextColumn get transactionId => text()();
@@ -162,6 +163,33 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+/// A rule that auto-creates a transaction on a schedule (daily/weekly/monthly).
+/// The scheduler materialises due occurrences into real Transactions on launch.
+@DataClassName('RecurringRuleRow')
+class RecurringRules extends Table {
+  TextColumn get id => text()();
+  IntColumn get type => intEnum<TxnType>()();
+  IntColumn get amountCents => integer()();
+  TextColumn get categoryId => text().nullable()();
+  TextColumn get accountId => text().nullable()();
+  TextColumn get note => text().nullable()();
+  IntColumn get freq => intEnum<RecurFreq>()();
+
+  /// Epoch ms of the next occurrence that has not yet been created.
+  IntColumn get nextRunAt => integer()();
+  IntColumn get lastRunAt => integer().nullable()();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
+  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(
+        Constant(SyncStatus.pendingCreate.index),
+      )();
+  TextColumn get remoteId => text().nullable()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('BudgetRow')
 class Budgets extends Table {
   TextColumn get id => text()();
@@ -171,6 +199,9 @@ class Budgets extends Table {
   IntColumn get startDate => integer()();
   IntColumn get endDate => integer().nullable()();
   BoolColumn get rollover => boolean().withDefault(const Constant(false))();
+
+  /// Warn the user when spending reaches 80% of this budget.
+  BoolColumn get alertEnabled => boolean().withDefault(const Constant(true))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
   IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(

@@ -2,17 +2,12 @@ rules_version = '2';
 
 // MoneyBun Firestore security rules.
 // Each user can read/write ONLY their own data under users/{uid}/**.
-// The slip-verify dedup cache is written by the Cloud Function (admin SDK),
-// which bypasses these rules — clients are denied access to it.
+// Slip reading is fully on-device (QR + ML Kit) — there is no server component.
 service cloud.firestore {
   match /databases/{database}/documents {
 
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    match /slip_cache/{doc} {
-      allow read, write: if false;
     }
 
     // Everything else is denied by default.

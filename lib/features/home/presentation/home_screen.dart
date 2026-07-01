@@ -39,6 +39,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // it fires once per launch even if Home is rebuilt by bottom-nav).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(scanControllerProvider.notifier).autoScanOnce();
+      // Create any recurring entries that have come due since the last launch.
+      ref.read(recurringServiceProvider).runDue();
     });
   }
 

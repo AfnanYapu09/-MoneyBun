@@ -64,6 +64,7 @@ class SyncEngine {
         _pushSlips(uid),
         _pushBudgets(uid),
         _pushTags(uid),
+        _pushRecurringRules(uid),
       ]);
 
   Future<void> _pullAll(String uid) => Future.wait([
@@ -73,6 +74,7 @@ class SyncEngine {
         _pullTransactions(uid),
         _pullBudgets(uid),
         _pullSlips(uid),
+        _pullRecurringRules(uid),
       ]);
 
   // ---- Push (a soft-deleted row carries deleted:true in its map) ----------
@@ -125,6 +127,14 @@ class SyncEngine {
     for (final r in await _db.pendingTags()) {
       await col.doc(r.id).set(FirestoreMappers.tagToMap(r));
       await _db.markTagSynced(r.id);
+    }
+  }
+
+  Future<void> _pushRecurringRules(String uid) async {
+    final col = _col(uid, 'recurringRules');
+    for (final r in await _db.pendingRecurringRules()) {
+      await col.doc(r.id).set(FirestoreMappers.recurringRuleToMap(r));
+      await _db.markRecurringRuleSynced(r.id);
     }
   }
 
@@ -232,5 +242,20 @@ class SyncEngine {
       }
     }
     if (rows.isNotEmpty) await _db.batchUpsertSlips(rows);
+  }
+
+  Future<void> _pullRecurringRules(String uid) async {
+    final snap = await _col(uid, 'recurringRules').get();
+    if (snap.docs.isEmpty) return;
+    final localUpdated = await _db.recurringRulesUpdatedAt();
+    final rows = <RecurringRulesCompanion>[];
+    for (final doc in snap.docs) {
+      final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
+      final localUpdatedAt = localUpdated[doc.id];
+      if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
+        rows.add(FirestoreMappers.recurringRuleFromMap(doc.id, doc.data()));
+      }
+    }
+    if (rows.isNotEmpty) await _db.batchUpsertRecurringRules(rows);
   }
 }

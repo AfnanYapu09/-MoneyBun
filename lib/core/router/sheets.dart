@@ -6,6 +6,7 @@ import '../../features/accounts/presentation/accounts_sheet.dart';
 import '../../features/add_transaction/presentation/add_transaction_sheet.dart';
 import '../../features/add_transaction/presentation/category_picker_sheet.dart';
 import '../../features/categories/presentation/add_category_sheet.dart';
+import '../../features/recurring/presentation/recurring_rule_sheet.dart';
 import '../../features/stats/presentation/budget_sheet.dart';
 import '../../features/stats/presentation/period_picker_sheet.dart';
 import '../../data/local/database.dart';
@@ -128,6 +129,20 @@ Future<bool?> showBudgetSheet(BuildContext context, {BudgetRow? budget}) {
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
       builder: (_) => BudgetSheet(budget: budget),
+    ),
+  );
+}
+
+/// Create a recurring rule (auto-creates a transaction on a schedule).
+Future<bool?> showRecurringRuleSheet(BuildContext context) {
+  return _tracked(
+    context,
+    () => showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      barrierColor: _barrier,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const RecurringRuleSheet(),
     ),
   );
 }

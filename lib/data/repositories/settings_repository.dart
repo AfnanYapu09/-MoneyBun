@@ -4,7 +4,6 @@ import '../local/database.dart';
 class AppSettings {
   const AppSettings({
     this.onboardingSeen = false,
-    this.authMode = 'guest',
     this.themeMode = 'system',
     this.currencyCode = 'THB',
     this.locale = 'th',
@@ -18,7 +17,6 @@ class AppSettings {
   });
 
   final bool onboardingSeen;
-  final String authMode; // 'guest' | 'signedIn'
   final String themeMode; // 'light' | 'dark' | 'system'
   final String currencyCode;
   final String locale; // 'th' | 'en'
@@ -39,7 +37,6 @@ class AppSettings {
     int i(String k, [int d = 0]) => int.tryParse(m[k] ?? '') ?? d;
     return AppSettings(
       onboardingSeen: b(SettingsKeys.onboardingSeen),
-      authMode: m[SettingsKeys.authMode] ?? 'guest',
       themeMode: m[SettingsKeys.themeMode] ?? 'system',
       currencyCode: m[SettingsKeys.currencyCode] ?? 'THB',
       locale: m[SettingsKeys.locale] ?? 'th',
@@ -62,7 +59,6 @@ class AppSettings {
 class SettingsKeys {
   const SettingsKeys._();
   static const onboardingSeen = 'onboardingSeen';
-  static const authMode = 'authMode';
   static const themeMode = 'themeMode';
   static const currencyCode = 'currencyCode';
   static const locale = 'locale';
@@ -73,6 +69,7 @@ class SettingsKeys {
   static const username = 'username';
   static const phone = 'phone';
   static const avatarPath = 'avatarPath';
+  static const recentSearches = 'recentSearches';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -101,7 +98,6 @@ class SettingsRepository {
   // Convenience setters used across the UI.
   Future<void> setOnboardingSeen(bool v) =>
       setBool(SettingsKeys.onboardingSeen, v);
-  Future<void> setAuthMode(String v) => set(SettingsKeys.authMode, v);
   Future<void> setThemeMode(String v) => set(SettingsKeys.themeMode, v);
   Future<void> setCurrency(String code) => set(SettingsKeys.currencyCode, code);
   Future<void> setLocale(String code) => set(SettingsKeys.locale, code);
@@ -115,4 +111,15 @@ class SettingsRepository {
   Future<void> setAvatarPath(String path) => set(SettingsKeys.avatarPath, path);
   Future<void> setUsername(String v) => set(SettingsKeys.username, v);
   Future<void> setPhone(String v) => set(SettingsKeys.phone, v);
+
+  /// Recently submitted search terms (most-recent first), persisted so the
+  /// Search screen's history survives leaving the screen. Stored newline-joined.
+  Future<List<String>> getRecentSearches() async {
+    final raw = await _db.getSetting(SettingsKeys.recentSearches);
+    if (raw == null || raw.isEmpty) return [];
+    return raw.split('\n').where((s) => s.isNotEmpty).toList();
+  }
+
+  Future<void> setRecentSearches(List<String> items) =>
+      set(SettingsKeys.recentSearches, items.join('\n'));
 }

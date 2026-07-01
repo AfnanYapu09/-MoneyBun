@@ -204,7 +204,8 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
 
   Future<void> _editCategory(CategoryRow c) async {
     final l10n = AppLocalizations.of(context);
-    final controller = TextEditingController(text: c.name);
+    final locale = Localizations.localeOf(context).languageCode;
+    final controller = TextEditingController(text: c.displayName(locale));
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -223,7 +224,9 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
       ),
     );
     if (name != null && name.isNotEmpty) {
-      await ref.read(categoryRepositoryProvider).rename(c.id, name);
+      await ref
+          .read(categoryRepositoryProvider)
+          .rename(c.id, name, english: locale.startsWith('en'));
     }
   }
 

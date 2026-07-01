@@ -38,7 +38,10 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             // Profile card
             _ProfileCard(
-              name: user?.displayName ?? settings.displayName,
+              // Show the locally-editable name so edits in the profile screen
+              // are always reflected here (the Firebase displayName, when set,
+              // is seeded into settings at sign-up).
+              name: settings.displayName,
               username: settings.username,
               avatarPath: settings.avatarPath,
               onTap: () => context.push('/settings/profile'),
@@ -78,6 +81,11 @@ class SettingsScreen extends ConsumerWidget {
                   icon: AppIcons.hash,
                   label: l10n.settingsManageTags,
                   onTap: () => context.push('/settings/tags'),
+                ),
+                SettingRow(
+                  icon: AppIcons.repeat,
+                  label: l10n.settingsRecurring,
+                  onTap: () => context.push('/settings/recurring'),
                 ),
               ],
             ),
@@ -174,7 +182,6 @@ class SettingsScreen extends ConsumerWidget {
     final ok = await confirmLogout(context);
     if (!ok) return;
     await ref.read(authServiceProvider)?.signOut();
-    await ref.read(settingsRepositoryProvider).setAuthMode('guest');
     if (context.mounted) context.go('/login');
   }
 }

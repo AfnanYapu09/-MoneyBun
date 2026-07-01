@@ -18,6 +18,7 @@ part 'database.g.dart';
     Tags,
     TransactionTags,
     Settings,
+    RecurringRules,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -27,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -50,7 +51,6 @@ class AppDatabase extends _$AppDatabase {
             await _seedAccounts();
             // Existing users must NOT be forced through onboarding/login.
             await setSetting('onboardingSeen', 'true');
-            await setSetting('authMode', 'guest');
           }
           // v4: income categories + extra expense defaults (idempotent re-seed).
           if (from < 4) {
@@ -67,6 +67,14 @@ class AppDatabase extends _$AppDatabase {
           // (read only slips newer than the latest one) survives reinstall/sync.
           if (from < 6) {
             await m.addColumn(slips, slips.photoTakenAt);
+          }
+          // v7: recurring rules that auto-create transactions on a schedule.
+          if (from < 7) {
+            await m.createTable(recurringRules);
+          }
+          // v8: per-budget "alert at 80%" toggle.
+          if (from < 8) {
+            await m.addColumn(budgets, budgets.alertEnabled);
           }
         },
       );
@@ -357,6 +365,60 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  // ---- Recurring rules ---------------------------------------------------
+
+  Stream<List<RecurringRuleRow>> watchRecurringRules() {
+    final q = select(recurringRules)..where((r) => r.deleted.equals(false));
+    return q.watch();
+  }
+
+  Future<void> upsertRecurringRule(RecurringRulesCompanion row) =>
+      into(recurringRules).insertOnConflictUpdate(row);
+
+  Future<RecurringRuleRow?> getRecurringRule(String id) =>
+      (select(recurringRules)..where((r) => r.id.equals(id))).getSingleOrNull();
+
+  /// Active (non-deleted) rules whose next occurrence is due at or before [now].
+  Future<List<RecurringRuleRow>> dueRecurringRules(int now) async {
+    final q = select(recurringRules)..where((r) => r.deleted.equals(false));
+    final rules = await q.get();
+    return rules.where((r) => r.nextRunAt <= now).toList();
+  }
+
+  Future<void> softDeleteRecurringRule(String id, int now) {
+    return (update(recurringRules)..where((r) => r.id.equals(id))).write(
+      RecurringRulesCompanion(
+        deleted: const Value(true),
+        syncStatus: const Value(SyncStatus.pendingDelete),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  Future<List<RecurringRuleRow>> pendingRecurringRules() => (select(
+        recurringRules,
+      )..where((r) => r.syncStatus.isNotValue(SyncStatus.synced.index)))
+          .get();
+
+  Future<void> markRecurringRuleSynced(String id) =>
+      (update(recurringRules)..where((r) => r.id.equals(id))).write(
+        const RecurringRulesCompanion(syncStatus: Value(SyncStatus.synced)),
+      );
+
+  Future<Map<String, int>> recurringRulesUpdatedAt() async {
+    final q = selectOnly(recurringRules);
+    q.addColumns([recurringRules.id, recurringRules.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      final id = r.read(recurringRules.id)!;
+      result[id] = r.read(recurringRules.updatedAt) ?? 0;
+    }
+    return result;
+  }
+
+  Future<void> batchUpsertRecurringRules(List<RecurringRulesCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(recurringRules, rows));
+
   // ---- Sync helpers ------------------------------------------------------
 
   Future<List<TransactionRow>> pendingTransactions() => (select(
@@ -513,7 +575,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> batchUpsertSlips(List<SlipsCompanion> rows) =>
       batch((b) => b.insertAllOnConflictUpdate(slips, rows));
 
-  // ---- Tags (local-only) -------------------------------------------------
+  // ---- Tags (synced) -----------------------------------------------------
 
   Stream<List<TagRow>> watchTags() => (select(tags)
         ..where((t) => t.deleted.equals(false))
@@ -528,7 +590,22 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteTagCascade(String id) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    // Transactions that referenced this tag must re-sync so the tag id drops
+    // from their cloud doc on other devices — capture them before unlinking.
+    final affected = await (select(
+      transactionTags,
+    )..where((l) => l.tagId.equals(id)))
+        .get();
     await (delete(transactionTags)..where((l) => l.tagId.equals(id))).go();
+    for (final link in affected) {
+      final tid = link.transactionId;
+      await (update(transactions)..where((t) => t.id.equals(tid))).write(
+        TransactionsCompanion(
+          updatedAt: Value(now),
+          syncStatus: const Value(SyncStatus.pendingUpdate),
+        ),
+      );
+    }
     // Soft-delete (not hard) so the deletion syncs as a tombstone and the tag
     // isn't resurrected by the next pull from the cloud.
     await (update(tags)..where((t) => t.id.equals(id))).write(
@@ -540,7 +617,7 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  // ---- Transaction ↔ Tag links (local-only) ------------------------------
+  // ---- Transaction ↔ Tag links (synced via transaction docs) -------------
 
   Stream<List<TransactionTagRow>> watchAllTransactionTags() =>
       select(transactionTags).watch();

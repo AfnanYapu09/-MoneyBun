@@ -56,7 +56,9 @@ class TransactionRepository {
         amountCents: amountCents,
         currency: Value(currency),
         accountId: accountId ?? existing?.accountId ?? '',
-        toAccountId: Value(toAccountId ?? existing?.toAccountId),
+        // Written straight through (not null-coalesced) so switching an entry
+        // away from a transfer can clear its destination account.
+        toAccountId: Value(toAccountId),
         categoryId: Value(categoryId),
         note: Value(note),
         occurredAt: AppDate.toMillis(occurredAt),

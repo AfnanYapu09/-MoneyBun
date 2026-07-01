@@ -24,16 +24,34 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
   String _query = '';
-  final List<String> _recent = [];
+  List<String> _recent = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecent();
+  }
+
+  Future<void> _loadRecent() async {
+    final items =
+        await ref.read(settingsRepositoryProvider).getRecentSearches();
+    if (!mounted) return;
+    setState(() => _recent = items);
+  }
 
   void _runQuery(String v) {
-    setState(() => _query = v);
     final t = v.trim();
+    setState(() {
+      _query = v;
+      if (t.isNotEmpty) {
+        _recent
+          ..remove(t)
+          ..insert(0, t);
+        if (_recent.length > 6) _recent.removeLast();
+      }
+    });
     if (t.isNotEmpty) {
-      _recent
-        ..remove(t)
-        ..insert(0, t);
-      if (_recent.length > 6) _recent.removeLast();
+      ref.read(settingsRepositoryProvider).setRecentSearches(_recent);
     }
   }
 
@@ -139,12 +157,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             Expanded(
               child: q.isEmpty
                   ? _RecentSearches(
-                      recent: _recent.isNotEmpty
-                          ? _recent
-                          : categories.values
-                              .take(3)
-                              .map((c) => c.displayName(locale))
-                              .toList(),
+                      recent: _recent,
                       onTap: (s) {
                         _controller.text = s;
                         setState(() => _query = s);

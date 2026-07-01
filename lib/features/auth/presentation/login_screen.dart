@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,6 +39,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Guest mode only when Firebase isn't configured (local fallback). When it
     // is, sign-in is required so all data is tied to an account and synced.
     final firebaseReady = ref.watch(firebaseReadyProvider);
+    // Apple Sign-In only works on iOS/macOS; hide the button elsewhere so it
+    // isn't offered on Android where it can only fail.
+    final appleAvailable = defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS;
     return Scaffold(
       backgroundColor: context.palette.bg,
       body: SafeArea(
@@ -118,12 +123,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   label: 'Google',
                   onPressed: _google,
                 ),
-                const SizedBox(width: 12),
-                SocialButton(
-                  icon: AppIcons.apple,
-                  label: 'Apple',
-                  onPressed: _apple,
-                ),
+                if (appleAvailable) ...[
+                  const SizedBox(width: 12),
+                  SocialButton(
+                    icon: AppIcons.apple,
+                    label: 'Apple',
+                    onPressed: _apple,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 24),
@@ -181,7 +188,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _busy = true);
     try {
       await action();
-      await ref.read(settingsRepositoryProvider).setAuthMode('signedIn');
       // Enter the app immediately; SyncController kicks off the first sync in
       // the background on the auth-state change, so login no longer blocks on a
       // full push+pull.

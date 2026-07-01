@@ -180,6 +180,7 @@ class FirestoreMappers {
         'startDate': r.startDate,
         'endDate': r.endDate,
         'rollover': r.rollover,
+        'alertEnabled': r.alertEnabled,
         'createdAt': r.createdAt,
         'updatedAt': r.updatedAt,
         'deleted': r.deleted,
@@ -194,6 +195,43 @@ class FirestoreMappers {
         startDate: Value((m['startDate'] as num?)?.toInt() ?? 0),
         endDate: Value((m['endDate'] as num?)?.toInt()),
         rollover: Value(m['rollover'] == true),
+        alertEnabled: Value(m['alertEnabled'] != false),
+        createdAt: Value((m['createdAt'] as num?)?.toInt() ?? 0),
+        updatedAt: Value((m['updatedAt'] as num?)?.toInt() ?? 0),
+        deleted: Value(m['deleted'] == true),
+        remoteId: Value(id),
+        syncStatus: const Value(SyncStatus.synced),
+      );
+
+  // ---- Recurring rules ----
+  static Map<String, dynamic> recurringRuleToMap(RecurringRuleRow r) => {
+        'type': r.type.index,
+        'amountCents': r.amountCents,
+        'categoryId': r.categoryId,
+        'accountId': r.accountId,
+        'note': r.note,
+        'freq': r.freq.index,
+        'nextRunAt': r.nextRunAt,
+        'lastRunAt': r.lastRunAt,
+        'createdAt': r.createdAt,
+        'updatedAt': r.updatedAt,
+        'deleted': r.deleted,
+      };
+
+  static RecurringRulesCompanion recurringRuleFromMap(
+    String id,
+    Map<String, dynamic> m,
+  ) =>
+      RecurringRulesCompanion(
+        id: Value(id),
+        type: Value(_enum(TxnType.values, m['type'])),
+        amountCents: Value((m['amountCents'] as num?)?.toInt() ?? 0),
+        categoryId: Value(m['categoryId'] as String?),
+        accountId: Value(m['accountId'] as String?),
+        note: Value(m['note'] as String?),
+        freq: Value(_enum(RecurFreq.values, m['freq'])),
+        nextRunAt: Value((m['nextRunAt'] as num?)?.toInt() ?? 0),
+        lastRunAt: Value((m['lastRunAt'] as num?)?.toInt()),
         createdAt: Value((m['createdAt'] as num?)?.toInt() ?? 0),
         updatedAt: Value((m['updatedAt'] as num?)?.toInt() ?? 0),
         deleted: Value(m['deleted'] == true),
