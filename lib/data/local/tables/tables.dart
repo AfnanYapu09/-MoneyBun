@@ -199,6 +199,9 @@ class Budgets extends Table {
   IntColumn get startDate => integer()();
   IntColumn get endDate => integer().nullable()();
   BoolColumn get rollover => boolean().withDefault(const Constant(false))();
+
+  /// Warn the user when spending reaches 80% of this budget.
+  BoolColumn get alertEnabled => boolean().withDefault(const Constant(true))();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
   IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(

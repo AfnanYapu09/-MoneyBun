@@ -180,6 +180,7 @@ class BudgetScreen extends ConsumerWidget {
                           budgets[i].period,
                           locale,
                         ),
+                        alert: budgets[i].alertEnabled,
                       ),
                     ),
                   ],
@@ -200,11 +201,13 @@ class _BudgetBar extends StatelessWidget {
     required this.spent,
     required this.limit,
     required this.periodLabel,
+    required this.alert,
   });
   final CategoryRow? category;
   final int spent;
   final int limit;
   final String periodLabel;
+  final bool alert;
 
   @override
   Widget build(BuildContext context) {
@@ -269,6 +272,10 @@ class _BudgetBar extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (alert && pct >= 0.8) ...[
+                          const SizedBox(width: 6),
+                          Icon(AppIcons.bellRing, size: 13, color: color),
+                        ],
                       ],
                     ),
                   ),

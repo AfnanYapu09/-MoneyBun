@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +71,10 @@ class AppDatabase extends _$AppDatabase {
           // v7: recurring rules that auto-create transactions on a schedule.
           if (from < 7) {
             await m.createTable(recurringRules);
+          }
+          // v8: per-budget "alert at 80%" toggle.
+          if (from < 8) {
+            await m.addColumn(budgets, budgets.alertEnabled);
           }
         },
       );
