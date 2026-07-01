@@ -48,10 +48,16 @@ class SyncController with WidgetsBindingObserver {
   /// Firestore call stalls, the skeleton is guaranteed to clear within this.
   static const _firstSyncTimeout = Duration(seconds: 15);
 
+  /// Minimum gap between resume-triggered full syncs, so rapidly switching back
+  /// to the app doesn't re-run a full sync every time. Sign-in and launch syncs
+  /// are never throttled.
+  static const _resumeMinInterval = Duration(minutes: 2);
+
   StreamSubscription<void>? _authSub;
   Timer? _debounce;
   bool _firstSyncStarted = false;
   bool _firstSyncCompletedFired = false;
+  DateTime? _lastFullSyncAt;
   final Completer<void> _initialSync = Completer<void>();
 
   /// Resolves once the first cloud sync has finished (success or failure), or
@@ -79,6 +85,7 @@ class SyncController with WidgetsBindingObserver {
       _firstSyncStarted = true;
       onSyncingChanged?.call(true);
     }
+    _lastFullSyncAt = DateTime.now();
     var ran = false;
     try {
       // Bounded so a stalled Firestore call can't strand the loading skeleton
@@ -102,7 +109,14 @@ class SyncController with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _fullSync();
+    if (state != AppLifecycleState.resumed) return;
+    // Throttle: skip if a full sync ran very recently (avoids re-syncing on
+    // every quick app switch). On-change edits still upload via nudgePush.
+    final last = _lastFullSyncAt;
+    if (last != null && DateTime.now().difference(last) < _resumeMinInterval) {
+      return;
+    }
+    _fullSync();
   }
 
   void dispose() {

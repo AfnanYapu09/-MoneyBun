@@ -13,9 +13,17 @@ import 'firestore_mappers.dart';
 ///
 /// Deletes are pushed as soft-delete tombstones (`deleted: true`), not as
 /// document removals, so other devices learn about a deletion on their next
-/// pull. For a personal, single-user / multi-device app the collections are
-/// small, so pull reads the whole collection and upserts only rows newer than
-/// the local copy. Document id == row id, so no cursor bookkeeping is required.
+/// pull. Document id == row id.
+///
+/// Pull is incremental: each collection keeps a high-water mark (the max
+/// `updatedAt` already pulled) and fetches only `updatedAt` greater than that,
+/// minus a [_pullMargin] safety window so a device whose clock lags (up to the
+/// margin) isn't skipped. The watermark is clamped to this device's own `now`
+/// when advanced, so a device whose clock runs *fast* can't jump the cursor into
+/// the future and hide other devices' edits. The first pull (watermark 0)
+/// fetches everything. Tombstones bump `updatedAt`, so deletes still arrive
+/// through the cursor. (A monotonic server timestamp would remove the residual
+/// dependence on client clocks entirely — a planned follow-up.)
 ///
 /// [pushOnly] uploads pending local changes without pulling — used by the
 /// automatic on-change sync so frequent edits don't run up Firestore reads.
@@ -33,6 +41,16 @@ class SyncEngine {
   /// block every future sync. On timeout the run is abandoned and rows stay
   /// pending for the next trigger.
   static const _networkTimeout = Duration(seconds: 30);
+
+  /// Re-read window subtracted from each collection's pull watermark. An
+  /// incremental pull fetches `updatedAt > watermark - _pullMargin`, so a doc
+  /// stamped up to this far behind the newest one (e.g. a device whose clock
+  /// lags) is still picked up instead of being skipped by the cursor.
+  static const _pullMargin = Duration(days: 7);
+
+  /// Age past which a synced soft-delete tombstone is garbage-collected locally.
+  /// Comfortably beyond [_pullMargin] so a collected tombstone isn't re-fetched.
+  static const _tombstoneRetention = Duration(days: 90);
 
   CollectionReference<Map<String, dynamic>> _col(String uid, String name) =>
       _fs.collection('users').doc(uid).collection(name);
@@ -52,6 +70,14 @@ class SyncEngine {
     try {
       await _pullAll(uid).timeout(_networkTimeout);
       await _pushAll(uid).timeout(_networkTimeout);
+      // Reclaim old tombstones after a successful sync (best-effort, local-only
+      // — never fail the sync over housekeeping).
+      try {
+        await _db.gcTombstones(
+          DateTime.now().millisecondsSinceEpoch -
+              _tombstoneRetention.inMilliseconds,
+        );
+      } catch (_) {}
       return true;
     } catch (_) {
       // Best-effort: a failed/timed-out sync is retried on the next trigger.
@@ -121,123 +147,178 @@ class SyncEngine {
     });
   }
 
+  // Rows within a collection upload concurrently (each is an independent
+  // last-write-wins transaction on a distinct doc), so the first sync of a
+  // freshly-seeded device isn't a long chain of serial round-trips.
+
   Future<void> _pushTransactions(String uid) async {
+    final pending = await _db.pendingTransactions();
+    if (pending.isEmpty) return;
     final col = _col(uid, 'transactions');
-    for (final r in await _db.pendingTransactions()) {
+    // Fetch every tag link once instead of one query per pending row.
+    final tagsByTxn = <String, List<String>>{};
+    for (final link in await _db.getAllTransactionTags()) {
+      (tagsByTxn[link.transactionId] ??= []).add(link.tagId);
+    }
+    await Future.wait(pending.map((r) async {
       final map = FirestoreMappers.transactionToMap(r);
       // Embed the tag links so they sync without a separate collection.
-      map['tagIds'] = await _db.tagIdsForTransaction(r.id);
+      map['tagIds'] = tagsByTxn[r.id] ?? const <String>[];
       await _pushDoc(col.doc(r.id), map);
       await _db.markTransactionSynced(r.id);
-    }
+    }));
   }
 
   Future<void> _pushAccounts(String uid) async {
     final col = _col(uid, 'accounts');
-    for (final r in await _db.pendingAccounts()) {
+    await Future.wait((await _db.pendingAccounts()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.accountToMap(r));
       await _db.markAccountSynced(r.id);
-    }
+    }));
   }
 
   Future<void> _pushCategories(String uid) async {
     final col = _col(uid, 'categories');
-    for (final r in await _db.pendingCategories()) {
+    await Future.wait((await _db.pendingCategories()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.categoryToMap(r));
       await _db.markCategorySynced(r.id);
-    }
+    }));
   }
 
   Future<void> _pushSlips(String uid) async {
     final col = _col(uid, 'slips');
-    for (final r in await _db.pendingSlips()) {
+    await Future.wait((await _db.pendingSlips()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.slipToMap(r));
       await _db.markSlipSynced(r.id);
-    }
+    }));
   }
 
   Future<void> _pushBudgets(String uid) async {
     final col = _col(uid, 'budgets');
-    for (final r in await _db.pendingBudgets()) {
+    await Future.wait((await _db.pendingBudgets()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.budgetToMap(r));
       await _db.markBudgetSynced(r.id);
-    }
+    }));
   }
 
   Future<void> _pushTags(String uid) async {
     final col = _col(uid, 'tags');
-    for (final r in await _db.pendingTags()) {
+    await Future.wait((await _db.pendingTags()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.tagToMap(r));
       await _db.markTagSynced(r.id);
-    }
+    }));
   }
 
   Future<void> _pushRecurringRules(String uid) async {
     final col = _col(uid, 'recurringRules');
-    for (final r in await _db.pendingRecurringRules()) {
+    await Future.wait((await _db.pendingRecurringRules()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.recurringRuleToMap(r));
       await _db.markRecurringRuleSynced(r.id);
-    }
+    }));
   }
 
-  // ---- Pull (last-write-wins; deleted:true rows soft-delete locally) ------
+  // ---- Pull (incremental, last-write-wins; deleted:true rows soft-delete) ---
+
+  /// Fetch only docs changed since this collection's watermark (minus the
+  /// clock-skew [_pullMargin]). A watermark of 0 fetches everything.
+  Future<QuerySnapshot<Map<String, dynamic>>> _incrementalPull(
+    String uid,
+    String name,
+  ) async {
+    final watermark = await _db.pullWatermark(name);
+    final since = watermark - _pullMargin.inMilliseconds;
+    return _col(uid, name).where('updatedAt', isGreaterThan: since).get();
+  }
+
+  /// Advance a collection's watermark, clamped to this device's own `now` so a
+  /// future-dated remote timestamp (a peer with a fast clock) can't push the
+  /// cursor past real time and start hiding other devices' edits.
+  Future<void> _saveWatermark(String name, int maxUpdated) {
+    if (maxUpdated <= 0) return Future<void>.value();
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    return _db.setPullWatermark(name, maxUpdated < nowMs ? maxUpdated : nowMs);
+  }
+
+  /// Whether a fetched doc is a tombstone for a row we don't hold locally — such
+  /// a doc has nothing to soft-delete, so storing it would only get it
+  /// re-collected by [AppDatabase.gcTombstones] and re-fetched next sync.
+  bool _isAbsentTombstone(Map<String, dynamic> data, int? localUpdatedAt) =>
+      localUpdatedAt == null && data['deleted'] == true;
 
   Future<void> _pullAccounts(String uid) async {
-    final snap = await _col(uid, 'accounts').get();
+    final snap = await _incrementalPull(uid, 'accounts');
     if (snap.docs.isEmpty) return;
     final localUpdated = await _db.accountsUpdatedAt();
     final rows = <AccountsCompanion>[];
+    var maxUpdated = 0;
     for (final doc in snap.docs) {
-      final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
+      final data = doc.data();
+      final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
       final localUpdatedAt = localUpdated[doc.id];
+      if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
-        rows.add(FirestoreMappers.accountFromMap(doc.id, doc.data()));
+        rows.add(FirestoreMappers.accountFromMap(doc.id, data));
       }
     }
     if (rows.isNotEmpty) await _db.batchUpsertAccounts(rows);
+    await _saveWatermark('accounts', maxUpdated);
   }
 
   Future<void> _pullCategories(String uid) async {
-    final snap = await _col(uid, 'categories').get();
+    final snap = await _incrementalPull(uid, 'categories');
     if (snap.docs.isEmpty) return;
     final localUpdated = await _db.categoriesUpdatedAt();
     final rows = <CategoriesCompanion>[];
+    var maxUpdated = 0;
     for (final doc in snap.docs) {
-      final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
+      final data = doc.data();
+      final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
       final localUpdatedAt = localUpdated[doc.id];
+      if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
-        rows.add(FirestoreMappers.categoryFromMap(doc.id, doc.data()));
+        rows.add(FirestoreMappers.categoryFromMap(doc.id, data));
       }
     }
     if (rows.isNotEmpty) await _db.batchUpsertCategories(rows);
+    await _saveWatermark('categories', maxUpdated);
   }
 
   Future<void> _pullTags(String uid) async {
-    final snap = await _col(uid, 'tags').get();
+    final snap = await _incrementalPull(uid, 'tags');
     if (snap.docs.isEmpty) return;
     final localUpdated = await _db.tagsUpdatedAt();
     final rows = <TagsCompanion>[];
+    var maxUpdated = 0;
     for (final doc in snap.docs) {
-      final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
+      final data = doc.data();
+      final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
       final localUpdatedAt = localUpdated[doc.id];
+      if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
-        rows.add(FirestoreMappers.tagFromMap(doc.id, doc.data()));
+        rows.add(FirestoreMappers.tagFromMap(doc.id, data));
       }
     }
     if (rows.isNotEmpty) await _db.batchUpsertTags(rows);
+    await _saveWatermark('tags', maxUpdated);
   }
 
   Future<void> _pullTransactions(String uid) async {
-    final snap = await _col(uid, 'transactions').get();
+    final snap = await _incrementalPull(uid, 'transactions');
     if (snap.docs.isEmpty) return;
     // One query for all local updatedAt instead of a read per row.
     final localUpdated = await _db.transactionsUpdatedAt();
     final rows = <TransactionsCompanion>[];
     final tagWrites = <MapEntry<String, List<String>>>[];
+    var maxUpdated = 0;
     for (final doc in snap.docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
       final localUpdatedAt = localUpdated[doc.id];
+      if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
         rows.add(FirestoreMappers.transactionFromMap(doc.id, data));
         final tagIds =
@@ -254,50 +335,66 @@ class SyncEngine {
     for (final w in tagWrites) {
       await _db.setTransactionTags(w.key, w.value);
     }
+    await _saveWatermark('transactions', maxUpdated);
   }
 
   Future<void> _pullBudgets(String uid) async {
-    final snap = await _col(uid, 'budgets').get();
+    final snap = await _incrementalPull(uid, 'budgets');
     if (snap.docs.isEmpty) return;
     final localUpdated = await _db.budgetsUpdatedAt();
     final rows = <BudgetsCompanion>[];
+    var maxUpdated = 0;
     for (final doc in snap.docs) {
-      final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
+      final data = doc.data();
+      final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
       final localUpdatedAt = localUpdated[doc.id];
+      if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
-        rows.add(FirestoreMappers.budgetFromMap(doc.id, doc.data()));
+        rows.add(FirestoreMappers.budgetFromMap(doc.id, data));
       }
     }
     if (rows.isNotEmpty) await _db.batchUpsertBudgets(rows);
+    await _saveWatermark('budgets', maxUpdated);
   }
 
   Future<void> _pullSlips(String uid) async {
-    final snap = await _col(uid, 'slips').get();
+    final snap = await _incrementalPull(uid, 'slips');
     if (snap.docs.isEmpty) return;
     final localUpdated = await _db.slipsUpdatedAt();
     final rows = <SlipsCompanion>[];
+    var maxUpdated = 0;
     for (final doc in snap.docs) {
-      final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
+      final data = doc.data();
+      final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
       final localUpdatedAt = localUpdated[doc.id];
+      if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
-        rows.add(FirestoreMappers.slipFromMap(doc.id, doc.data()));
+        rows.add(FirestoreMappers.slipFromMap(doc.id, data));
       }
     }
     if (rows.isNotEmpty) await _db.batchUpsertSlips(rows);
+    await _saveWatermark('slips', maxUpdated);
   }
 
   Future<void> _pullRecurringRules(String uid) async {
-    final snap = await _col(uid, 'recurringRules').get();
+    final snap = await _incrementalPull(uid, 'recurringRules');
     if (snap.docs.isEmpty) return;
     final localUpdated = await _db.recurringRulesUpdatedAt();
     final rows = <RecurringRulesCompanion>[];
+    var maxUpdated = 0;
     for (final doc in snap.docs) {
-      final remoteUpdated = (doc.data()['updatedAt'] as num?)?.toInt() ?? 0;
+      final data = doc.data();
+      final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
       final localUpdatedAt = localUpdated[doc.id];
+      if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
-        rows.add(FirestoreMappers.recurringRuleFromMap(doc.id, doc.data()));
+        rows.add(FirestoreMappers.recurringRuleFromMap(doc.id, data));
       }
     }
     if (rows.isNotEmpty) await _db.batchUpsertRecurringRules(rows);
+    await _saveWatermark('recurringRules', maxUpdated);
   }
 }
