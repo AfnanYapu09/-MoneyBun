@@ -192,6 +192,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     try {
       await auth.signUpWithEmail(_name.text, _email.text, _password.text);
       final repo = ref.read(settingsRepositoryProvider);
+      // A brand-new account has no cloud data to pull, so the first sync is
+      // already "done" — this keeps the Home first-load skeleton from flashing
+      // for a user who has nothing to wait for.
+      await repo.setFirstSyncDone(true);
       if (_name.text.trim().isNotEmpty) {
         await repo.setDisplayName(_name.text.trim());
       }

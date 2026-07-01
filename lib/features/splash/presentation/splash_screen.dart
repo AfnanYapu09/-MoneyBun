@@ -24,7 +24,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _boot() async {
     final settings = await ref.read(settingsRepositoryProvider).read();
-    await Future.delayed(const Duration(milliseconds: 1400));
+    // A short brand beat — kept snappy so the app reaches Home (and the local
+    // data already waiting there) without a needless wait on every cold start.
+    await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
     if (!settings.onboardingSeen) {
       context.go('/onboarding');

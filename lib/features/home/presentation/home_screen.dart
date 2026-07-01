@@ -17,6 +17,7 @@ import '../../../core/widgets/app_motion.dart';
 import '../../../core/widgets/bun_avatar.dart';
 import '../../../core/widgets/bun_scanning_block.dart';
 import '../../../core/widgets/period_chip.dart';
+import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/stat_chip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
@@ -64,6 +65,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final budgets = ref.watch(budgetsProvider).value ?? const <BudgetRow>[];
     final settings = ref.watch(appSettingsProvider).value;
     final scan = ref.watch(scanControllerProvider);
+
+    // Show the first-load skeleton only on a genuinely-first login of this
+    // device: the initial cloud sync is running, the device has never finished a
+    // sync before, and the local DB has no transactions yet. Returning users
+    // (who already have data, or whose first sync completed) go straight to
+    // their data; guest / offline mode never sets the syncing flag at all. Keyed
+    // on the whole DB — not the selected period — so someone with historical
+    // data but no spend this month never sees a skeleton.
+    final firstSyncDone = settings?.firstSyncDone ?? false;
+    final hasLocalData =
+        (ref.watch(allTransactionsProvider).value ?? const <TransactionRow>[])
+            .isNotEmpty;
+    final showLoading = ref.watch(initialSyncingProvider) &&
+        !firstSyncDone &&
+        !hasLocalData;
+
+    final periodChip = PeriodChip(
+      label: period.label(locale),
+      onTapLabel: () => showPeriodPickerSheet(context),
+      onPrev: () => ref.read(selectedPeriodProvider.notifier).previous(),
+      onNext: () => ref.read(selectedPeriodProvider.notifier).next(),
+    );
 
     _listenScan();
 
@@ -113,61 +136,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               sliver: SliverToBoxAdapter(
                 child: StaggeredColumn(
                   spacing: 18,
-                  children: [
-                    const _Header(),
-                    if (scan.scanning) const BunScanningBlock(),
-                    PeriodChip(
-                      label: period.label(locale),
-                      onTapLabel: () => showPeriodPickerSheet(context),
-                      onPrev: () =>
-                          ref.read(selectedPeriodProvider.notifier).previous(),
-                      onNext: () =>
-                          ref.read(selectedPeriodProvider.notifier).next(),
-                    ),
-                    _SpendingCard(
-                      spentCents: expense,
-                      budgetCents: totalBudget,
-                      subtitleNoun: period.periodNoun(locale),
-                      scanning: scan.scanning,
-                      lastReadAt: settings?.lastSlipReadAt,
-                      onRefresh: _scan,
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: StatChip(
-                            icon: AppIcons.arrowDownLeft,
-                            label: l10n.income,
-                            amount: Money.compact(income),
-                            accent: context.palette.greenFg,
-                            amountColor: context.palette.greenFg,
+                  children: showLoading
+                      ? [
+                          const _Header(),
+                          periodChip,
+                          const _HomeSkeleton(),
+                        ]
+                      : [
+                          const _Header(),
+                          if (scan.scanning) const BunScanningBlock(),
+                          periodChip,
+                          _SpendingCard(
+                            spentCents: expense,
+                            budgetCents: totalBudget,
+                            subtitleNoun: period.periodNoun(locale),
+                            scanning: scan.scanning,
+                            lastReadAt: settings?.lastSlipReadAt,
+                            onRefresh: _scan,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: StatChip(
-                            icon: AppIcons.arrowUpRight,
-                            label: l10n.expense,
-                            amount: Money.compact(expense),
-                            accent: AppColors.terra,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: StatChip(
+                                  icon: AppIcons.arrowDownLeft,
+                                  label: l10n.income,
+                                  amount: Money.compact(income),
+                                  accent: context.palette.greenFg,
+                                  amountColor: context.palette.greenFg,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: StatChip(
+                                  icon: AppIcons.arrowUpRight,
+                                  label: l10n.expense,
+                                  amount: Money.compact(expense),
+                                  accent: AppColors.terra,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                    _RecentHeader(
-                      onSeeAll: () => context.push('/transactions'),
-                    ),
-                    _RecentList(
-                      uncategorized: recentUncategorized,
-                      categories: categories,
-                      accounts: accounts,
-                      locale: locale,
-                      onTapTxn: (id) =>
-                          showAddTransactionSheet(context, editId: id),
-                      onCategorize: _categorize,
-                      onShowSlip: _showSlip,
-                    ),
-                  ],
+                          _RecentHeader(
+                            onSeeAll: () => context.push('/transactions'),
+                          ),
+                          _RecentList(
+                            uncategorized: recentUncategorized,
+                            categories: categories,
+                            accounts: accounts,
+                            locale: locale,
+                            onTapTxn: (id) =>
+                                showAddTransactionSheet(context, editId: id),
+                            onCategorize: _categorize,
+                            onShowSlip: _showSlip,
+                          ),
+                        ],
                 ),
               ),
             ),
@@ -344,6 +366,42 @@ class _PullHint extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Placeholder dashboard shown on the first login of a new device while the
+/// user's data is still being pulled from the cloud — mirrors the real layout
+/// (spending card, income/expense chips, recent rows) so the switch to live
+/// data is seamless.
+class _HomeSkeleton extends StatelessWidget {
+  const _HomeSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Skeleton(height: 170, radius: 24),
+        const SizedBox(height: 18),
+        Row(
+          children: const [
+            Expanded(child: Skeleton(height: 76, radius: 18)),
+            SizedBox(width: 12),
+            Expanded(child: Skeleton(height: 76, radius: 18)),
+          ],
+        ),
+        const SizedBox(height: 24),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Skeleton(width: 120, height: 16),
+        ),
+        const SizedBox(height: 16),
+        for (var i = 0; i < 4; i++) ...[
+          const Skeleton(height: 58, radius: 16),
+          const SizedBox(height: 12),
+        ],
+      ],
     );
   }
 }

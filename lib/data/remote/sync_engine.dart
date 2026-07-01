@@ -4,9 +4,12 @@ import '../local/database.dart';
 import 'auth_service.dart';
 import 'firestore_mappers.dart';
 
-/// Local-first sync. Drift is the source of truth. On [sync] we push every
-/// locally-changed row to the signed-in user's Firestore collections, then pull
-/// remote changes back, resolving conflicts last-write-wins by `updatedAt`.
+/// Local-first sync. Drift is the source of truth. On [sync] we pull the
+/// signed-in user's Firestore collections into the local DB first — so a fresh
+/// login on a new device paints the user's real data as fast as possible — then
+/// push any locally-changed rows back up. Conflicts resolve last-write-wins by
+/// `updatedAt`, so pulling first never loses a pending local edit (those carry a
+/// newer `updatedAt` and win the comparison; they're uploaded on the push pass).
 ///
 /// Deletes are pushed as soft-delete tombstones (`deleted: true`), not as
 /// document removals, so other devices learn about a deletion on their next
@@ -28,14 +31,20 @@ class SyncEngine {
   CollectionReference<Map<String, dynamic>> _col(String uid, String name) =>
       _fs.collection('users').doc(uid).collection(name);
 
-  /// Full sync (push + pull). Returns true if it actually ran (user signed in).
+  /// Full sync (pull + push). Returns true if it actually ran (user signed in).
+  ///
+  /// Pull runs before push so the user's cloud data reaches the local DB — and
+  /// the home screen — without waiting for the initial upload of freshly-seeded
+  /// defaults. On a first login the seeds carry `updatedAt: 0`, so the real
+  /// cloud rows win the last-write-wins comparison and overwrite them instead of
+  /// the defaults being pushed back over the user's data.
   Future<bool> sync() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _running) return false;
     _running = true;
     try {
-      await _pushAll(uid);
       await _pullAll(uid);
+      await _pushAll(uid);
       return true;
     } finally {
       _running = false;
