@@ -364,8 +364,8 @@ class AppDatabase extends _$AppDatabase {
   // ---- Recurring rules ---------------------------------------------------
 
   Stream<List<RecurringRuleRow>> watchRecurringRules() {
-    return (select(recurringRules)..where((r) => r.deleted.equals(false)))
-        .watch();
+    final q = select(recurringRules)..where((r) => r.deleted.equals(false));
+    return q.watch();
   }
 
   Future<void> upsertRecurringRule(RecurringRulesCompanion row) =>
@@ -376,9 +376,8 @@ class AppDatabase extends _$AppDatabase {
 
   /// Active (non-deleted) rules whose next occurrence is due at or before [now].
   Future<List<RecurringRuleRow>> dueRecurringRules(int now) async {
-    final rules =
-        await (select(recurringRules)..where((r) => r.deleted.equals(false)))
-            .get();
+    final q = select(recurringRules)..where((r) => r.deleted.equals(false));
+    final rules = await q.get();
     return rules.where((r) => r.nextRunAt <= now).toList();
   }
 
@@ -407,8 +406,8 @@ class AppDatabase extends _$AppDatabase {
     q.addColumns([recurringRules.id, recurringRules.updatedAt]);
     final result = <String, int>{};
     for (final r in await q.get()) {
-      result[r.read(recurringRules.id)!] =
-          r.read(recurringRules.updatedAt) ?? 0;
+      final id = r.read(recurringRules.id)!;
+      result[id] = r.read(recurringRules.updatedAt) ?? 0;
     }
     return result;
   }
