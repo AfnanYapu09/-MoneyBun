@@ -79,13 +79,35 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
   );
 });
 
+/// Whether the first cloud sync after sign-in is still running. Home watches
+/// this to show a loading skeleton on a new device's first login (when the
+/// local DB is empty and the user's data is still streaming down). Stays false
+/// in guest / offline mode, where there is no cloud to wait for.
+class InitialSyncing extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  // ignore: use_setters_to_change_properties
+  void setSyncing(bool value) => state = value;
+}
+
+final initialSyncingProvider =
+    NotifierProvider<InitialSyncing, bool>(InitialSyncing.new);
+
 /// Owns automatic sync (on sign-in, app launch, resume, and after edits).
 /// Watch it once (in the app root) to keep it alive for the app's lifetime.
 final syncControllerProvider = Provider<SyncController?>((ref) {
   final engine = ref.watch(syncEngineProvider);
   final auth = ref.watch(authServiceProvider);
   if (engine == null || auth == null) return null;
-  final controller = SyncController(engine, auth);
+  final controller = SyncController(
+    engine,
+    auth,
+    onSyncingChanged: (syncing) =>
+        ref.read(initialSyncingProvider.notifier).setSyncing(syncing),
+    onFirstSyncCompleted: () =>
+        ref.read(settingsRepositoryProvider).setFirstSyncDone(true),
+  );
   // Upload pending changes shortly after any local data change.
   ref.listen(allTransactionsProvider, (_, __) => controller.nudgePush());
   ref.listen(accountsProvider, (_, __) => controller.nudgePush());

@@ -14,6 +14,7 @@ class AppSettings {
     this.username = 'moneybun',
     this.phone = '',
     this.avatarPath,
+    this.firstSyncDone = false,
   });
 
   final bool onboardingSeen;
@@ -31,6 +32,11 @@ class AppSettings {
 
   /// Absolute path to the user's chosen profile photo (null = use the mascot).
   final String? avatarPath;
+
+  /// Whether this device has ever finished its first cloud pull. Gates the Home
+  /// loading skeleton so it only appears on a genuinely-first login (empty local
+  /// DB), never again for a returning user.
+  final bool firstSyncDone;
 
   factory AppSettings.fromMap(Map<String, String> m) {
     bool b(String k, [bool d = false]) => m[k] == null ? d : m[k] == 'true';
@@ -52,6 +58,7 @@ class AppSettings {
       username: m[SettingsKeys.username] ?? 'moneybun',
       phone: m[SettingsKeys.phone] ?? '',
       avatarPath: m[SettingsKeys.avatarPath],
+      firstSyncDone: b(SettingsKeys.firstSyncDone),
     );
   }
 }
@@ -70,6 +77,7 @@ class SettingsKeys {
   static const phone = 'phone';
   static const avatarPath = 'avatarPath';
   static const recentSearches = 'recentSearches';
+  static const firstSyncDone = 'firstSyncDone';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -111,6 +119,29 @@ class SettingsRepository {
   Future<void> setAvatarPath(String path) => set(SettingsKeys.avatarPath, path);
   Future<void> setUsername(String v) => set(SettingsKeys.username, v);
   Future<void> setPhone(String v) => set(SettingsKeys.phone, v);
+  Future<void> setFirstSyncDone(bool v) =>
+      setBool(SettingsKeys.firstSyncDone, v);
+
+  /// Clear the signed-in user's local settings on sign-out. Device preferences
+  /// (theme, language, currency, onboarding-seen) are intentionally kept; only
+  /// account-specific values and the first-sync flag are removed so the next
+  /// account starts clean and re-pulls from its own cloud.
+  Future<void> resetUserData() async {
+    const userKeys = [
+      SettingsKeys.firstSyncDone,
+      SettingsKeys.displayName,
+      SettingsKeys.username,
+      SettingsKeys.phone,
+      SettingsKeys.avatarPath,
+      SettingsKeys.savingsGoalCents,
+      SettingsKeys.lastSlipReadAt,
+      SettingsKeys.disabledScanIds,
+      SettingsKeys.recentSearches,
+    ];
+    for (final key in userKeys) {
+      await _db.deleteSetting(key);
+    }
+  }
 
   /// Recently submitted search terms (most-recent first), persisted so the
   /// Search screen's history survives leaving the screen. Stored newline-joined.

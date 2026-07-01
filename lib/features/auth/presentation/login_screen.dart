@@ -36,9 +36,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // Guest mode only when Firebase isn't configured (local fallback). When it
-    // is, sign-in is required so all data is tied to an account and synced.
-    final firebaseReady = ref.watch(firebaseReadyProvider);
     // Apple Sign-In only works on iOS/macOS; hide the button elsewhere so it
     // isn't offered on Android where it can only fail.
     final appleAvailable = defaultTargetPlatform == TargetPlatform.iOS ||
@@ -158,21 +155,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
             ),
-            if (!firebaseReady) ...[
-              const SizedBox(height: 8),
-              Center(
-                child: TextButton(
-                  onPressed: () => context.go('/home'),
-                  child: Text(
-                    l10n.authContinueGuest,
-                    style: AppTypography.body(
-                      size: 13,
-                      color: context.palette.ink3,
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),

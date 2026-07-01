@@ -8,8 +8,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 /// Wraps Firebase Auth + Google / Apple / email-password sign-in. Requires the
-/// user's real Firebase config to actually work on a device; the app remains
-/// fully usable offline as a guest when [authServiceProvider] is null.
+/// user's real Firebase config; the app is cloud-only, so when
+/// [authServiceProvider] is null (config not set up) sign-in is unavailable and
+/// the app cannot be used until it is configured.
 class AuthService {
   AuthService(this._auth);
 

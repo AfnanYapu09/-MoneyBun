@@ -132,6 +132,32 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  /// Re-insert the default categories + accounts if missing (idempotent via
+  /// stable ids + insertOrIgnore). Used after a new sign-up so a device whose
+  /// local data was wiped on the previous sign-out still gets the starter set.
+  Future<void> seedDefaults() async {
+    await _seedCategories();
+    await _seedAccounts();
+  }
+
+  /// Hard-delete every row of user data. Called on sign-out (cloud-only) so the
+  /// next account starts clean and is restored fresh from its own cloud. Rows
+  /// are removed outright (not soft-deleted) so no delete tombstones are queued
+  /// for the just-signed-out account. Device preferences in the Settings table
+  /// are left intact; user-specific settings are cleared by the repository.
+  Future<void> clearAllData() async {
+    await transaction(() async {
+      await delete(transactionTags).go();
+      await delete(transactions).go();
+      await delete(slips).go();
+      await delete(budgets).go();
+      await delete(recurringRules).go();
+      await delete(tags).go();
+      await delete(categories).go();
+      await delete(accounts).go();
+    });
+  }
+
   AccountsCompanion _accountFromSeed(AccountSeed s, int order, int now) =>
       AccountsCompanion.insert(
         id: s.id,
@@ -142,7 +168,10 @@ class AppDatabase extends _$AppDatabase {
         colorHex: Value(s.colorHex),
         sortOrder: Value(order),
         createdAt: now,
-        updatedAt: now,
+        // Baseline seed: updatedAt 0 so any real cloud row (updatedAt > 0) wins
+        // the last-write-wins pull on first login and overwrites the default
+        // instead of the default being pushed back over the user's own data.
+        updatedAt: 0,
         syncStatus: const Value(SyncStatus.pendingCreate),
       );
 
@@ -157,8 +186,10 @@ class AppDatabase extends _$AppDatabase {
         isSystem: const Value(true),
         sortOrder: Value(order),
         createdAt: now,
-        updatedAt: now,
-        // Seed rows start pending; they get pushed once the user signs in.
+        // Baseline seed: updatedAt 0 so a real cloud row (updatedAt > 0) wins the
+        // first-login pull and overwrites this default. Seeds still start pending
+        // so a brand-new account (empty cloud) gets them backed up on push.
+        updatedAt: 0,
         syncStatus: const Value(SyncStatus.pendingCreate),
       );
 
@@ -669,4 +700,7 @@ class AppDatabase extends _$AppDatabase {
           updatedAt: DateTime.now().millisecondsSinceEpoch,
         ),
       );
+
+  Future<void> deleteSetting(String key) =>
+      (delete(settings)..where((s) => s.key.equals(key))).go();
 }

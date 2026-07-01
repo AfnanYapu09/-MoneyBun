@@ -28,14 +28,23 @@ class RecurringService {
       var next = rule.nextRunAt;
       var guard = 0;
       while (next <= now && guard < _maxCatchUp) {
-        await _txns.save(
-          type: rule.type,
-          amountCents: rule.amountCents,
-          categoryId: rule.categoryId,
-          note: rule.note,
-          occurredAt: AppDate.fromMillis(next),
-        );
-        created++;
+        // Deterministic id (rule + occurrence) so the same occurrence generated
+        // on two devices collides on the primary key and merges instead of
+        // duplicating. Skip if a row with that id already exists — including a
+        // soft-deleted tombstone — so re-running never duplicates and never
+        // resurrects an occurrence the user deleted.
+        final occurrenceId = '${rule.id}_$next';
+        if (await _db.getTransaction(occurrenceId) == null) {
+          await _txns.save(
+            id: occurrenceId,
+            type: rule.type,
+            amountCents: rule.amountCents,
+            categoryId: rule.categoryId,
+            note: rule.note,
+            occurredAt: AppDate.fromMillis(next),
+          );
+          created++;
+        }
         next = _advance(next, rule.freq);
         guard++;
       }

@@ -4,9 +4,12 @@ import '../local/database.dart';
 import 'auth_service.dart';
 import 'firestore_mappers.dart';
 
-/// Local-first sync. Drift is the source of truth. On [sync] we push every
-/// locally-changed row to the signed-in user's Firestore collections, then pull
-/// remote changes back, resolving conflicts last-write-wins by `updatedAt`.
+/// Local-first sync. Drift is the source of truth. On [sync] we pull the
+/// signed-in user's Firestore collections into the local DB first — so a fresh
+/// login on a new device paints the user's real data as fast as possible — then
+/// push any locally-changed rows back up. Conflicts resolve last-write-wins by
+/// `updatedAt`, so pulling first never loses a pending local edit (those carry a
+/// newer `updatedAt` and win the comparison; they're uploaded on the push pass).
 ///
 /// Deletes are pushed as soft-delete tombstones (`deleted: true`), not as
 /// document removals, so other devices learn about a deletion on their next
@@ -25,31 +28,50 @@ class SyncEngine {
 
   bool _running = false;
 
+  /// Hard bound on a sync's network work so a stalled Firestore call (flaky
+  /// network, captive portal) can't leave [_running] stuck true and silently
+  /// block every future sync. On timeout the run is abandoned and rows stay
+  /// pending for the next trigger.
+  static const _networkTimeout = Duration(seconds: 30);
+
   CollectionReference<Map<String, dynamic>> _col(String uid, String name) =>
       _fs.collection('users').doc(uid).collection(name);
 
-  /// Full sync (push + pull). Returns true if it actually ran (user signed in).
+  /// Full sync (pull + push). Returns true if it completed (user signed in and
+  /// no error/timeout); best-effort, never throws.
+  ///
+  /// Pull runs before push so the user's cloud data reaches the local DB — and
+  /// the home screen — without waiting for the initial upload of freshly-seeded
+  /// defaults. On a first login the seeds carry `updatedAt: 0`, so the real
+  /// cloud rows win the last-write-wins comparison and overwrite them instead of
+  /// the defaults being pushed back over the user's data.
   Future<bool> sync() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _running) return false;
     _running = true;
     try {
-      await _pushAll(uid);
-      await _pullAll(uid);
+      await _pullAll(uid).timeout(_networkTimeout);
+      await _pushAll(uid).timeout(_networkTimeout);
       return true;
+    } catch (_) {
+      // Best-effort: a failed/timed-out sync is retried on the next trigger.
+      return false;
     } finally {
       _running = false;
     }
   }
 
-  /// Push pending local changes only (no pull). Cheap — no reads.
+  /// Push pending local changes only (no pull). Cheap — no reads. Best-effort,
+  /// never throws.
   Future<bool> pushOnly() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _running) return false;
     _running = true;
     try {
-      await _pushAll(uid);
+      await _pushAll(uid).timeout(_networkTimeout);
       return true;
+    } catch (_) {
+      return false;
     } finally {
       _running = false;
     }
@@ -79,13 +101,33 @@ class SyncEngine {
 
   // ---- Push (a soft-deleted row carries deleted:true in its map) ----------
 
+  /// Upload [map] to [doc] only when our copy is at least as new as the cloud's,
+  /// so an older local row — an untouched seed (updatedAt 0) or a stale offline
+  /// edit — can never clobber newer cloud data. This mirrors the pull's
+  /// last-write-wins rule on the push side, which a bare `.set()` would skip. If
+  /// the cloud copy is newer the write is skipped; the caller still marks the row
+  /// synced and the next pull brings the newer value down to reconcile locally.
+  Future<void> _pushDoc(
+    DocumentReference<Map<String, dynamic>> doc,
+    Map<String, dynamic> map,
+  ) async {
+    final localUpdated = (map['updatedAt'] as num?)?.toInt() ?? 0;
+    await _fs.runTransaction((txn) async {
+      final snap = await txn.get(doc);
+      final remoteUpdated = (snap.data()?['updatedAt'] as num?)?.toInt();
+      if (remoteUpdated == null || localUpdated >= remoteUpdated) {
+        txn.set(doc, map);
+      }
+    });
+  }
+
   Future<void> _pushTransactions(String uid) async {
     final col = _col(uid, 'transactions');
     for (final r in await _db.pendingTransactions()) {
       final map = FirestoreMappers.transactionToMap(r);
       // Embed the tag links so they sync without a separate collection.
       map['tagIds'] = await _db.tagIdsForTransaction(r.id);
-      await col.doc(r.id).set(map);
+      await _pushDoc(col.doc(r.id), map);
       await _db.markTransactionSynced(r.id);
     }
   }
@@ -93,7 +135,7 @@ class SyncEngine {
   Future<void> _pushAccounts(String uid) async {
     final col = _col(uid, 'accounts');
     for (final r in await _db.pendingAccounts()) {
-      await col.doc(r.id).set(FirestoreMappers.accountToMap(r));
+      await _pushDoc(col.doc(r.id), FirestoreMappers.accountToMap(r));
       await _db.markAccountSynced(r.id);
     }
   }
@@ -101,7 +143,7 @@ class SyncEngine {
   Future<void> _pushCategories(String uid) async {
     final col = _col(uid, 'categories');
     for (final r in await _db.pendingCategories()) {
-      await col.doc(r.id).set(FirestoreMappers.categoryToMap(r));
+      await _pushDoc(col.doc(r.id), FirestoreMappers.categoryToMap(r));
       await _db.markCategorySynced(r.id);
     }
   }
@@ -109,7 +151,7 @@ class SyncEngine {
   Future<void> _pushSlips(String uid) async {
     final col = _col(uid, 'slips');
     for (final r in await _db.pendingSlips()) {
-      await col.doc(r.id).set(FirestoreMappers.slipToMap(r));
+      await _pushDoc(col.doc(r.id), FirestoreMappers.slipToMap(r));
       await _db.markSlipSynced(r.id);
     }
   }
@@ -117,7 +159,7 @@ class SyncEngine {
   Future<void> _pushBudgets(String uid) async {
     final col = _col(uid, 'budgets');
     for (final r in await _db.pendingBudgets()) {
-      await col.doc(r.id).set(FirestoreMappers.budgetToMap(r));
+      await _pushDoc(col.doc(r.id), FirestoreMappers.budgetToMap(r));
       await _db.markBudgetSynced(r.id);
     }
   }
@@ -125,7 +167,7 @@ class SyncEngine {
   Future<void> _pushTags(String uid) async {
     final col = _col(uid, 'tags');
     for (final r in await _db.pendingTags()) {
-      await col.doc(r.id).set(FirestoreMappers.tagToMap(r));
+      await _pushDoc(col.doc(r.id), FirestoreMappers.tagToMap(r));
       await _db.markTagSynced(r.id);
     }
   }
@@ -133,7 +175,7 @@ class SyncEngine {
   Future<void> _pushRecurringRules(String uid) async {
     final col = _col(uid, 'recurringRules');
     for (final r in await _db.pendingRecurringRules()) {
-      await col.doc(r.id).set(FirestoreMappers.recurringRuleToMap(r));
+      await _pushDoc(col.doc(r.id), FirestoreMappers.recurringRuleToMap(r));
       await _db.markRecurringRuleSynced(r.id);
     }
   }
