@@ -40,9 +40,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // it fires once per launch even if Home is rebuilt by bottom-nav).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(scanControllerProvider.notifier).autoScanOnce();
-      // Create any recurring entries that have come due since the last launch.
-      ref.read(recurringServiceProvider).runDue();
+      _materialiseRecurring();
     });
+  }
+
+  /// Create any recurring entries that have come due — but only after the first
+  /// cloud pull (bounded), so we don't re-materialise occurrences another device
+  /// already created and synced (which would duplicate them). Mirrors the slip
+  /// scanner's ordering. Providers are captured before the await so this never
+  /// touches `ref` after the widget might be disposed.
+  Future<void> _materialiseRecurring() async {
+    final sync = ref.read(syncControllerProvider);
+    final recurring = ref.read(recurringServiceProvider);
+    if (sync != null) {
+      await sync.awaitInitialSync().timeout(
+            const Duration(seconds: 25),
+            onTimeout: () {},
+          );
+    }
+    await recurring.runDue();
   }
 
   Future<void> _scan() => ref.read(scanControllerProvider.notifier).scan();

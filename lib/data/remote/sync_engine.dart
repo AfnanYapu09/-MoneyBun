@@ -28,10 +28,17 @@ class SyncEngine {
 
   bool _running = false;
 
+  /// Hard bound on a sync's network work so a stalled Firestore call (flaky
+  /// network, captive portal) can't leave [_running] stuck true and silently
+  /// block every future sync. On timeout the run is abandoned and rows stay
+  /// pending for the next trigger.
+  static const _networkTimeout = Duration(seconds: 30);
+
   CollectionReference<Map<String, dynamic>> _col(String uid, String name) =>
       _fs.collection('users').doc(uid).collection(name);
 
-  /// Full sync (pull + push). Returns true if it actually ran (user signed in).
+  /// Full sync (pull + push). Returns true if it completed (user signed in and
+  /// no error/timeout); best-effort, never throws.
   ///
   /// Pull runs before push so the user's cloud data reaches the local DB — and
   /// the home screen — without waiting for the initial upload of freshly-seeded
@@ -43,22 +50,28 @@ class SyncEngine {
     if (uid == null || _running) return false;
     _running = true;
     try {
-      await _pullAll(uid);
-      await _pushAll(uid);
+      await _pullAll(uid).timeout(_networkTimeout);
+      await _pushAll(uid).timeout(_networkTimeout);
       return true;
+    } catch (_) {
+      // Best-effort: a failed/timed-out sync is retried on the next trigger.
+      return false;
     } finally {
       _running = false;
     }
   }
 
-  /// Push pending local changes only (no pull). Cheap — no reads.
+  /// Push pending local changes only (no pull). Cheap — no reads. Best-effort,
+  /// never throws.
   Future<bool> pushOnly() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _running) return false;
     _running = true;
     try {
-      await _pushAll(uid);
+      await _pushAll(uid).timeout(_networkTimeout);
       return true;
+    } catch (_) {
+      return false;
     } finally {
       _running = false;
     }
