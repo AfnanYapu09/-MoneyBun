@@ -155,6 +155,81 @@ class AppDatabase extends _$AppDatabase {
       await delete(tags).go();
       await delete(categories).go();
       await delete(accounts).go();
+      // Drop the per-collection pull cursors so the next account does a full
+      // pull instead of resuming from the previous account's high-water mark.
+      await (delete(settings)..where((s) => s.key.like('pullWatermark:%')))
+          .go();
+    });
+  }
+
+  // ---- Pull cursors ------------------------------------------------------
+
+  /// High-water mark (max `updatedAt` already pulled) for a Firestore
+  /// collection, so the sync engine can fetch only changed docs instead of the
+  /// whole collection each time. 0 when never pulled (→ a full pull).
+  Future<int> pullWatermark(String collection) async {
+    final v = await getSetting('pullWatermark:$collection');
+    return int.tryParse(v ?? '') ?? 0;
+  }
+
+  Future<void> setPullWatermark(String collection, int updatedAtMs) =>
+      setSetting('pullWatermark:$collection', updatedAtMs.toString());
+
+  /// Hard-delete soft-deleted rows that have already synced and whose tombstone
+  /// is older than [cutoffMs], so tombstones don't pile up forever. Local-only:
+  /// cloud tombstones are left in place so a long-offline device still learns of
+  /// the delete. [cutoffMs] must sit well before the incremental-pull re-read
+  /// window so a collected tombstone isn't immediately re-fetched.
+  Future<void> gcTombstones(int cutoffMs) async {
+    await transaction(() async {
+      await (delete(transactions)
+            ..where((t) =>
+                t.deleted.equals(true) &
+                t.syncStatus.isValue(SyncStatus.synced.index) &
+                t.updatedAt.isSmallerThanValue(cutoffMs)))
+          .go();
+      await (delete(accounts)
+            ..where((a) =>
+                a.deleted.equals(true) &
+                a.syncStatus.isValue(SyncStatus.synced.index) &
+                a.updatedAt.isSmallerThanValue(cutoffMs)))
+          .go();
+      await (delete(categories)
+            ..where((c) =>
+                c.deleted.equals(true) &
+                c.syncStatus.isValue(SyncStatus.synced.index) &
+                c.updatedAt.isSmallerThanValue(cutoffMs)))
+          .go();
+      await (delete(slips)
+            ..where((s) =>
+                s.deleted.equals(true) &
+                s.syncStatus.isValue(SyncStatus.synced.index) &
+                s.updatedAt.isSmallerThanValue(cutoffMs)))
+          .go();
+      await (delete(budgets)
+            ..where((b) =>
+                b.deleted.equals(true) &
+                b.syncStatus.isValue(SyncStatus.synced.index) &
+                b.updatedAt.isSmallerThanValue(cutoffMs)))
+          .go();
+      await (delete(tags)
+            ..where((t) =>
+                t.deleted.equals(true) &
+                t.syncStatus.isValue(SyncStatus.synced.index) &
+                t.updatedAt.isSmallerThanValue(cutoffMs)))
+          .go();
+      await (delete(recurringRules)
+            ..where((r) =>
+                r.deleted.equals(true) &
+                r.syncStatus.isValue(SyncStatus.synced.index) &
+                r.updatedAt.isSmallerThanValue(cutoffMs)))
+          .go();
+      // Drop tag links whose transaction was collected above (or is otherwise
+      // gone) so they don't skew tag usage counts.
+      await (delete(transactionTags)
+            ..where((l) => l.transactionId.isNotInQuery(
+                selectOnly(transactions)..addColumns([transactions.id]))))
+          .go();
     });
   }
 
