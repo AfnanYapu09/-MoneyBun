@@ -590,7 +590,22 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteTagCascade(String id) async {
     final now = DateTime.now().millisecondsSinceEpoch;
+    // Transactions that referenced this tag must re-sync so the tag id drops
+    // from their cloud doc on other devices — capture them before unlinking.
+    final affected = await (select(
+      transactionTags,
+    )..where((l) => l.tagId.equals(id)))
+        .get();
     await (delete(transactionTags)..where((l) => l.tagId.equals(id))).go();
+    for (final link in affected) {
+      final tid = link.transactionId;
+      await (update(transactions)..where((t) => t.id.equals(tid))).write(
+        TransactionsCompanion(
+          updatedAt: Value(now),
+          syncStatus: const Value(SyncStatus.pendingUpdate),
+        ),
+      );
+    }
     // Soft-delete (not hard) so the deletion syncs as a tombstone and the tag
     // isn't resurrected by the next pull from the cloud.
     await (update(tags)..where((t) => t.id.equals(id))).write(
