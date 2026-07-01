@@ -132,6 +132,32 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  /// Re-insert the default categories + accounts if missing (idempotent via
+  /// stable ids + insertOrIgnore). Used after a new sign-up so a device whose
+  /// local data was wiped on the previous sign-out still gets the starter set.
+  Future<void> seedDefaults() async {
+    await _seedCategories();
+    await _seedAccounts();
+  }
+
+  /// Hard-delete every row of user data. Called on sign-out (cloud-only) so the
+  /// next account starts clean and is restored fresh from its own cloud. Rows
+  /// are removed outright (not soft-deleted) so no delete tombstones are queued
+  /// for the just-signed-out account. Device preferences in the Settings table
+  /// are left intact; user-specific settings are cleared by the repository.
+  Future<void> clearAllData() async {
+    await transaction(() async {
+      await delete(transactionTags).go();
+      await delete(transactions).go();
+      await delete(slips).go();
+      await delete(budgets).go();
+      await delete(recurringRules).go();
+      await delete(tags).go();
+      await delete(categories).go();
+      await delete(accounts).go();
+    });
+  }
+
   AccountsCompanion _accountFromSeed(AccountSeed s, int order, int now) =>
       AccountsCompanion.insert(
         id: s.id,
@@ -674,4 +700,7 @@ class AppDatabase extends _$AppDatabase {
           updatedAt: DateTime.now().millisecondsSinceEpoch,
         ),
       );
+
+  Future<void> deleteSetting(String key) =>
+      (delete(settings)..where((s) => s.key.equals(key))).go();
 }

@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../bootstrap/providers.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
@@ -25,9 +29,33 @@ import '../../features/transactions/presentation/search_screen.dart';
 import 'main_shell.dart';
 import 'transitions.dart';
 
+/// Public routes reachable before signing in. Everything else is behind auth.
+const _authFunnel = {'/login', '/signup', '/forgot-password', '/onboarding'};
+
 GoRouter buildRouter(Ref ref) {
+  // Re-run the redirect whenever the Firebase auth state changes (sign-in,
+  // sign-out, token expiry) so protected screens are left the instant the user
+  // is no longer signed in.
+  final refresh = GoRouterRefreshStream(
+    ref.read(authServiceProvider)?.authStateChanges(),
+  );
+  ref.onDispose(refresh.dispose);
+
   return GoRouter(
     initialLocation: '/splash',
+    refreshListenable: refresh,
+    // Cloud-only: the app is usable only while signed in. The splash plays its
+    // brand beat and routes onward itself; every other route is gated here.
+    redirect: (context, state) {
+      final loc = state.matchedLocation;
+      if (loc == '/splash') return null;
+      final signedIn = ref.read(authServiceProvider)?.currentUser != null;
+      final inFunnel = _authFunnel.contains(loc);
+      if (!signedIn) return inFunnel ? null : '/login';
+      // Signed in — don't linger on the sign-in funnel.
+      if (inFunnel) return '/home';
+      return null;
+    },
     routes: [
       GoRoute(path: '/splash', builder: (c, s) => const SplashScreen()),
       GoRoute(
@@ -136,4 +164,22 @@ GoRouter buildRouter(Ref ref) {
       ),
     ],
   );
+}
+
+/// Adapts a [Stream] (here, Firebase auth-state changes) into a [Listenable] so
+/// GoRouter re-evaluates its redirect whenever the stream emits.
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic>? stream) {
+    if (stream != null) {
+      _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
+    }
+  }
+
+  StreamSubscription<dynamic>? _sub;
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 }

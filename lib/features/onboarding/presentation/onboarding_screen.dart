@@ -31,9 +31,7 @@ class OnboardingScreen extends ConsumerWidget {
                   onPressed: () async {
                     await _seen(ref);
                     if (!context.mounted) return;
-                    context.go(
-                      ref.read(firebaseReadyProvider) ? '/login' : '/home',
-                    );
+                    context.go('/login');
                   },
                   child: Text(
                     l10n.onbSkip,
@@ -77,13 +75,8 @@ class OnboardingScreen extends ConsumerWidget {
                 onPressed: () async {
                   await _seen(ref);
                   if (!context.mounted) return;
-                  // Cloud-only: new users create an account. Guest (local)
-                  // remains only when Firebase isn't configured.
-                  if (ref.read(firebaseReadyProvider)) {
-                    context.go('/signup');
-                  } else {
-                    context.go('/home');
-                  }
+                  // Cloud-only: new users create an account to start.
+                  context.go('/signup');
                 },
               ),
               const SizedBox(height: 12),

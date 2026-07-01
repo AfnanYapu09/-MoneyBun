@@ -122,6 +122,27 @@ class SettingsRepository {
   Future<void> setFirstSyncDone(bool v) =>
       setBool(SettingsKeys.firstSyncDone, v);
 
+  /// Clear the signed-in user's local settings on sign-out. Device preferences
+  /// (theme, language, currency, onboarding-seen) are intentionally kept; only
+  /// account-specific values and the first-sync flag are removed so the next
+  /// account starts clean and re-pulls from its own cloud.
+  Future<void> resetUserData() async {
+    const userKeys = [
+      SettingsKeys.firstSyncDone,
+      SettingsKeys.displayName,
+      SettingsKeys.username,
+      SettingsKeys.phone,
+      SettingsKeys.avatarPath,
+      SettingsKeys.savingsGoalCents,
+      SettingsKeys.lastSlipReadAt,
+      SettingsKeys.disabledScanIds,
+      SettingsKeys.recentSearches,
+    ];
+    for (final key in userKeys) {
+      await _db.deleteSetting(key);
+    }
+  }
+
   /// Recently submitted search terms (most-recent first), persisted so the
   /// Search screen's history survives leaving the screen. Stored newline-joined.
   Future<List<String>> getRecentSearches() async {
