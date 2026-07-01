@@ -525,5 +525,20 @@
   "authErrUserDisabled": "บัญชีนี้ถูกระงับการใช้งาน",
   "authErrTooManyRequests": "พยายามหลายครั้งเกินไป โปรดลองใหม่ภายหลัง",
   "authErrNetwork": "เชื่อมต่ออินเทอร์เน็ตไม่ได้ ตรวจสอบการเชื่อมต่อ",
-  "authErrOperationNotAllowed": "ยังไม่ได้เปิดวิธีนี้ใน Firebase (Email/Password)"
+  "authErrOperationNotAllowed": "ยังไม่ได้เปิดวิธีนี้ใน Firebase (Email/Password)",
+  "recurTitle": "จดซ้ำอัตโนมัติ",
+  "recurManageTitle": "รายการจดซ้ำ",
+  "recurAdd": "เพิ่มรายการซ้ำ",
+  "recurEmpty": "ยังไม่มีรายการจดซ้ำ กดปุ่มด้านล่างเพื่อเพิ่ม",
+  "recurFrequency": "ความถี่",
+  "recurFreqDaily": "ทุกวัน",
+  "recurFreqWeekly": "ทุกสัปดาห์",
+  "recurFreqMonthly": "ทุกเดือน",
+  "recurStartDate": "เริ่มวันที่",
+  "recurAmount": "จำนวนเงิน",
+  "recurSave": "บันทึกรายการซ้ำ",
+  "recurDelete": "ลบรายการซ้ำนี้",
+  "recurConfirmDelete": "ลบรายการจดซ้ำนี้ใช่ไหม? (รายการที่สร้างไปแล้วจะยังอยู่)",
+  "recurNextRun": "ครั้งต่อไป",
+  "settingsRecurring": "รายการจดซ้ำ"
 }

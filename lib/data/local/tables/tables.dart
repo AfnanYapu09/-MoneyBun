@@ -163,6 +163,33 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+/// A rule that auto-creates a transaction on a schedule (daily/weekly/monthly).
+/// The scheduler materialises due occurrences into real Transactions on launch.
+@DataClassName('RecurringRuleRow')
+class RecurringRules extends Table {
+  TextColumn get id => text()();
+  IntColumn get type => intEnum<TxnType>()();
+  IntColumn get amountCents => integer()();
+  TextColumn get categoryId => text().nullable()();
+  TextColumn get accountId => text().nullable()();
+  TextColumn get note => text().nullable()();
+  IntColumn get freq => intEnum<RecurFreq>()();
+
+  /// Epoch ms of the next occurrence that has not yet been created.
+  IntColumn get nextRunAt => integer()();
+  IntColumn get lastRunAt => integer().nullable()();
+  IntColumn get createdAt => integer()();
+  IntColumn get updatedAt => integer()();
+  IntColumn get syncStatus => intEnum<SyncStatus>().withDefault(
+        Constant(SyncStatus.pendingCreate.index),
+      )();
+  TextColumn get remoteId => text().nullable()();
+  BoolColumn get deleted => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DataClassName('BudgetRow')
 class Budgets extends Table {
   TextColumn get id => text()();

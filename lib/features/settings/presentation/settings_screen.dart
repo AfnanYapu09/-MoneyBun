@@ -82,6 +82,11 @@ class SettingsScreen extends ConsumerWidget {
                   label: l10n.settingsManageTags,
                   onTap: () => context.push('/settings/tags'),
                 ),
+                SettingRow(
+                  icon: AppIcons.repeat,
+                  label: l10n.settingsRecurring,
+                  onTap: () => context.push('/settings/recurring'),
+                ),
               ],
             ),
             const SizedBox(height: 18),

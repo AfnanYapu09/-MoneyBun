@@ -29,3 +29,8 @@ enum BudgetPeriod { monthly, weekly, yearly }
 
 /// Category direction. Transfers never carry a category.
 enum CategoryType { income, expense }
+
+/// How often a recurring rule creates a transaction.
+///
+/// NOTE: persisted by index — only append, never reorder.
+enum RecurFreq { daily, weekly, monthly }

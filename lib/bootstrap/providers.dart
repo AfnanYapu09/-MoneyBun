@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/utils/date_period.dart';
 import '../data/local/database.dart';
+import '../data/recurring/recurring_service.dart';
 import '../data/remote/auth_service.dart';
 import '../data/remote/sync_controller.dart';
 import '../data/remote/sync_engine.dart';
@@ -52,6 +53,14 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(ref.watch(databaseProvider)),
 );
 
+/// Materialises due recurring rules into transactions (called once on launch).
+final recurringServiceProvider = Provider<RecurringService>(
+  (ref) => RecurringService(
+    ref.watch(databaseProvider),
+    ref.watch(transactionRepositoryProvider),
+  ),
+);
+
 // ---- Firebase (null until real config is in place) -------------------------
 
 final authServiceProvider = Provider<AuthService?>((ref) {
@@ -83,6 +92,7 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
   ref.listen(categoriesProvider, (_, __) => controller.nudgePush());
   ref.listen(tagsProvider, (_, __) => controller.nudgePush());
   ref.listen(budgetsProvider, (_, __) => controller.nudgePush());
+  ref.listen(recurringRulesProvider, (_, __) => controller.nudgePush());
   ref.onDispose(controller.dispose);
   return controller;
 });
@@ -280,6 +290,11 @@ final tagUsageProvider = StreamProvider<Map<String, int>>(
 /// All budgets (Budget screen / Stats).
 final budgetsProvider = StreamProvider<List<BudgetRow>>(
   (ref) => ref.watch(databaseProvider).watchBudgets(),
+);
+
+/// All recurring rules (Manage Recurring screen).
+final recurringRulesProvider = StreamProvider<List<RecurringRuleRow>>(
+  (ref) => ref.watch(databaseProvider).watchRecurringRules(),
 );
 
 // ---- Settings (persisted in Drift, single source of truth) -----------------

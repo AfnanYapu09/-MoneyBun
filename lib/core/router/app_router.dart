@@ -7,6 +7,7 @@ import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/categories/presentation/manage_categories_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/recurring/presentation/manage_recurring_screen.dart';
 import '../../features/settings/presentation/currency_screen.dart';
 import '../../features/settings/presentation/help_screen.dart';
 import '../../features/settings/presentation/profile_screen.dart';
@@ -104,6 +105,10 @@ GoRouter buildRouter(Ref ref) {
       GoRoute(
         path: '/settings/tags',
         pageBuilder: (c, s) => slidePage(const ManageTagsScreen()),
+      ),
+      GoRoute(
+        path: '/settings/recurring',
+        pageBuilder: (c, s) => slidePage(const ManageRecurringScreen()),
       ),
       GoRoute(
         path: '/settings/profile',

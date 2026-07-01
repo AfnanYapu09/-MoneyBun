@@ -525,5 +525,20 @@
   "authErrUserDisabled": "This account has been disabled.",
   "authErrTooManyRequests": "Too many attempts. Please try again later.",
   "authErrNetwork": "No internet connection. Check your network.",
-  "authErrOperationNotAllowed": "This sign-in method isn't enabled in Firebase (Email/Password)."
+  "authErrOperationNotAllowed": "This sign-in method isn't enabled in Firebase (Email/Password).",
+  "recurTitle": "Recurring entry",
+  "recurManageTitle": "Recurring entries",
+  "recurAdd": "Add recurring",
+  "recurEmpty": "No recurring entries yet. Tap below to add one.",
+  "recurFrequency": "Frequency",
+  "recurFreqDaily": "Daily",
+  "recurFreqWeekly": "Weekly",
+  "recurFreqMonthly": "Monthly",
+  "recurStartDate": "Starts",
+  "recurAmount": "Amount",
+  "recurSave": "Save recurring",
+  "recurDelete": "Delete this recurring entry",
+  "recurConfirmDelete": "Delete this recurring entry? (Entries already created stay.)",
+  "recurNextRun": "Next",
+  "settingsRecurring": "Recurring entries"
 }

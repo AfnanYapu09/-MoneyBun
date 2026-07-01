@@ -18,6 +18,7 @@ part 'database.g.dart';
     Tags,
     TransactionTags,
     Settings,
+    RecurringRules,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -27,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +67,10 @@ class AppDatabase extends _$AppDatabase {
           // (read only slips newer than the latest one) survives reinstall/sync.
           if (from < 6) {
             await m.addColumn(slips, slips.photoTakenAt);
+          }
+          // v7: recurring rules that auto-create transactions on a schedule.
+          if (from < 7) {
+            await m.createTable(recurringRules);
           }
         },
       );
@@ -355,6 +360,61 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
   }
+
+  // ---- Recurring rules ---------------------------------------------------
+
+  Stream<List<RecurringRuleRow>> watchRecurringRules() {
+    return (select(recurringRules)..where((r) => r.deleted.equals(false)))
+        .watch();
+  }
+
+  Future<void> upsertRecurringRule(RecurringRulesCompanion row) =>
+      into(recurringRules).insertOnConflictUpdate(row);
+
+  Future<RecurringRuleRow?> getRecurringRule(String id) =>
+      (select(recurringRules)..where((r) => r.id.equals(id))).getSingleOrNull();
+
+  /// Active (non-deleted) rules whose next occurrence is due at or before [now].
+  Future<List<RecurringRuleRow>> dueRecurringRules(int now) async {
+    final rules =
+        await (select(recurringRules)..where((r) => r.deleted.equals(false)))
+            .get();
+    return rules.where((r) => r.nextRunAt <= now).toList();
+  }
+
+  Future<void> softDeleteRecurringRule(String id, int now) {
+    return (update(recurringRules)..where((r) => r.id.equals(id))).write(
+      RecurringRulesCompanion(
+        deleted: const Value(true),
+        syncStatus: const Value(SyncStatus.pendingDelete),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  Future<List<RecurringRuleRow>> pendingRecurringRules() => (select(
+        recurringRules,
+      )..where((r) => r.syncStatus.isNotValue(SyncStatus.synced.index)))
+          .get();
+
+  Future<void> markRecurringRuleSynced(String id) =>
+      (update(recurringRules)..where((r) => r.id.equals(id))).write(
+        const RecurringRulesCompanion(syncStatus: Value(SyncStatus.synced)),
+      );
+
+  Future<Map<String, int>> recurringRulesUpdatedAt() async {
+    final q = selectOnly(recurringRules);
+    q.addColumns([recurringRules.id, recurringRules.updatedAt]);
+    final result = <String, int>{};
+    for (final r in await q.get()) {
+      result[r.read(recurringRules.id)!] =
+          r.read(recurringRules.updatedAt) ?? 0;
+    }
+    return result;
+  }
+
+  Future<void> batchUpsertRecurringRules(List<RecurringRulesCompanion> rows) =>
+      batch((b) => b.insertAllOnConflictUpdate(recurringRules, rows));
 
   // ---- Sync helpers ------------------------------------------------------
 

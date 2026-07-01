@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../bootstrap/providers.dart';
+import '../../../core/router/sheets.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
@@ -163,12 +164,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
             icon: AppIcons.arrowDownLeft,
             color: context.palette.greenFg,
           ),
-          Segment(
-            value: TxnType.transfer,
-            label: l10n.transfer,
-            icon: AppIcons.arrowLeftRight,
-            color: context.palette.amberFg,
-          ),
         ],
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a
@@ -305,9 +300,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           _Row(
             icon: AppIcons.repeat,
             label: l10n.addtxnRecurring,
-            onTap: () => ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(l10n.addtxnRecurringSoon))),
+            onTap: () => showRecurringRuleSheet(context),
           ),
           if (widget.editId != null) ...[
             const SizedBox(height: 22),
