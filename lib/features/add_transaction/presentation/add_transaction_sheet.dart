@@ -300,7 +300,12 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
           _Row(
             icon: AppIcons.repeat,
             label: l10n.addtxnRecurring,
-            onTap: () => showRecurringRuleSheet(context),
+            // Carry the current tab's direction into the recurring form so it
+            // needn't ask again (transfers have no recurring rule → expense).
+            onTap: () => showRecurringRuleSheet(
+              context,
+              type: _type == TxnType.income ? TxnType.income : TxnType.expense,
+            ),
           ),
           if (widget.editId != null) ...[
             const SizedBox(height: 22),

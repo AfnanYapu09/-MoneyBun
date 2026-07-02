@@ -11,8 +11,10 @@ import '../utils/calculator.dart';
 /// above it (e.g. "2+2 =") — empty while the user is still typing.
 typedef CalcChanged = void Function(String value, String history);
 
-/// Opens the in-app calculator keypad as a docked bottom sheet (no display of
-/// its own — what the user presses appears live in the field via [onChanged]).
+/// Opens the in-app calculator keypad as a docked bottom sheet. It shows the
+/// running amount at the top of the sheet (so what you type is never hidden
+/// behind the keypad that covers the form) and also mirrors each press into the
+/// field via [onChanged].
 /// Seeded with [initial] (the field's current text). Pressing `=` resolves the
 /// expression, pushes the result + the "2+2 =" history through [onChanged] and
 /// closes the keypad; the history stays in the field until the screen is left.
@@ -83,9 +85,9 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
       Navigator.of(context).pop();
       return;
     }
-    // The sheet itself shows nothing, so no rebuild is needed — just push the
-    // updated expression into the field (history clears until the next "=").
-    _expr = Calculator.input(_expr, key);
+    // Rebuild so the on-sheet display updates, and push the expression into the
+    // field (history clears until the next "=").
+    setState(() => _expr = Calculator.input(_expr, key));
     widget.onChanged(_expr, '');
   }
 
@@ -102,9 +104,58 @@ class _CalculatorSheetState extends State<_CalculatorSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const _Handle(),
+            _CalcDisplay(expr: _expr),
             CalculatorKeypad(accent: widget.accent, onKey: _onKey),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The running amount shown at the top of the calculator sheet. Mirrors the
+/// live expression the user is building (e.g. "1200+50"), right-aligned with a
+/// ฿ suffix, so the typed value stays visible even while the keypad covers the
+/// amount field in the form below. Long expressions scroll to keep the most
+/// recently typed digits in view.
+class _CalcDisplay extends StatelessWidget {
+  const _CalcDisplay({required this.expr});
+
+  final String expr;
+
+  @override
+  Widget build(BuildContext context) {
+    final empty = expr.isEmpty;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: Text(
+                empty ? '0' : expr,
+                maxLines: 1,
+                style: AppTypography.heading(
+                  size: 34,
+                  weight: FontWeight.w600,
+                  color: empty ? context.palette.ink3 : context.palette.ink,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '฿',
+            style: AppTypography.heading(
+              size: 22,
+              weight: FontWeight.w500,
+              color: context.palette.ink3,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -25,14 +25,19 @@ import '../../add_transaction/presentation/category_picker_sheet.dart';
 /// Bottom sheet to create a recurring rule that auto-creates a transaction on a
 /// daily / weekly / monthly schedule (materialised on app launch).
 class RecurringRuleSheet extends ConsumerStatefulWidget {
-  const RecurringRuleSheet({super.key});
+  const RecurringRuleSheet({super.key, this.type = TxnType.expense});
+
+  /// Income vs. expense is inherited from where the sheet was opened (e.g. the
+  /// current tab of the Add-transaction sheet) — this form has no picker of its
+  /// own, since choosing it here would just duplicate that selection.
+  final TxnType type;
 
   @override
   ConsumerState<RecurringRuleSheet> createState() => _RecurringRuleSheetState();
 }
 
 class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
-  TxnType _type = TxnType.expense;
+  late final TxnType _type = widget.type;
   final _amount = TextEditingController();
   String? _categoryId;
   RecurFreq _freq = RecurFreq.monthly;
@@ -81,18 +86,6 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SegmentedControl<TxnType>(
-              value: _type,
-              onChanged: (t) => setState(() {
-                _type = t;
-                _categoryId = null;
-              }),
-              segments: [
-                Segment(value: TxnType.expense, label: l10n.expense),
-                Segment(value: TxnType.income, label: l10n.income),
-              ],
-            ),
-            const SizedBox(height: 14),
             // Amount
             Container(
               padding: const EdgeInsets.all(20),
