@@ -334,9 +334,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               // needn't ask again (transfers have no recurring rule → expense).
               onTap: () => showRecurringRuleSheet(
                 context,
-                type: _type == TxnType.income
-                    ? TxnType.income
-                    : TxnType.expense,
+                type:
+                    _type == TxnType.income ? TxnType.income : TxnType.expense,
               ),
             ),
             if (widget.editId != null) ...[
