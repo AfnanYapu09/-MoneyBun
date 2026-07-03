@@ -134,15 +134,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     _persistLive();
   }
 
-  /// The in-app calculator docks over the lower half of the screen, so grow the
-  /// sheet upward and scroll the amount to the top — keeping the number being
-  /// typed visible above the keypad. Reversed when the keypad closes.
+  /// Dock the amount card flush above the in-app calculator: while the keypad is
+  /// open the fields below the amount are hidden and the sheet's bottom room is
+  /// set to the keypad height, so the amount box sits right on top of the keypad
+  /// (scrolled fully into view on short screens). Reversed when the keypad closes.
   void _showCalcRoom() {
     setState(() => _calcOpen = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
         _scroll.animateTo(
-          0,
+          _scroll.position.maxScrollExtent,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
@@ -189,17 +190,18 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a
       // commit button.
-      footer: _footer(context),
+      footer: _calcOpen ? null : _footer(context),
       child: ListView(
         controller: _scroll,
         shrinkWrap: true,
-        // Extra bottom room while the keypad is open so the amount scrolls
-        // clear of it; the sheet grows upward to make the space.
+        // While the keypad is open the bottom room equals the keypad height, so
+        // the amount card (the fields below it are hidden) docks flush on top of
+        // the calculator instead of floating at the top of the screen.
         padding: EdgeInsets.fromLTRB(
           16,
           4,
           16,
-          _calcOpen ? MediaQuery.of(context).size.height * 0.5 : 16,
+          _calcOpen ? 382 + MediaQuery.of(context).padding.bottom : 16,
         ),
         children: [
           // Date chip
@@ -289,85 +291,91 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          // Category (non-transfer only)
-          if (_type != TxnType.transfer) ...[
+          // The keypad covers everything below the amount, so hide it while the
+          // calculator is open and dock the amount box on top of it.
+          if (!_calcOpen) ...[
+            const SizedBox(height: 14),
+            // Category (non-transfer only)
+            if (_type != TxnType.transfer) ...[
+              _Row(
+                icon: AppIcons.layoutGrid,
+                label: l10n.addtxnPickCategoryTag,
+                value: _categoryLabel(categories, l10n, locale),
+                onTap: _pickCategory,
+              ),
+              const SizedBox(height: 14),
+            ],
+            // Slip-backed entries keep a link to the original slip. The manual
+            // account picker was removed — entries default to the first account.
+            if (_slip != null) ...[
+              SlipChip(onTap: () => showSlipViewer(context, _slip!)),
+              const SizedBox(height: 14),
+            ],
+            // Note
             _Row(
-              icon: AppIcons.layoutGrid,
-              label: l10n.addtxnPickCategoryTag,
-              value: _categoryLabel(categories, l10n, locale),
-              onTap: _pickCategory,
+              icon: AppIcons.pencilLine,
+              label: l10n.addtxnAddNote,
+              value: _note,
+              onTap: _editNote,
             ),
-            const SizedBox(height: 14),
-          ],
-          // Slip-backed entries keep a link to the original slip. The manual
-          // account picker was removed — entries default to the first account.
-          if (_slip != null) ...[
-            SlipChip(onTap: () => showSlipViewer(context, _slip!)),
-            const SizedBox(height: 14),
-          ],
-          // Note
-          _Row(
-            icon: AppIcons.pencilLine,
-            label: l10n.addtxnAddNote,
-            value: _note,
-            onTap: _editNote,
-          ),
-          const SizedBox(height: 18),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-            child: Text(
-              l10n.addtxnMore,
-              style: AppTypography.heading(
-                size: 13,
-                weight: FontWeight.w500,
-                color: context.palette.ink3,
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+              child: Text(
+                l10n.addtxnMore,
+                style: AppTypography.heading(
+                  size: 13,
+                  weight: FontWeight.w500,
+                  color: context.palette.ink3,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-          _Row(
-            icon: AppIcons.repeat,
-            label: l10n.addtxnRecurring,
-            // Carry the current tab's direction into the recurring form so it
-            // needn't ask again (transfers have no recurring rule → expense).
-            onTap: () => showRecurringRuleSheet(
-              context,
-              type: _type == TxnType.income ? TxnType.income : TxnType.expense,
+            const SizedBox(height: 10),
+            _Row(
+              icon: AppIcons.repeat,
+              label: l10n.addtxnRecurring,
+              // Carry the current tab's direction into the recurring form so it
+              // needn't ask again (transfers have no recurring rule → expense).
+              onTap: () => showRecurringRuleSheet(
+                context,
+                type: _type == TxnType.income
+                    ? TxnType.income
+                    : TxnType.expense,
+              ),
             ),
-          ),
-          if (widget.editId != null) ...[
-            const SizedBox(height: 22),
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: _confirmDelete,
-              child: Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  color: context.palette.dangerWash,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      AppIcons.trash2,
-                      size: 19,
-                      color: context.palette.dangerFg,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.addtxnDeleteEntry,
-                      style: AppTypography.heading(
-                        size: 16,
-                        weight: FontWeight.w500,
+            if (widget.editId != null) ...[
+              const SizedBox(height: 22),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _confirmDelete,
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: context.palette.dangerWash,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        AppIcons.trash2,
+                        size: 19,
                         color: context.palette.dangerFg,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.addtxnDeleteEntry,
+                        style: AppTypography.heading(
+                          size: 16,
+                          weight: FontWeight.w500,
+                          color: context.palette.dangerFg,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ],
       ),
