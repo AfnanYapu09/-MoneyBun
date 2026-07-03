@@ -43,15 +43,19 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
   RecurFreq _freq = RecurFreq.monthly;
   DateTime _startAt = DateTime.now();
   String _calcHistory = '';
+  final _scroll = ScrollController();
+  bool _calcOpen = false;
 
   @override
   void dispose() {
     _amount.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
   Future<void> _openCalculator() async {
     final original = _amount.text;
+    _showCalcRoom();
     await showAmountCalculator(
       context,
       initial: original,
@@ -61,8 +65,25 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
       },
     );
     if (!mounted) return;
+    setState(() => _calcOpen = false);
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
+  }
+
+  /// The in-app calculator docks over the lower half of the screen, so grow the
+  /// sheet upward and scroll the amount to the top — keeping the number being
+  /// typed visible above the keypad. Reversed when the keypad closes.
+  void _showCalcRoom() {
+    setState(() => _calcOpen = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -82,7 +103,15 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
       maxHeightFactor: 0.9,
       footer: PrimaryButton(label: l10n.recurSave, onPressed: _save),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        controller: _scroll,
+        // Extra bottom room while the keypad is open so the amount scrolls
+        // clear of it; the sheet grows upward to make the space.
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          _calcOpen ? MediaQuery.of(context).size.height * 0.5 : 8,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

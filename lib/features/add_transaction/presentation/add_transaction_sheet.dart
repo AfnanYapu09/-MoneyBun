@@ -43,6 +43,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   SlipRow? _slip;
   bool _loaded = false;
   String _calcHistory = '';
+  final _scroll = ScrollController();
+  bool _calcOpen = false;
 
   @override
   void initState() {
@@ -91,6 +93,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   @override
   void dispose() {
     _amount.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -113,6 +116,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   /// then persists, mirroring the old onChanged hook).
   Future<void> _openCalculator() async {
     final original = _amount.text;
+    _showCalcRoom();
     await showAmountCalculator(
       context,
       initial: original,
@@ -122,11 +126,28 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       },
     );
     if (!mounted) return;
+    setState(() => _calcOpen = false);
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
     // Keep _calcHistory as the keypad left it — it lingers above the amount
     // until the sheet is closed.
     _persistLive();
+  }
+
+  /// The in-app calculator docks over the lower half of the screen, so grow the
+  /// sheet upward and scroll the amount to the top — keeping the number being
+  /// typed visible above the keypad. Reversed when the keypad closes.
+  void _showCalcRoom() {
+    setState(() => _calcOpen = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -170,8 +191,16 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       // commit button.
       footer: _footer(context),
       child: ListView(
+        controller: _scroll,
         shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        // Extra bottom room while the keypad is open so the amount scrolls
+        // clear of it; the sheet grows upward to make the space.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          4,
+          16,
+          _calcOpen ? MediaQuery.of(context).size.height * 0.5 : 16,
+        ),
         children: [
           // Date chip
           InkWell(
