@@ -196,12 +196,13 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         shrinkWrap: true,
         // While the keypad is open the bottom room equals the keypad height, so
         // the amount card (the fields below it are hidden) docks flush on top of
-        // the calculator instead of floating at the top of the screen.
+        // the calculator. FullSheetScaffold already applies the bottom SafeArea
+        // inset, so — unlike the other sheets — this must not add it again.
         padding: EdgeInsets.fromLTRB(
           16,
           4,
           16,
-          _calcOpen ? 382 + MediaQuery.of(context).padding.bottom : 16,
+          _calcOpen ? 382.0 : 16,
         ),
         children: [
           // Date chip
