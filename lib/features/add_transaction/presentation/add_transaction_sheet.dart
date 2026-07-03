@@ -198,12 +198,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         // the amount card (the fields below it are hidden) docks flush on top of
         // the calculator. FullSheetScaffold already applies the bottom SafeArea
         // inset, so — unlike the other sheets — this must not add it again.
-        padding: EdgeInsets.fromLTRB(
-          16,
-          4,
-          16,
-          _calcOpen ? 382.0 : 16,
-        ),
+        padding: EdgeInsets.fromLTRB(16, 4, 16, _calcOpen ? 382.0 : 16),
         children: [
           // Date chip
           InkWell(
