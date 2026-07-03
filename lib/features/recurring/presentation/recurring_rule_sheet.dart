@@ -25,28 +25,37 @@ import '../../add_transaction/presentation/category_picker_sheet.dart';
 /// Bottom sheet to create a recurring rule that auto-creates a transaction on a
 /// daily / weekly / monthly schedule (materialised on app launch).
 class RecurringRuleSheet extends ConsumerStatefulWidget {
-  const RecurringRuleSheet({super.key});
+  const RecurringRuleSheet({super.key, this.type = TxnType.expense});
+
+  /// Income vs. expense is inherited from where the sheet was opened (e.g. the
+  /// current tab of the Add-transaction sheet) — this form has no picker of its
+  /// own, since choosing it here would just duplicate that selection.
+  final TxnType type;
 
   @override
   ConsumerState<RecurringRuleSheet> createState() => _RecurringRuleSheetState();
 }
 
 class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
-  TxnType _type = TxnType.expense;
+  late final TxnType _type = widget.type;
   final _amount = TextEditingController();
   String? _categoryId;
   RecurFreq _freq = RecurFreq.monthly;
   DateTime _startAt = DateTime.now();
   String _calcHistory = '';
+  final _scroll = ScrollController();
+  bool _calcOpen = false;
 
   @override
   void dispose() {
     _amount.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
   Future<void> _openCalculator() async {
     final original = _amount.text;
+    _showCalcRoom();
     await showAmountCalculator(
       context,
       initial: original,
@@ -56,8 +65,26 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
       },
     );
     if (!mounted) return;
+    setState(() => _calcOpen = false);
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
+  }
+
+  /// Dock the amount card flush above the in-app calculator: while the keypad is
+  /// open the fields below the amount are hidden and the sheet's bottom room is
+  /// set to the keypad height, so the amount box sits right on top of the keypad
+  /// (scrolled fully into view on short screens). Reversed when the keypad closes.
+  void _showCalcRoom() {
+    setState(() => _calcOpen = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -75,24 +102,23 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
       title: l10n.recurTitle,
       sizeToContent: true,
       maxHeightFactor: 0.9,
-      footer: PrimaryButton(label: l10n.recurSave, onPressed: _save),
+      footer: _calcOpen
+          ? null
+          : PrimaryButton(label: l10n.recurSave, onPressed: _save),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        controller: _scroll,
+        // While the keypad is open the bottom room equals the keypad height, so
+        // the amount card (the fields below it are hidden) docks flush on top of
+        // the calculator instead of floating at the top of the screen.
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          _calcOpen ? 382 + MediaQuery.of(context).padding.bottom : 8,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SegmentedControl<TxnType>(
-              value: _type,
-              onChanged: (t) => setState(() {
-                _type = t;
-                _categoryId = null;
-              }),
-              segments: [
-                Segment(value: TxnType.expense, label: l10n.expense),
-                Segment(value: TxnType.income, label: l10n.income),
-              ],
-            ),
-            const SizedBox(height: 14),
             // Amount
             Container(
               padding: const EdgeInsets.all(20),
@@ -153,116 +179,123 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
-            // Category
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: _pickCategory,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 13,
-                ),
-                decoration: BoxDecoration(
-                  color: context.palette.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.palette.line),
-                ),
-                child: Row(
-                  children: [
-                    if (cat == null)
-                      const IconChip(
-                        icon: AppIcons.layoutGrid,
-                        size: 38,
-                        radius: 12,
-                        iconSize: 19,
-                      )
-                    else
-                      CategoryGlyph(
-                        iconKey: cat.iconKey,
-                        color: AppColors.forHex(cat.colorHex),
-                        size: 38,
-                        radius: 12,
-                        iconSize: 19,
-                      ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        cat?.displayName(locale) ?? l10n.selectCategory,
-                        style: AppTypography.heading(
-                          size: 15,
-                          weight: FontWeight.w500,
+            // The keypad covers everything below the amount, so hide it while
+            // the calculator is open and dock the amount box on top of it.
+            if (!_calcOpen) ...[
+              const SizedBox(height: 14),
+              // Category
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _pickCategory,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 13,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.palette.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: context.palette.line),
+                  ),
+                  child: Row(
+                    children: [
+                      if (cat == null)
+                        const IconChip(
+                          icon: AppIcons.layoutGrid,
+                          size: 38,
+                          radius: 12,
+                          iconSize: 19,
+                        )
+                      else
+                        CategoryGlyph(
+                          iconKey: cat.iconKey,
+                          color: AppColors.forHex(cat.colorHex),
+                          size: 38,
+                          radius: 12,
+                          iconSize: 19,
+                        ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          cat?.displayName(locale) ?? l10n.selectCategory,
+                          style: AppTypography.heading(
+                            size: 15,
+                            weight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                    Icon(
-                      AppIcons.chevronRight,
-                      size: 19,
-                      color: context.palette.ink3,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.recurFrequency,
-              style: AppTypography.body(
-                size: 12.5,
-                color: context.palette.ink3,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SegmentedControl<RecurFreq>(
-              value: _freq,
-              onChanged: (f) => setState(() => _freq = f),
-              segments: [
-                Segment(value: RecurFreq.daily, label: l10n.recurFreqDaily),
-                Segment(value: RecurFreq.weekly, label: l10n.recurFreqWeekly),
-                Segment(value: RecurFreq.monthly, label: l10n.recurFreqMonthly),
-              ],
-            ),
-            const SizedBox(height: 14),
-            // Start date
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: _pickDate,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: context.palette.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.palette.line),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      AppIcons.calendar,
-                      size: 19,
-                      color: context.palette.terraFg,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        l10n.recurStartDate,
-                        style: AppTypography.body(size: 14.5),
+                      Icon(
+                        AppIcons.chevronRight,
+                        size: 19,
+                        color: context.palette.ink3,
                       ),
-                    ),
-                    Text(
-                      AppDate.formatDayHeader(_startAt, locale: locale),
-                      style: AppTypography.heading(
-                        size: 14,
-                        weight: FontWeight.w500,
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.recurFrequency,
+                style: AppTypography.body(
+                  size: 12.5,
+                  color: context.palette.ink3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SegmentedControl<RecurFreq>(
+                value: _freq,
+                onChanged: (f) => setState(() => _freq = f),
+                segments: [
+                  Segment(value: RecurFreq.daily, label: l10n.recurFreqDaily),
+                  Segment(value: RecurFreq.weekly, label: l10n.recurFreqWeekly),
+                  Segment(
+                    value: RecurFreq.monthly,
+                    label: l10n.recurFreqMonthly,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Start date
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _pickDate,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.palette.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: context.palette.line),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        AppIcons.calendar,
+                        size: 19,
                         color: context.palette.terraFg,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l10n.recurStartDate,
+                          style: AppTypography.body(size: 14.5),
+                        ),
+                      ),
+                      Text(
+                        AppDate.formatDayHeader(_startAt, locale: locale),
+                        style: AppTypography.heading(
+                          size: 14,
+                          weight: FontWeight.w500,
+                          color: context.palette.terraFg,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

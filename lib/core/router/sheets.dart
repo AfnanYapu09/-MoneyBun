@@ -133,8 +133,13 @@ Future<bool?> showBudgetSheet(BuildContext context, {BudgetRow? budget}) {
   );
 }
 
-/// Create a recurring rule (auto-creates a transaction on a schedule).
-Future<bool?> showRecurringRuleSheet(BuildContext context) {
+/// Create a recurring rule (auto-creates a transaction on a schedule). [type]
+/// (income vs. expense) is inherited from the caller — the sheet has no picker
+/// of its own — and defaults to expense when opened standalone (e.g. Settings).
+Future<bool?> showRecurringRuleSheet(
+  BuildContext context, {
+  TxnType type = TxnType.expense,
+}) {
   return _tracked(
     context,
     () => showModalBottomSheet<bool>(
@@ -142,7 +147,7 @@ Future<bool?> showRecurringRuleSheet(BuildContext context) {
       isScrollControlled: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => const RecurringRuleSheet(),
+      builder: (_) => RecurringRuleSheet(type: type),
     ),
   );
 }

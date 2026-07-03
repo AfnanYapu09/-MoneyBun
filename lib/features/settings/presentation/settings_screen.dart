@@ -119,17 +119,6 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 18),
-            SettingSectionLabel(l10n.settingsCloudSection),
-            SettingGroup(
-              children: [
-                SettingRow(
-                  icon: AppIcons.rotateCw,
-                  label: l10n.syncNow,
-                  onTap: () => ref.read(syncEngineProvider)?.sync(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
             SettingGroup(
               children: [
                 SettingRow(

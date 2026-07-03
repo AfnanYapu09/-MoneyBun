@@ -43,6 +43,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   SlipRow? _slip;
   bool _loaded = false;
   String _calcHistory = '';
+  final _scroll = ScrollController();
+  bool _calcOpen = false;
 
   @override
   void initState() {
@@ -91,6 +93,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   @override
   void dispose() {
     _amount.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -113,6 +116,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   /// then persists, mirroring the old onChanged hook).
   Future<void> _openCalculator() async {
     final original = _amount.text;
+    _showCalcRoom();
     await showAmountCalculator(
       context,
       initial: original,
@@ -122,11 +126,29 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       },
     );
     if (!mounted) return;
+    setState(() => _calcOpen = false);
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
     // Keep _calcHistory as the keypad left it — it lingers above the amount
     // until the sheet is closed.
     _persistLive();
+  }
+
+  /// Dock the amount card flush above the in-app calculator: while the keypad is
+  /// open the fields below the amount are hidden and the sheet's bottom room is
+  /// set to the keypad height, so the amount box sits right on top of the keypad
+  /// (scrolled fully into view on short screens). Reversed when the keypad closes.
+  void _showCalcRoom() {
+    setState(() => _calcOpen = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -168,10 +190,15 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       ),
       // Edit mode saves live (every change persists); only the Add flow keeps a
       // commit button.
-      footer: _footer(context),
+      footer: _calcOpen ? null : _footer(context),
       child: ListView(
+        controller: _scroll,
         shrinkWrap: true,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        // While the keypad is open the bottom room equals the keypad height, so
+        // the amount card (the fields below it are hidden) docks flush on top of
+        // the calculator. FullSheetScaffold already applies the bottom SafeArea
+        // inset, so — unlike the other sheets — this must not add it again.
+        padding: EdgeInsets.fromLTRB(16, 4, 16, _calcOpen ? 382.0 : 16),
         children: [
           // Date chip
           InkWell(
@@ -260,80 +287,90 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          // Category (non-transfer only)
-          if (_type != TxnType.transfer) ...[
+          // The keypad covers everything below the amount, so hide it while the
+          // calculator is open and dock the amount box on top of it.
+          if (!_calcOpen) ...[
+            const SizedBox(height: 14),
+            // Category (non-transfer only)
+            if (_type != TxnType.transfer) ...[
+              _Row(
+                icon: AppIcons.layoutGrid,
+                label: l10n.addtxnPickCategoryTag,
+                value: _categoryLabel(categories, l10n, locale),
+                onTap: _pickCategory,
+              ),
+              const SizedBox(height: 14),
+            ],
+            // Slip-backed entries keep a link to the original slip. The manual
+            // account picker was removed — entries default to the first account.
+            if (_slip != null) ...[
+              SlipChip(onTap: () => showSlipViewer(context, _slip!)),
+              const SizedBox(height: 14),
+            ],
+            // Note
             _Row(
-              icon: AppIcons.layoutGrid,
-              label: l10n.addtxnPickCategoryTag,
-              value: _categoryLabel(categories, l10n, locale),
-              onTap: _pickCategory,
+              icon: AppIcons.pencilLine,
+              label: l10n.addtxnAddNote,
+              value: _note,
+              onTap: _editNote,
             ),
-            const SizedBox(height: 14),
-          ],
-          // Slip-backed entries keep a link to the original slip. The manual
-          // account picker was removed — entries default to the first account.
-          if (_slip != null) ...[
-            SlipChip(onTap: () => showSlipViewer(context, _slip!)),
-            const SizedBox(height: 14),
-          ],
-          // Note
-          _Row(
-            icon: AppIcons.pencilLine,
-            label: l10n.addtxnAddNote,
-            value: _note,
-            onTap: _editNote,
-          ),
-          const SizedBox(height: 18),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-            child: Text(
-              l10n.addtxnMore,
-              style: AppTypography.heading(
-                size: 13,
-                weight: FontWeight.w500,
-                color: context.palette.ink3,
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+              child: Text(
+                l10n.addtxnMore,
+                style: AppTypography.heading(
+                  size: 13,
+                  weight: FontWeight.w500,
+                  color: context.palette.ink3,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-          _Row(
-            icon: AppIcons.repeat,
-            label: l10n.addtxnRecurring,
-            onTap: () => showRecurringRuleSheet(context),
-          ),
-          if (widget.editId != null) ...[
-            const SizedBox(height: 22),
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: _confirmDelete,
-              child: Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  color: context.palette.dangerWash,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      AppIcons.trash2,
-                      size: 19,
-                      color: context.palette.dangerFg,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.addtxnDeleteEntry,
-                      style: AppTypography.heading(
-                        size: 16,
-                        weight: FontWeight.w500,
+            const SizedBox(height: 10),
+            _Row(
+              icon: AppIcons.repeat,
+              label: l10n.addtxnRecurring,
+              // Carry the current tab's direction into the recurring form so it
+              // needn't ask again (transfers have no recurring rule → expense).
+              onTap: () => showRecurringRuleSheet(
+                context,
+                type:
+                    _type == TxnType.income ? TxnType.income : TxnType.expense,
+              ),
+            ),
+            if (widget.editId != null) ...[
+              const SizedBox(height: 22),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _confirmDelete,
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: context.palette.dangerWash,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        AppIcons.trash2,
+                        size: 19,
                         color: context.palette.dangerFg,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.addtxnDeleteEntry,
+                        style: AppTypography.heading(
+                          size: 16,
+                          weight: FontWeight.w500,
+                          color: context.palette.dangerFg,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ],
       ),

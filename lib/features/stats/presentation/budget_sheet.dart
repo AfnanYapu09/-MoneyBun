@@ -41,6 +41,8 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   BudgetPeriod _period = BudgetPeriod.monthly;
   bool _alert80 = true;
   String _calcHistory = '';
+  final _scroll = ScrollController();
+  bool _calcOpen = false;
 
   @override
   void initState() {
@@ -57,11 +59,13 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   @override
   void dispose() {
     _amount.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
   Future<void> _openCalculator() async {
     final original = _amount.text;
+    _showCalcRoom();
     await showAmountCalculator(
       context,
       initial: original,
@@ -71,9 +75,27 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
       },
     );
     if (!mounted) return;
+    setState(() => _calcOpen = false);
     final value = Calculator.evaluate(_amount.text);
     _amount.text = value == null ? original : Calculator.formatResult(value);
     // Keep _calcHistory as the keypad left it — it lingers until the sheet closes.
+  }
+
+  /// Dock the amount card flush above the in-app calculator: while the keypad is
+  /// open the fields below the amount are hidden and the sheet's bottom room is
+  /// set to the keypad height, so the amount box sits right on top of the keypad
+  /// (scrolled fully into view on short screens). Reversed when the keypad closes.
+  void _showCalcRoom() {
+    setState(() => _calcOpen = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -91,9 +113,20 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
       title: widget.budget == null ? l10n.statsSetBudget : l10n.statsEditBudget,
       sizeToContent: true,
       maxHeightFactor: 0.9,
-      footer: PrimaryButton(label: l10n.statsSaveBudget, onPressed: _save),
+      footer: _calcOpen
+          ? null
+          : PrimaryButton(label: l10n.statsSaveBudget, onPressed: _save),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        controller: _scroll,
+        // While the keypad is open the bottom room equals the keypad height, so
+        // the amount card (the fields below it are hidden) docks flush on top of
+        // the calculator instead of floating at the top of the screen.
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          _calcOpen ? 382 + MediaQuery.of(context).padding.bottom : 8,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -221,118 +254,128 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
-            // Quick amounts
-            Row(
-              children: [
-                for (final a in const [3000, 5000, 9000, 15000]) ...[
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _amount.text = a.toString(),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: context.palette.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: context.palette.line),
-                        ),
-                        child: Text(
-                          '฿${_fmt(a)}',
-                          style: AppTypography.heading(
-                            size: 13,
-                            weight: FontWeight.w500,
-                            color: context.palette.ink2,
+            // The keypad covers everything below the amount, so hide it while
+            // the calculator is open and dock the amount box on top of it.
+            if (!_calcOpen) ...[
+              const SizedBox(height: 14),
+              // Quick amounts
+              Row(
+                children: [
+                  for (final a in const [3000, 5000, 9000, 15000]) ...[
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _amount.text = a.toString(),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: context.palette.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: context.palette.line),
+                          ),
+                          child: Text(
+                            '฿${_fmt(a)}',
+                            style: AppTypography.heading(
+                              size: 13,
+                              weight: FontWeight.w500,
+                              color: context.palette.ink2,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.statsBudgetCycle,
-              style: AppTypography.body(
-                size: 12.5,
-                color: context.palette.ink3,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SegmentedControl<BudgetPeriod>(
-              value: _period,
-              onChanged: (p) => setState(() => _period = p),
-              segments: [
-                Segment(value: BudgetPeriod.weekly, label: l10n.statsWeekly),
-                Segment(value: BudgetPeriod.monthly, label: l10n.statsMonthly),
-                Segment(value: BudgetPeriod.yearly, label: l10n.statsYearly),
-              ],
-            ),
-            const SizedBox(height: 14),
-            // Alert-at-80% toggle.
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-              decoration: BoxDecoration(
-                color: context.palette.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: context.palette.line),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    AppIcons.bellRing,
-                    size: 19,
-                    color: context.palette.terraFg,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      l10n.statsAlertAt80,
-                      style: AppTypography.body(size: 14.5),
-                    ),
-                  ),
-                  AppToggle(
-                    value: _alert80,
-                    onChanged: (v) => setState(() => _alert80 = v),
-                  ),
+                    const SizedBox(width: 8),
+                  ],
                 ],
               ),
-            ),
-            if (widget.budget != null) ...[
-              const SizedBox(height: 18),
-              InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: _delete,
-                child: Container(
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: context.palette.dangerWash,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        AppIcons.trash2,
-                        size: 19,
-                        color: context.palette.dangerFg,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.statsDeleteBudget,
-                        style: AppTypography.heading(
-                          size: 16,
-                          weight: FontWeight.w500,
-                          color: context.palette.dangerFg,
-                        ),
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.statsBudgetCycle,
+                style: AppTypography.body(
+                  size: 12.5,
+                  color: context.palette.ink3,
                 ),
               ),
+              const SizedBox(height: 8),
+              SegmentedControl<BudgetPeriod>(
+                value: _period,
+                onChanged: (p) => setState(() => _period = p),
+                segments: [
+                  Segment(value: BudgetPeriod.weekly, label: l10n.statsWeekly),
+                  Segment(
+                    value: BudgetPeriod.monthly,
+                    label: l10n.statsMonthly,
+                  ),
+                  Segment(value: BudgetPeriod.yearly, label: l10n.statsYearly),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Alert-at-80% toggle.
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 13,
+                ),
+                decoration: BoxDecoration(
+                  color: context.palette.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: context.palette.line),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      AppIcons.bellRing,
+                      size: 19,
+                      color: context.palette.terraFg,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.statsAlertAt80,
+                        style: AppTypography.body(size: 14.5),
+                      ),
+                    ),
+                    AppToggle(
+                      value: _alert80,
+                      onChanged: (v) => setState(() => _alert80 = v),
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.budget != null) ...[
+                const SizedBox(height: 18),
+                InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: _delete,
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: context.palette.dangerWash,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          AppIcons.trash2,
+                          size: 19,
+                          color: context.palette.dangerFg,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.statsDeleteBudget,
+                          style: AppTypography.heading(
+                            size: 16,
+                            weight: FontWeight.w500,
+                            color: context.palette.dangerFg,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ],
         ),
