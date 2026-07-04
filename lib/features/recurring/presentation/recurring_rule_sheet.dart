@@ -46,6 +46,10 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
   final _scroll = ScrollController();
   bool _calcOpen = false;
 
+  /// Single-flight guard: a double-tap on save would create two identical
+  /// rules — and every future occurrence would then be created twice.
+  bool _busy = false;
+
   @override
   void dispose() {
     _amount.dispose();
@@ -104,7 +108,11 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
       maxHeightFactor: 0.9,
       footer: _calcOpen
           ? null
-          : PrimaryButton(label: l10n.recurSave, onPressed: _save),
+          : PrimaryButton(
+              label: l10n.recurSave,
+              loading: _busy,
+              onPressed: _busy ? null : _save,
+            ),
       child: SingleChildScrollView(
         controller: _scroll,
         // While the keypad is open the bottom room equals the keypad height, so
@@ -336,6 +344,7 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
   }
 
   Future<void> _save() async {
+    if (_busy) return;
     final l10n = AppLocalizations.of(context);
     final cents = Money.parseToCents(_amount.text) ?? 0;
     if (cents <= 0) {
@@ -344,20 +353,26 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
       ).showSnackBar(SnackBar(content: Text(l10n.addtxnEnterAmount)));
       return;
     }
+    setState(() => _busy = true);
     final now = DateTime.now().millisecondsSinceEpoch;
-    await ref.read(databaseProvider).upsertRecurringRule(
-          RecurringRulesCompanion.insert(
-            id: const Uuid().v4(),
-            type: _type,
-            amountCents: cents,
-            freq: _freq,
-            nextRunAt: AppDate.toMillis(_startAt),
-            anchorDay: Value(_startAt.day),
-            createdAt: now,
-            updatedAt: now,
-            categoryId: Value(_categoryId),
-          ),
-        );
+    try {
+      await ref.read(databaseProvider).upsertRecurringRule(
+            RecurringRulesCompanion.insert(
+              id: const Uuid().v4(),
+              type: _type,
+              amountCents: cents,
+              freq: _freq,
+              nextRunAt: AppDate.toMillis(_startAt),
+              anchorDay: Value(_startAt.day),
+              createdAt: now,
+              updatedAt: now,
+              categoryId: Value(_categoryId),
+            ),
+          );
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
     if (mounted) Navigator.of(context).pop(true);
   }
 }

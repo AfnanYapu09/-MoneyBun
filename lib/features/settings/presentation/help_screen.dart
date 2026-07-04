@@ -303,10 +303,13 @@ class _HelpScreenState extends State<HelpScreen> {
                   bordered: true,
                   onTap: () => _open(
                     context,
+                    // Built by hand: Uri's queryParameters encodes spaces as
+                    // '+', which mail apps show literally in the subject.
                     Uri(
                       scheme: 'mailto',
                       path: _email,
-                      queryParameters: {'subject': l10n.settingsEmailSubject},
+                      query: 'subject='
+                          '${Uri.encodeComponent(l10n.settingsEmailSubject)}',
                     ),
                     _email,
                   ),

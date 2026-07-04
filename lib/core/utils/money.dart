@@ -35,12 +35,14 @@ class Money {
   }
 
   /// Like [format] but drops `.00` for whole amounts (design style):
-  /// `2000100` -> `฿20,001`, `84550` -> `฿845.50`.
+  /// `2000100` -> `฿20,001`, `84550` -> `฿845.50`, `-50000` -> `-฿500`
+  /// (sign before the symbol — the naive formatting printed `฿-500`).
   static String compact(int cents, {bool symbol = true}) {
-    final whole = cents % 100 == 0;
-    final body =
-        whole ? _whole.format(cents ~/ 100) : _plain.format(cents / 100.0);
-    return symbol ? '$_symbol$body' : body;
+    final sign = cents < 0 ? '-' : '';
+    final abs = cents.abs();
+    final whole = abs % 100 == 0;
+    final body = whole ? _whole.format(abs ~/ 100) : _plain.format(abs / 100.0);
+    return symbol ? '$sign$_symbol$body' : '$sign$body';
   }
 
   /// Format with an explicit leading sign, e.g. `+฿1,234.56` / `-฿1,234.56`.
@@ -49,15 +51,22 @@ class Money {
     return '$sign${format(cents.abs(), symbol: symbol)}';
   }
 
+  /// Upper bound accepted from free-form input: ฿1,000,000,000. Keeps a stray
+  /// paste / exponent-style typo from creating a ledger-breaking amount.
+  static const int maxInputCents = 100000000000;
+
   /// Parse free-form user input (`"1,234.56"`, `"1234"`, `"1234.5"`) into cents.
   /// Returns `null` when the input is not a valid positive-or-zero amount.
+  /// Plain decimal digits only — exponent notation ("1e5"), signs and other
+  /// stray characters are rejected rather than guessed at.
   static int? parseToCents(String input) {
-    final cleaned = input.trim().replaceAll(RegExp(r'[฿$€¥£,]'), '').trim();
+    final cleaned = input.trim().replaceAll(RegExp(r'[฿$€¥£,\s]'), '');
     if (cleaned.isEmpty) return null;
+    if (!RegExp(r'^\d+(\.\d+)?$').hasMatch(cleaned)) return null;
     final value = double.tryParse(cleaned);
-    if (value == null || value.isNaN || value.isInfinite) return null;
-    if (value < 0) return null;
-    return (value * 100).round();
+    if (value == null) return null;
+    final cents = (value * 100).round();
+    return cents > maxInputCents ? null : cents;
   }
 
   /// `123456` -> `"1234.56"` for editable text fields.

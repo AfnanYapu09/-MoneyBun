@@ -57,9 +57,12 @@ class AppColors {
   static const Color transfer = amber; // ย้ายเงิน
 
   /// Parse a stored `colorHex` ("FFE8732C" or "#E8732C") into a [Color].
+  /// Malformed input (a corrupt/empty value synced from the cloud) falls back
+  /// to [terra] — one bad row must not crash every screen that renders it.
   static Color forHex(String hex) {
-    final value = hex.replaceAll('#', '');
+    final value = hex.replaceAll('#', '').trim();
     final withAlpha = value.length == 6 ? 'FF$value' : value;
-    return Color(int.parse(withAlpha, radix: 16));
+    final parsed = int.tryParse(withAlpha, radix: 16);
+    return parsed == null ? terra : Color(parsed);
   }
 }

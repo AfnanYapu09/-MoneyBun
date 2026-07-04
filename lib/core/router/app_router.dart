@@ -44,6 +44,9 @@ GoRouter buildRouter(Ref ref) {
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: refresh,
+    // A malformed deep link lands on Home instead of go_router's raw
+    // exception screen (the auth redirect below still gates it).
+    onException: (_, state, router) => router.go('/home'),
     // Cloud-only: the app is usable only while signed in. The splash plays its
     // brand beat and routes onward itself; every other route is gated here.
     redirect: (context, state) {
@@ -170,9 +173,10 @@ GoRouter buildRouter(Ref ref) {
 /// GoRouter re-evaluates its redirect whenever the stream emits.
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic>? stream) {
-    if (stream != null) {
-      _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
-    }
+    // Firebase's authStateChanges() is already a broadcast stream; wrapping it
+    // in asBroadcastStream() again would leave an inner subscription that
+    // cancel() can't reach.
+    _sub = stream?.listen((_) => notifyListeners());
   }
 
   StreamSubscription<dynamic>? _sub;

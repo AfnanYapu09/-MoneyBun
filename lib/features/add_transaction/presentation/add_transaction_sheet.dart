@@ -46,6 +46,11 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   final _scroll = ScrollController();
   bool _calcOpen = false;
 
+  /// Single-flight guard for actions that end in a `pop` (save / delete): a
+  /// double-tap would otherwise insert two rows and pop the route *under* the
+  /// sheet as well.
+  bool _busy = false;
+
   @override
   void initState() {
     super.initState();
@@ -440,7 +445,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         ],
       ),
     );
-    if (note != null) {
+    controller.dispose();
+    if (note != null && mounted) {
       setState(() => _note = note.isEmpty ? null : note);
       _persistLive();
     }
@@ -477,8 +483,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
     return PrimaryButton(
       label: l10n.save,
       color: _fillAccentOf(),
-      onPressed: _loaded ? _save : null,
-      loading: !_loaded,
+      onPressed: _loaded && !_busy ? _save : null,
+      loading: !_loaded || _busy,
     );
   }
 
@@ -488,6 +494,13 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   Future<void> _persistLive() async {
     if (widget.editId == null || !_loaded) return;
     final cents = Money.parseToCents(_amount.text) ?? 0;
+    // Unlike _save (which rejects with a snackbar), live-save simply skips a
+    // cleared/invalid amount so it can't silently overwrite the entry with ฿0.
+    // Slip imports are the exception: they legitimately hold ฿0 until the user
+    // fills the amount in, so a still-zero row may keep saving other fields.
+    final row =
+        await ref.read(transactionRepositoryProvider).get(widget.editId!);
+    if (!mounted || (cents <= 0 && (row?.amountCents ?? 0) > 0)) return;
     final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
     final defaultAccount = accounts.isEmpty ? null : accounts.first.id;
     await ref.read(transactionRepositoryProvider).save(
@@ -504,6 +517,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
   }
 
   Future<void> _save() async {
+    if (_busy) return;
     final l10n = AppLocalizations.of(context);
     final cents = Money.parseToCents(_amount.text) ?? 0;
     if (cents <= 0) {
@@ -512,44 +526,61 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       ).showSnackBar(SnackBar(content: Text(l10n.addtxnEnterAmount)));
       return;
     }
-    final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
-    final defaultAccount = accounts.isEmpty ? null : accounts.first.id;
-    await ref.read(transactionRepositoryProvider).save(
-          id: widget.editId,
-          type: _type,
-          amountCents: cents,
-          accountId: _fromAccountId ?? defaultAccount ?? '',
-          toAccountId: _type == TxnType.transfer ? _toAccountId : null,
-          categoryId: _type == TxnType.transfer ? null : _categoryId,
-          note: _note,
-          occurredAt: _occurredAt,
-          tagIds: _type == TxnType.transfer ? const [] : _tagIds,
-        );
+    setState(() => _busy = true);
+    try {
+      final accounts = ref.read(accountsProvider).value ?? const <AccountRow>[];
+      final defaultAccount = accounts.isEmpty ? null : accounts.first.id;
+      await ref.read(transactionRepositoryProvider).save(
+            id: widget.editId,
+            type: _type,
+            amountCents: cents,
+            accountId: _fromAccountId ?? defaultAccount ?? '',
+            toAccountId: _type == TxnType.transfer ? _toAccountId : null,
+            categoryId: _type == TxnType.transfer ? null : _categoryId,
+            note: _note,
+            occurredAt: _occurredAt,
+            tagIds: _type == TxnType.transfer ? const [] : _tagIds,
+          );
+    } catch (_) {
+      // Re-enable the button so the user can retry; stays busy on success
+      // (the sheet is popping — a tap during the close animation must not
+      // save again and pop the route underneath).
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
     if (mounted) Navigator.of(context).pop(true);
   }
 
   Future<void> _confirmDelete() async {
-    final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        content: Text(l10n.addtxnConfirmDelete),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) {
-      await ref.read(transactionRepositoryProvider).delete(widget.editId!);
-      if (mounted) Navigator.of(context).pop(true);
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final l10n = AppLocalizations.of(context);
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          content: Text(l10n.addtxnConfirmDelete),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: Text(l10n.delete),
+            ),
+          ],
+        ),
+      );
+      if (ok == true) {
+        await ref.read(transactionRepositoryProvider).delete(widget.editId!);
+        if (mounted) Navigator.of(context).pop(true);
+        return; // keep _busy set — the sheet is closing
+      }
+    } catch (_) {
+      // fall through to re-enable
     }
+    if (mounted) setState(() => _busy = false);
   }
 }
 

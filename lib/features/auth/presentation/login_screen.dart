@@ -118,14 +118,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 SocialButton(
                   icon: AppIcons.google,
                   label: 'Google',
-                  onPressed: _google,
+                  onPressed: _busy ? null : _google,
                 ),
                 if (appleAvailable) ...[
                   const SizedBox(width: 12),
                   SocialButton(
                     icon: AppIcons.apple,
                     label: 'Apple',
-                    onPressed: _apple,
+                    onPressed: _busy ? null : _apple,
                   ),
                 ],
               ],
@@ -162,6 +162,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    // Single-flight: the social buttons stay tappable while an email login is
+    // in flight (and vice versa) — overlapping GoogleSignIn.authenticate()
+    // calls throw on Android and stack error snacks.
+    if (_busy) return;
     final auth = ref.read(authServiceProvider);
     if (auth == null) {
       _snack(AppLocalizations.of(context).authFirebaseNotConfigured);
@@ -176,6 +180,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) context.go('/home');
     } catch (e) {
       if (!mounted) return;
+      // The user closing the Google/Apple account sheet themselves is not a
+      // failure — stay silent instead of flashing "เข้าสู่ระบบไม่สำเร็จ".
+      if (isAuthCancelled(e)) return;
       final l10n = AppLocalizations.of(context);
       _snack(authErrorMessage(e, l10n, fallback: l10n.authLoginFailed));
     } finally {

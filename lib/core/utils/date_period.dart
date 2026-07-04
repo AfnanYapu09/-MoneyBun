@@ -103,9 +103,8 @@ class DatePeriod {
   /// Days remaining until the period ends, counting today (so the final day
   /// reads "1 day left", not 0). Returns 0 once the period is fully past.
   int get daysRemaining {
-    final last = AppDate.startOfDay(AppDate.fromMillis(end));
-    final today = AppDate.startOfDay(DateTime.now());
-    final diff = last.difference(today).inDays + 1;
+    final last = AppDate.fromMillis(end);
+    final diff = AppDate.daysBetween(DateTime.now(), last) + 1;
     return diff < 0 ? 0 : diff;
   }
 

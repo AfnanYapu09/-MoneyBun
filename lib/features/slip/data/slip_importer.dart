@@ -57,6 +57,8 @@ class SlipImporter {
     required TransactionRepository transactions,
     required Future<Set<String>> Function() importedAssetIds,
     required Future<Set<String>> Function() importedSlipRefs,
+    required Future<bool> Function(String assetId) assetImported,
+    required Future<bool> Function(String transRef) refImported,
     required Future<int?> Function() latestSlipPhotoTime,
     required Future<Set<String>> Function() disabledScanIds,
     required Future<int?> Function() scannedUpTo,
@@ -66,6 +68,8 @@ class SlipImporter {
         _txns = transactions,
         _importedAssetIds = importedAssetIds,
         _importedSlipRefs = importedSlipRefs,
+        _assetImported = assetImported,
+        _refImported = refImported,
         _latestSlipPhotoTime = latestSlipPhotoTime,
         _disabledScanIds = disabledScanIds,
         _scannedUpTo = scannedUpTo,
@@ -80,6 +84,13 @@ class SlipImporter {
   /// the gallery asset id) so the same slip isn't re-imported after a cloud
   /// restore, where the asset id may be missing.
   final Future<Set<String>> Function() _importedSlipRefs;
+
+  /// Point lookups against the live DB for the just-before-write dedup
+  /// re-check (a cloud pull can restore a slip mid-scan). Indexed single-row
+  /// queries — unlike re-reading the whole table per image, which made a big
+  /// backlog scan O(images × slips).
+  final Future<bool> Function(String assetId) _assetImported;
+  final Future<bool> Function(String transRef) _refImported;
 
   /// Source-photo time of the latest imported slip (epoch ms), or null when
   /// none yet. Used as the scan watermark: read only photos newer than this.
@@ -251,8 +262,12 @@ class SlipImporter {
       );
       // Inclusive at the cutoff so a slip saved in the same second as the
       // watermark isn't missed; the already-imported one is skipped by the
-      // asset-id / transRef dedup below.
-      bool inWindow(AssetEntity a) => !a.createDateTime.isBefore(cutoff);
+      // asset-id / transRef dedup below. A photo whose creation time the
+      // gallery doesn't know (epoch 0) can never pass the cutoff — include it
+      // anyway; after its first import the asset-id dedup skips it.
+      bool inWindow(AssetEntity a) =>
+          a.createDateTime.millisecondsSinceEpoch == 0 ||
+          !a.createDateTime.isBefore(cutoff);
       // Banks the user turned off in the accounts sheet — skip their albums.
       final disabled = await _disabledScanIds();
 
@@ -277,13 +292,19 @@ class SlipImporter {
 
       // Record how far this scan read (the newest photo it considered, clamped
       // to the scan start so a future-dated photo can't jump the cursor), so
-      // the next scan continues after it even when nothing was imported. Not
-      // advanced when a photo errored — those get retried on the next scan
-      // instead of being skipped forever — nor when cancelled mid-scan.
+      // the next scan continues after it even when nothing was imported.
+      // Errored photos stay ahead of the cursor and get retried: the record
+      // stops just BEFORE the oldest failure instead of not advancing at all —
+      // one permanently unreadable photo must not force every future scan to
+      // re-OCR the whole month window. Never advanced when cancelled mid-scan.
       final seen = acc.newestSeenAt;
-      if (!cancelled() && acc.errors == 0 && seen != null) {
+      if (!cancelled() && seen != null) {
+        var upTo = seen;
         final startMs = scanStart.millisecondsSinceEpoch;
-        await _saveScannedUpTo(seen < startMs ? seen : startMs);
+        if (upTo > startMs) upTo = startMs;
+        final failedAt = acc.oldestErrorAt;
+        if (failedAt != null && failedAt - 1 < upTo) upTo = failedAt - 1;
+        await _saveScannedUpTo(upTo);
       }
 
       return ScanResult(
@@ -322,18 +343,22 @@ class SlipImporter {
           file.path,
         ))
             .copyWith(imagePath: file.path, assetId: asset.id);
-        // Re-sync the dedup keys with the live DB before persisting: a cloud
-        // pull can land mid-scan (an app-resume sync) and restore this very
-        // slip after the sets were snapshotted at scan start. Cheap — runs
-        // only for images that survived the snapshot dedup above.
-        already.addAll(await _importedAssetIds());
-        knownRefs.addAll(await _importedSlipRefs());
-        if (already.contains(asset.id)) continue;
+        // Re-check the dedup keys against the live DB before persisting: a
+        // cloud pull can land mid-scan (an app-resume sync) and restore this
+        // very slip after the sets were snapshotted at scan start. Targeted
+        // point lookups — re-reading the whole table per image made a big
+        // backlog scan O(images × slips).
+        if (await _assetImported(asset.id)) {
+          already.add(asset.id);
+          continue;
+        }
         // Skip if this exact slip (by bank transaction reference) was already
         // imported — guards against a re-import when the asset id differs
         // (e.g. after restoring data from the cloud).
         final ref = parsed.transRef;
-        if (ref != null && ref.isNotEmpty && knownRefs.contains(ref)) {
+        if (ref != null &&
+            ref.isNotEmpty &&
+            (knownRefs.contains(ref) || await _refImported(ref))) {
           already.add(asset.id);
           continue;
         }
@@ -352,6 +377,9 @@ class SlipImporter {
       } catch (_) {
         // One unreadable photo shouldn't abort the whole scan.
         acc.errors++;
+        if (acc.oldestErrorAt == null || seenMs < acc.oldestErrorAt!) {
+          acc.oldestErrorAt = seenMs;
+        }
       }
     }
   }
@@ -388,4 +416,9 @@ class _ScanAcc {
   /// Photo time (epoch ms) of the newest in-window asset this scan considered
   /// (imported or deduped) — persisted as the read-up-to record afterwards.
   int? newestSeenAt;
+
+  /// Photo time (epoch ms) of the OLDEST asset whose read threw this scan.
+  /// The read-up-to record stops just before it, so failed photos are retried
+  /// while everything read successfully is never re-read.
+  int? oldestErrorAt;
 }

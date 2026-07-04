@@ -14,25 +14,43 @@ import '../../../l10n/generated/app_localizations.dart';
 /// Bottom sheet to choose which banks' gallery albums น้องบัน scans for slips.
 /// Each toggle persists immediately to settings (no Save button); the slip
 /// importer skips the albums of banks turned off here.
-class AccountsSheet extends ConsumerWidget {
+class AccountsSheet extends ConsumerStatefulWidget {
   const AccountsSheet({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AccountsSheet> createState() => _AccountsSheetState();
+}
+
+class _AccountsSheetState extends ConsumerState<AccountsSheet> {
+  /// Local working copy of the disabled set. Each tap composes on top of the
+  /// previous one — computing from the (async) settings stream instead made
+  /// two quick taps read the same stale snapshot, so the second undid the
+  /// first, and a tap on the very first frame (settings still null) wiped
+  /// every saved toggle.
+  Set<String>? _disabled;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final settings = ref.watch(appSettingsProvider).value;
-    final disabled = settings?.disabledScanIds ?? const <String>{};
+    _disabled ??= settings?.disabledScanIds.toSet();
+    final disabled = _disabled ?? const <String>{};
+    final ready = _disabled != null;
     final repo = ref.read(settingsRepositoryProvider);
     final allOn = disabled.isEmpty;
 
     void setAll(bool on) {
+      if (!ready) return;
       final ids = on ? <String>{} : {for (final b in BankCatalog.all) b.id};
+      setState(() => _disabled = ids);
       repo.setDisabledScanIds(ids);
     }
 
     void toggle(String id) {
+      if (!ready) return;
       final next = disabled.toSet();
       if (!next.add(id)) next.remove(id); // already disabled → re-enable
+      setState(() => _disabled = next);
       repo.setDisabledScanIds(next);
     }
 
