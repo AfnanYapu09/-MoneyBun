@@ -103,6 +103,26 @@ class SyncEngine {
     }
   }
 
+  /// Sign-out path: wait for any in-flight sync to finish (bounded), then push
+  /// whatever is still pending so it isn't destroyed by the local wipe that
+  /// follows. Returns whether the push pass actually ran and completed.
+  Future<bool> flushPending(
+      {Duration timeout = const Duration(seconds: 10)}) async {
+    final deadline = DateTime.now().add(timeout);
+    while (_running) {
+      if (DateTime.now().isAfter(deadline)) return false;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    return pushOnly();
+  }
+
+  /// Whether [uid] is still the signed-in user. Checked after every network
+  /// await and before every local write: sign-out wipes the local DB, and a
+  /// pull/push that resolves after that must not write the old account's rows
+  /// back into the freshly-wiped database (they would then sync into the NEXT
+  /// account's cloud).
+  bool _sameUser(String uid) => _auth.currentUser?.uid == uid;
+
   // Run the collections concurrently — each is an independent network call, so
   // the whole sync takes about as long as the slowest one instead of the sum.
   Future<void> _pushAll(String uid) => Future.wait([
@@ -165,7 +185,11 @@ class SyncEngine {
       // Embed the tag links so they sync without a separate collection.
       map['tagIds'] = tagsByTxn[r.id] ?? const <String>[];
       await _pushDoc(col.doc(r.id), map);
-      await _db.markTransactionSynced(r.id);
+      if (!_sameUser(uid)) return;
+      // Compare-and-set on the updatedAt read at push time: an edit made while
+      // this upload was in flight keeps the row pending instead of being
+      // stamped synced (and never uploaded).
+      await _db.markTransactionSynced(r.id, r.updatedAt);
     }));
   }
 
@@ -173,7 +197,8 @@ class SyncEngine {
     final col = _col(uid, 'accounts');
     await Future.wait((await _db.pendingAccounts()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.accountToMap(r));
-      await _db.markAccountSynced(r.id);
+      if (!_sameUser(uid)) return;
+      await _db.markAccountSynced(r.id, r.updatedAt);
     }));
   }
 
@@ -181,7 +206,8 @@ class SyncEngine {
     final col = _col(uid, 'categories');
     await Future.wait((await _db.pendingCategories()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.categoryToMap(r));
-      await _db.markCategorySynced(r.id);
+      if (!_sameUser(uid)) return;
+      await _db.markCategorySynced(r.id, r.updatedAt);
     }));
   }
 
@@ -189,7 +215,8 @@ class SyncEngine {
     final col = _col(uid, 'slips');
     await Future.wait((await _db.pendingSlips()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.slipToMap(r));
-      await _db.markSlipSynced(r.id);
+      if (!_sameUser(uid)) return;
+      await _db.markSlipSynced(r.id, r.updatedAt);
     }));
   }
 
@@ -197,7 +224,8 @@ class SyncEngine {
     final col = _col(uid, 'budgets');
     await Future.wait((await _db.pendingBudgets()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.budgetToMap(r));
-      await _db.markBudgetSynced(r.id);
+      if (!_sameUser(uid)) return;
+      await _db.markBudgetSynced(r.id, r.updatedAt);
     }));
   }
 
@@ -205,7 +233,8 @@ class SyncEngine {
     final col = _col(uid, 'tags');
     await Future.wait((await _db.pendingTags()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.tagToMap(r));
-      await _db.markTagSynced(r.id);
+      if (!_sameUser(uid)) return;
+      await _db.markTagSynced(r.id, r.updatedAt);
     }));
   }
 
@@ -213,7 +242,8 @@ class SyncEngine {
     final col = _col(uid, 'recurringRules');
     await Future.wait((await _db.pendingRecurringRules()).map((r) async {
       await _pushDoc(col.doc(r.id), FirestoreMappers.recurringRuleToMap(r));
-      await _db.markRecurringRuleSynced(r.id);
+      if (!_sameUser(uid)) return;
+      await _db.markRecurringRuleSynced(r.id, r.updatedAt);
     }));
   }
 
@@ -247,7 +277,7 @@ class SyncEngine {
 
   Future<void> _pullAccounts(String uid) async {
     final snap = await _incrementalPull(uid, 'accounts');
-    if (snap.docs.isEmpty) return;
+    if (snap.docs.isEmpty || !_sameUser(uid)) return;
     final localUpdated = await _db.accountsUpdatedAt();
     final rows = <AccountsCompanion>[];
     var maxUpdated = 0;
@@ -261,13 +291,14 @@ class SyncEngine {
         rows.add(FirestoreMappers.accountFromMap(doc.id, data));
       }
     }
+    if (!_sameUser(uid)) return;
     if (rows.isNotEmpty) await _db.batchUpsertAccounts(rows);
     await _saveWatermark('accounts', maxUpdated);
   }
 
   Future<void> _pullCategories(String uid) async {
     final snap = await _incrementalPull(uid, 'categories');
-    if (snap.docs.isEmpty) return;
+    if (snap.docs.isEmpty || !_sameUser(uid)) return;
     final localUpdated = await _db.categoriesUpdatedAt();
     final rows = <CategoriesCompanion>[];
     var maxUpdated = 0;
@@ -281,13 +312,14 @@ class SyncEngine {
         rows.add(FirestoreMappers.categoryFromMap(doc.id, data));
       }
     }
+    if (!_sameUser(uid)) return;
     if (rows.isNotEmpty) await _db.batchUpsertCategories(rows);
     await _saveWatermark('categories', maxUpdated);
   }
 
   Future<void> _pullTags(String uid) async {
     final snap = await _incrementalPull(uid, 'tags');
-    if (snap.docs.isEmpty) return;
+    if (snap.docs.isEmpty || !_sameUser(uid)) return;
     final localUpdated = await _db.tagsUpdatedAt();
     final rows = <TagsCompanion>[];
     var maxUpdated = 0;
@@ -301,13 +333,14 @@ class SyncEngine {
         rows.add(FirestoreMappers.tagFromMap(doc.id, data));
       }
     }
+    if (!_sameUser(uid)) return;
     if (rows.isNotEmpty) await _db.batchUpsertTags(rows);
     await _saveWatermark('tags', maxUpdated);
   }
 
   Future<void> _pullTransactions(String uid) async {
     final snap = await _incrementalPull(uid, 'transactions');
-    if (snap.docs.isEmpty) return;
+    if (snap.docs.isEmpty || !_sameUser(uid)) return;
     // One query for all local updatedAt instead of a read per row.
     final localUpdated = await _db.transactionsUpdatedAt();
     final rows = <TransactionsCompanion>[];
@@ -331,8 +364,10 @@ class SyncEngine {
         }
       }
     }
+    if (!_sameUser(uid)) return;
     if (rows.isNotEmpty) await _db.batchUpsertTransactions(rows);
     for (final w in tagWrites) {
+      if (!_sameUser(uid)) return;
       await _db.setTransactionTags(w.key, w.value);
     }
     await _saveWatermark('transactions', maxUpdated);
@@ -340,7 +375,7 @@ class SyncEngine {
 
   Future<void> _pullBudgets(String uid) async {
     final snap = await _incrementalPull(uid, 'budgets');
-    if (snap.docs.isEmpty) return;
+    if (snap.docs.isEmpty || !_sameUser(uid)) return;
     final localUpdated = await _db.budgetsUpdatedAt();
     final rows = <BudgetsCompanion>[];
     var maxUpdated = 0;
@@ -354,13 +389,14 @@ class SyncEngine {
         rows.add(FirestoreMappers.budgetFromMap(doc.id, data));
       }
     }
+    if (!_sameUser(uid)) return;
     if (rows.isNotEmpty) await _db.batchUpsertBudgets(rows);
     await _saveWatermark('budgets', maxUpdated);
   }
 
   Future<void> _pullSlips(String uid) async {
     final snap = await _incrementalPull(uid, 'slips');
-    if (snap.docs.isEmpty) return;
+    if (snap.docs.isEmpty || !_sameUser(uid)) return;
     final localUpdated = await _db.slipsUpdatedAt();
     final rows = <SlipsCompanion>[];
     var maxUpdated = 0;
@@ -374,13 +410,14 @@ class SyncEngine {
         rows.add(FirestoreMappers.slipFromMap(doc.id, data));
       }
     }
+    if (!_sameUser(uid)) return;
     if (rows.isNotEmpty) await _db.batchUpsertSlips(rows);
     await _saveWatermark('slips', maxUpdated);
   }
 
   Future<void> _pullRecurringRules(String uid) async {
     final snap = await _incrementalPull(uid, 'recurringRules');
-    if (snap.docs.isEmpty) return;
+    if (snap.docs.isEmpty || !_sameUser(uid)) return;
     final localUpdated = await _db.recurringRulesUpdatedAt();
     final rows = <RecurringRulesCompanion>[];
     var maxUpdated = 0;
@@ -394,6 +431,7 @@ class SyncEngine {
         rows.add(FirestoreMappers.recurringRuleFromMap(doc.id, data));
       }
     }
+    if (!_sameUser(uid)) return;
     if (rows.isNotEmpty) await _db.batchUpsertRecurringRules(rows);
     await _saveWatermark('recurringRules', maxUpdated);
   }

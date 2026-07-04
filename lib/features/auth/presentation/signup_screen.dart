@@ -189,18 +189,25 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       return;
     }
     setState(() => _busy = true);
+    // Capture everything BEFORE the first await: the auth-state redirect can
+    // dispose this screen the instant Firebase emits the new user, after which
+    // ref.read throws — and the seeding below (which nothing else re-runs at
+    // runtime) would be silently skipped, leaving the new account without its
+    // starter categories/accounts forever.
+    final db = ref.read(databaseProvider);
+    final repo = ref.read(settingsRepositoryProvider);
+    final name = _name.text.trim();
     try {
       await auth.signUpWithEmail(_name.text, _email.text, _password.text);
-      final repo = ref.read(settingsRepositoryProvider);
       // Ensure the starter categories/accounts exist — the local DB may have
       // been wiped on a previous sign-out (idempotent on a fresh install).
-      await ref.read(databaseProvider).seedDefaults();
+      await db.seedDefaults();
       // A brand-new account has no cloud data to pull, so the first sync is
       // already "done" — this keeps the Home first-load skeleton from flashing
       // for a user who has nothing to wait for.
       await repo.setFirstSyncDone(true);
-      if (_name.text.trim().isNotEmpty) {
-        await repo.setDisplayName(_name.text.trim());
+      if (name.isNotEmpty) {
+        await repo.setDisplayName(name);
       }
       if (mounted) context.go('/home');
     } catch (e) {

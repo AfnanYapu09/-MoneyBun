@@ -70,9 +70,16 @@ class SyncController with WidgetsBindingObserver {
   static const _firstSyncRetries = 3;
   static const _firstSyncRetryGap = Duration(seconds: 8);
 
+  /// How many times a debounced push that couldn't run (a full sync held the
+  /// engine, or the network failed) is re-armed before giving up until the
+  /// next trigger. Without this, an edit made while a full sync is in flight
+  /// stays pending until some unrelated event pushes it.
+  static const _pushRetries = 5;
+
   StreamSubscription<void>? _authSub;
   Timer? _debounce;
   Timer? _firstSyncRetry;
+  int _pushRetriesLeft = 0;
   bool _firstSyncStarted = false;
   bool _firstSyncCompletedFired = false;
   int _firstSyncRetriesLeft = _firstSyncRetries;
@@ -100,8 +107,22 @@ class SyncController with WidgetsBindingObserver {
   /// reads, and markSynced leaves nothing pending, so repeated triggers
   /// converge instead of looping.
   void nudgePush() {
+    _pushRetriesLeft = _pushRetries;
+    _armPush(const Duration(seconds: 3));
+  }
+
+  void _armPush(Duration delay) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(seconds: 3), _engine.pushOnly);
+    _debounce = Timer(delay, () async {
+      final ran = await _engine.pushOnly();
+      // pushOnly is a no-op while a full sync holds the engine (and returns
+      // false on a network error) — re-arm a bounded retry so the pending rows
+      // aren't stranded until the next unrelated trigger.
+      if (!ran && _auth.isSignedIn && _pushRetriesLeft > 0) {
+        _pushRetriesLeft--;
+        _armPush(const Duration(seconds: 5));
+      }
+    });
   }
 
   Future<void> _fullSync() async {

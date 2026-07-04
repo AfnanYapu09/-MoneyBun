@@ -283,9 +283,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Open the source slip for a row, with a "ลบรายการ" button — used by the
   /// zero-amount warning so the user can read or delete the failed import.
   Future<void> _showSlip(TransactionRow txn) async {
-    final slip = txn.slipId == null
-        ? null
-        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    // Repos are captured before any await: the auth-state redirect can unmount
+    // this screen while a viewer/dialog is up, after which ref.read throws.
+    final txnRepo = ref.read(transactionRepositoryProvider);
+    final slipRepo = ref.read(slipRepositoryProvider);
+    final slip = txn.slipId == null ? null : await slipRepo.get(txn.slipId!);
     if (!mounted) return;
     if (slip == null) {
       showAddTransactionSheet(context, editId: txn.id);
@@ -294,29 +296,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     showSlipViewer(
       context,
       slip,
-      onDelete: () => ref.read(transactionRepositoryProvider).delete(txn.id),
+      onDelete: () => txnRepo.delete(txn.id),
     );
   }
 
   Future<void> _categorize(TransactionRow txn) async {
-    final slip = txn.slipId == null
-        ? null
-        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    final txnRepo = ref.read(transactionRepositoryProvider);
+    final slipRepo = ref.read(slipRepositoryProvider);
+    final db = ref.read(databaseProvider);
+    final slip = txn.slipId == null ? null : await slipRepo.get(txn.slipId!);
     if (!mounted) return;
     final pick = await showCategoryPicker(
       context,
       slip: slip,
-      onTransfer: () =>
-          ref.read(transactionRepositoryProvider).reclassifyAsTransfer(txn.id),
+      onTransfer: () => txnRepo.reclassifyAsTransfer(txn.id),
     );
     if (pick != null) {
-      await ref
-          .read(transactionRepositoryProvider)
-          .setCategory(txn.id, pick.categoryId);
+      await txnRepo.setCategory(txn.id, pick.categoryId);
       if (pick.tagIds.isNotEmpty) {
-        await ref
-            .read(databaseProvider)
-            .setTransactionTags(txn.id, pick.tagIds);
+        await db.setTransactionTags(txn.id, pick.tagIds);
       }
     }
   }
@@ -330,6 +328,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _permissionDialog() async {
     final l10n = AppLocalizations.of(context);
+    final importer = ref.read(slipImporterProvider);
     final open = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -347,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
-    if (open == true) await ref.read(slipImporterProvider).openSettings();
+    if (open == true) await importer.openSettings();
   }
 }
 

@@ -39,6 +39,17 @@ void main() {
       expect(r.occurredAt!.year, 2025);
     });
 
+    test('rejects an impossible calendar date instead of normalising it', () {
+      // Dart's DateTime would silently turn 31 Feb into 3 March; a misread
+      // date must fall back to the photo's own date instead.
+      expect(SlipExtractor.extract('31/02/2569 10:00').occurredAt, isNull);
+      expect(SlipExtractor.extract('31/04/2568').occurredAt, isNull);
+    });
+
+    test('rejects an impossible time of day', () {
+      expect(SlipExtractor.extract('15/06/2568 27:99').occurredAt, isNull);
+    });
+
     test('extracts an alphanumeric reference', () {
       const text = 'Ref: AB1234567890XY done';
       final r = SlipExtractor.extract(text);

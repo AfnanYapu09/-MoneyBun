@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,10 +28,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String _query = '';
   List<String> _recent = [];
 
+  /// Filtering scans every transaction — debounced so a fast typist doesn't
+  /// pay a full scan per keystroke (which stutters with years of data).
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
     _loadRecent();
+  }
+
+  void _onChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) setState(() => _query = v);
+    });
   }
 
   Future<void> _loadRecent() async {
@@ -40,6 +53,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _runQuery(String v) {
+    _debounce?.cancel();
     final t = v.trim();
     setState(() {
       _query = v;
@@ -57,6 +71,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -121,7 +136,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               controller: _controller,
                               autofocus: true,
                               textAlignVertical: TextAlignVertical.center,
-                              onChanged: (v) => setState(() => _query = v),
+                              onChanged: _onChanged,
                               onSubmitted: _runQuery,
                               style: AppTypography.body(size: 14.5),
                               decoration: InputDecoration(
@@ -138,6 +153,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           if (_query.isNotEmpty)
                             InkWell(
                               onTap: () {
+                                _debounce?.cancel();
                                 _controller.clear();
                                 setState(() => _query = '');
                               },
@@ -163,49 +179,53 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         setState(() => _query = s);
                       },
                     )
-                  : ListView(
+                  // Lazily built: with years of data a non-lazy list would
+                  // inflate thousands of rows in one frame on every keystroke.
+                  : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            l10n.txnSearchResults(results.length),
-                            style: AppTypography.heading(
-                              size: 14,
-                              weight: FontWeight.w500,
+                      itemCount: results.length + 1,
+                      itemBuilder: (context, i) {
+                        if (i == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              l10n.txnSearchResults(results.length),
+                              style: AppTypography.heading(
+                                size: 14,
+                                weight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ),
-                        for (var i = 0; i < results.length; i++) ...[
-                          if (i > 0) const Divider(height: 1),
-                          Builder(
-                            builder: (context) {
-                              final t = results[i];
-                              final d = txnDisplay(
-                                t,
-                                categories: categories,
-                                accounts: accounts,
-                                locale: locale,
-                                withDate: true,
-                                context: context,
-                              );
-                              return TxnRow(
-                                icon: d.icon,
-                                title: d.title,
-                                sub: d.sub,
-                                iconColor: d.color,
-                                iconKey: d.iconKey,
-                                amountCents: t.amountCents,
-                                type: t.type,
-                                onTap: () => showAddTransactionSheet(
-                                  context,
-                                  editId: t.id,
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ],
+                          );
+                        }
+                        final t = results[i - 1];
+                        final d = txnDisplay(
+                          t,
+                          categories: categories,
+                          accounts: accounts,
+                          locale: locale,
+                          withDate: true,
+                          context: context,
+                        );
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (i > 1) const Divider(height: 1),
+                            TxnRow(
+                              icon: d.icon,
+                              title: d.title,
+                              sub: d.sub,
+                              iconColor: d.color,
+                              iconKey: d.iconKey,
+                              amountCents: t.amountCents,
+                              type: t.type,
+                              onTap: () => showAddTransactionSheet(
+                                context,
+                                editId: t.id,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
             ),
           ],

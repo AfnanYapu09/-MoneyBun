@@ -124,27 +124,44 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     context.pop();
   }
 
+  /// Guards against a second tap opening a second system picker on top of the
+  /// first (`PlatformException(already_active)`).
+  bool _picking = false;
+
   /// Pick a photo from the gallery, copy it into the app's documents dir, and
   /// store its path — so the avatar is actually changed and persists.
   Future<void> _pickAvatar() async {
+    if (_picking) return;
+    _picking = true;
+    // Captured before the awaits: the picker is a separate activity, so the
+    // user can easily back out of this screen while it's open — after which
+    // ref.read throws and the chosen photo would be lost.
     final old = ref.read(appSettingsProvider).value?.avatarPath;
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 800,
-      imageQuality: 85,
-    );
-    if (picked == null) return;
-    final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}'
-        '${p.extension(picked.path)}';
-    final dir = await getApplicationDocumentsDirectory();
-    final dest = p.join(dir.path, name);
-    await File(picked.path).copy(dest);
-    await ref.read(settingsRepositoryProvider).setAvatarPath(dest);
-    // Best-effort cleanup of the previous photo.
-    if (old != null && old.isNotEmpty && old != dest) {
-      try {
-        File(old).deleteSync();
-      } catch (_) {}
+    final repo = ref.read(settingsRepositoryProvider);
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+      final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}'
+          '${p.extension(picked.path)}';
+      final dir = await getApplicationDocumentsDirectory();
+      final dest = p.join(dir.path, name);
+      await File(picked.path).copy(dest);
+      await repo.setAvatarPath(dest);
+      // Best-effort cleanup of the previous photo.
+      if (old != null && old.isNotEmpty && old != dest) {
+        try {
+          File(old).deleteSync();
+        } catch (_) {}
+      }
+    } catch (_) {
+      // Picker unavailable / already open / copy failed — keep the old avatar
+      // rather than crashing the screen.
+    } finally {
+      _picking = false;
     }
   }
 }

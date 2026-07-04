@@ -441,6 +441,25 @@ class AppDatabase extends _$AppDatabase {
     return row?.photoTakenAt;
   }
 
+  /// Whether a slip with this gallery asset id already exists — a targeted
+  /// point lookup so the importer's just-before-write dedup re-check doesn't
+  /// re-read the whole table for every image.
+  Future<bool> slipAssetExists(String assetId) async {
+    final q = select(slips)
+      ..where((s) => s.assetId.equals(assetId))
+      ..limit(1);
+    return (await q.get()).isNotEmpty;
+  }
+
+  /// Whether a non-deleted slip with this bank transaction reference exists
+  /// (same point-lookup role as [slipAssetExists]).
+  Future<bool> slipRefExists(String transRef) async {
+    final q = select(slips)
+      ..where((s) => s.transRef.equals(transRef) & s.deleted.equals(false))
+      ..limit(1);
+    return (await q.get()).isNotEmpty;
+  }
+
   /// Stable bank transaction references already imported. Used as a second
   /// dedup key so the same slip is not re-imported after a cloud restore (where
   /// the gallery asset id may be missing or differ).
@@ -511,8 +530,16 @@ class AppDatabase extends _$AppDatabase {
       )..where((r) => r.syncStatus.isNotValue(SyncStatus.synced.index)))
           .get();
 
-  Future<void> markRecurringRuleSynced(String id) =>
-      (update(recurringRules)..where((r) => r.id.equals(id))).write(
+  // Every markXSynced below is a compare-and-set on `updatedAt` (the value read
+  // when the push started): if the user edits the row while its upload is still
+  // in flight, the edit bumps `updatedAt`, the CAS misses, and the row stays
+  // pending for the next push — instead of being stamped `synced` and never
+  // uploaded (which loses the edit on the next sign-out).
+
+  Future<void> markRecurringRuleSynced(String id, int updatedAt) => (update(
+        recurringRules,
+      )..where((r) => r.id.equals(id) & r.updatedAt.equals(updatedAt)))
+          .write(
         const RecurringRulesCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
@@ -531,6 +558,43 @@ class AppDatabase extends _$AppDatabase {
       batch((b) => b.insertAllOnConflictUpdate(recurringRules, rows));
 
   // ---- Sync helpers ------------------------------------------------------
+
+  /// Whether ANY row in any synced table is still waiting to upload. Checked
+  /// before a sign-out wipes the local DB, so unsynced work isn't silently
+  /// destroyed.
+  Future<bool> hasPendingRows() async {
+    final probes = await Future.wait<List<Object?>>([
+      (select(transactions)
+            ..where((t) => t.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(accounts)
+            ..where((a) => a.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(categories)
+            ..where((c) => c.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(slips)
+            ..where((s) => s.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(budgets)
+            ..where((b) => b.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(tags)
+            ..where((t) => t.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(recurringRules)
+            ..where((r) => r.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+    ]);
+    return probes.any((rows) => rows.isNotEmpty);
+  }
 
   Future<List<TransactionRow>> pendingTransactions() => (select(
         transactions,
@@ -552,23 +616,31 @@ class AppDatabase extends _$AppDatabase {
       )..where((s) => s.syncStatus.isNotValue(SyncStatus.synced.index)))
           .get();
 
-  Future<void> markTransactionSynced(String id) =>
-      (update(transactions)..where((t) => t.id.equals(id))).write(
+  Future<void> markTransactionSynced(String id, int updatedAt) => (update(
+        transactions,
+      )..where((t) => t.id.equals(id) & t.updatedAt.equals(updatedAt)))
+          .write(
         const TransactionsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
-  Future<void> markAccountSynced(String id) =>
-      (update(accounts)..where((a) => a.id.equals(id))).write(
+  Future<void> markAccountSynced(String id, int updatedAt) => (update(
+        accounts,
+      )..where((a) => a.id.equals(id) & a.updatedAt.equals(updatedAt)))
+          .write(
         const AccountsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
-  Future<void> markCategorySynced(String id) =>
-      (update(categories)..where((c) => c.id.equals(id))).write(
+  Future<void> markCategorySynced(String id, int updatedAt) => (update(
+        categories,
+      )..where((c) => c.id.equals(id) & c.updatedAt.equals(updatedAt)))
+          .write(
         const CategoriesCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
-  Future<void> markSlipSynced(String id) =>
-      (update(slips)..where((s) => s.id.equals(id))).write(
+  Future<void> markSlipSynced(String id, int updatedAt) => (update(
+        slips,
+      )..where((s) => s.id.equals(id) & s.updatedAt.equals(updatedAt)))
+          .write(
         const SlipsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
@@ -580,8 +652,10 @@ class AppDatabase extends _$AppDatabase {
   Future<BudgetRow?> getBudget(String id) =>
       (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
 
-  Future<void> markBudgetSynced(String id) =>
-      (update(budgets)..where((b) => b.id.equals(id))).write(
+  Future<void> markBudgetSynced(String id, int updatedAt) => (update(
+        budgets,
+      )..where((b) => b.id.equals(id) & b.updatedAt.equals(updatedAt)))
+          .write(
         const BudgetsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
@@ -593,8 +667,10 @@ class AppDatabase extends _$AppDatabase {
   Future<TagRow?> getTag(String id) =>
       (select(tags)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<void> markTagSynced(String id) =>
-      (update(tags)..where((t) => t.id.equals(id))).write(
+  Future<void> markTagSynced(String id, int updatedAt) => (update(
+        tags,
+      )..where((t) => t.id.equals(id) & t.updatedAt.equals(updatedAt)))
+          .write(
         const TagsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 

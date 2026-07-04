@@ -146,6 +146,8 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     transactions: ref.watch(transactionRepositoryProvider),
     importedAssetIds: db.importedAssetIds,
     importedSlipRefs: db.importedSlipRefs,
+    assetImported: db.slipAssetExists,
+    refImported: db.slipRefExists,
     latestSlipPhotoTime: db.latestSlipPhotoTime,
     // Banks turned off in the accounts sheet (their scan-catalog ids).
     disabledScanIds: () async =>
@@ -283,6 +285,9 @@ class ScanController extends Notifier<ScanState> {
     unawaited(sync.awaitInitialSync().then((_) {
       _postRestoreScanArmed = false;
       return scan(auto: true);
+    }).catchError((_) {
+      // The container was torn down (app shutdown) before the restore landed —
+      // nothing to scan for anymore; never surface as an unhandled error.
     }));
   }
 }
@@ -342,8 +347,10 @@ final monthTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {
   return ref.watch(transactionRepositoryProvider).watchMonth(month);
 });
 
-/// A single transaction by id (Transaction detail screen).
-final transactionByIdProvider = StreamProvider.family<TransactionRow?, String>((
+/// A single transaction by id (Transaction detail screen). autoDispose: a
+/// plain family would keep one live stream per id ever watched.
+final transactionByIdProvider =
+    StreamProvider.autoDispose.family<TransactionRow?, String>((
   ref,
   id,
 ) {

@@ -135,7 +135,8 @@ void main() {
   test('renaming a synced tag flags it for push and keeps createdAt', () async {
     final tags = TagRepository(db);
     final id = await tags.save(name: 'Food');
-    await db.markTagSynced(id);
+    final saved = await db.getTag(id);
+    await db.markTagSynced(id, saved!.updatedAt);
     final before = await db.getTag(id);
     expect(before!.syncStatus, SyncStatus.synced);
 
@@ -155,5 +156,70 @@ void main() {
     final id = await tags.save(name: 'Trip');
     await tags.save(id: id, name: 'Travel');
     expect((await db.getTag(id))!.syncStatus, SyncStatus.pendingCreate);
+  });
+
+  test('markTransactionSynced is a compare-and-set on updatedAt', () async {
+    final repo = TransactionRepository(db);
+    final id = await repo.save(
+      amountCents: 500,
+      occurredAt: DateTime(2026, 6, 1),
+    );
+    final pushed = (await db.getTransaction(id))!;
+
+    // The user edits the row while its upload is still in flight…
+    await Future<void>.delayed(const Duration(milliseconds: 2));
+    await repo.save(
+      id: id,
+      amountCents: 700,
+      occurredAt: DateTime(2026, 6, 1),
+    );
+
+    // …so the late markSynced (carrying the pre-edit updatedAt) must MISS and
+    // leave the row pending; stamping it synced would lose the edit forever.
+    await db.markTransactionSynced(id, pushed.updatedAt);
+    final after = (await db.getTransaction(id))!;
+    expect(after.amountCents, 700);
+    expect(after.syncStatus, isNot(SyncStatus.synced));
+
+    // With the current updatedAt the CAS hits and the row settles.
+    await db.markTransactionSynced(id, after.updatedAt);
+    expect((await db.getTransaction(id))!.syncStatus, SyncStatus.synced);
+  });
+
+  test('hasPendingRows reflects unsynced work across tables', () async {
+    // A fresh DB is seeded with pendingCreate defaults.
+    expect(await db.hasPendingRows(), isTrue);
+
+    // Mark everything synced → nothing pending.
+    for (final c in await db.pendingCategories()) {
+      await db.markCategorySynced(c.id, c.updatedAt);
+    }
+    for (final a in await db.pendingAccounts()) {
+      await db.markAccountSynced(a.id, a.updatedAt);
+    }
+    expect(await db.hasPendingRows(), isFalse);
+
+    // A new transaction re-raises the flag.
+    final repo = TransactionRepository(db);
+    await repo.save(amountCents: 100, occurredAt: DateTime(2026, 6, 1));
+    expect(await db.hasPendingRows(), isTrue);
+  });
+
+  test('slipAssetExists / slipRefExists are point lookups', () async {
+    expect(await db.slipAssetExists('asset-1'), isFalse);
+    expect(await db.slipRefExists('REF123'), isFalse);
+    await db.upsertSlip(
+      SlipsCompanion.insert(
+        id: 's1',
+        source: SlipSource.ocr,
+        createdAt: 0,
+        updatedAt: 0,
+        assetId: const Value('asset-1'),
+        transRef: const Value('REF123'),
+      ),
+    );
+    expect(await db.slipAssetExists('asset-1'), isTrue);
+    expect(await db.slipRefExists('REF123'), isTrue);
+    expect(await db.slipAssetExists('asset-2'), isFalse);
   });
 }

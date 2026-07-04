@@ -75,41 +75,53 @@ class AllTransactionsScreen extends ConsumerWidget {
         onPressed: () => context.push('/search'),
         icon: Icon(AppIcons.search, size: 21, color: context.palette.ink2),
       ),
-      body: ListView(
+      // Lazily built: year mode can hold thousands of rows, and a non-lazy
+      // list inflates every one of them in a single frame.
+      body: ListView.builder(
         padding: const EdgeInsets.fromLTRB(20, 2, 20, 28),
-        children: [
-          PeriodChip(
-            label: period.label(locale),
-            onTapLabel: () => showPeriodPickerSheet(context),
-            onPrev: () => ref.read(selectedPeriodProvider.notifier).previous(),
-            onNext: () => ref.read(selectedPeriodProvider.notifier).next(),
-          ),
-          const SizedBox(height: 6),
-          if (days.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 60),
-              child: Center(
-                child: Text(
-                  l10n.txnNoneInPeriod(period.periodNoun(locale)),
-                  style: AppTypography.body(
-                    size: 14,
-                    color: context.palette.ink3,
-                  ),
+        itemCount: days.length + 1,
+        itemBuilder: (context, i) {
+          if (i == 0) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PeriodChip(
+                  label: period.label(locale),
+                  onTapLabel: () => showPeriodPickerSheet(context),
+                  onPrev: () =>
+                      ref.read(selectedPeriodProvider.notifier).previous(),
+                  onNext: () =>
+                      ref.read(selectedPeriodProvider.notifier).next(),
                 ),
-              ),
-            ),
-          for (final day in days)
-            TxnDayGroup(
-              day: day,
-              rows: byDay[day]!,
-              categories: categories,
-              accounts: accounts,
-              locale: locale,
-              onTapTxn: (id) => showAddTransactionSheet(context, editId: id),
-              onCategorize: (t) => _categorize(context, ref, t),
-              onShowSlip: (t) => _showSlip(context, ref, t),
-            ),
-        ],
+                const SizedBox(height: 6),
+                if (days.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 60),
+                    child: Center(
+                      child: Text(
+                        l10n.txnNoneInPeriod(period.periodNoun(locale)),
+                        style: AppTypography.body(
+                          size: 14,
+                          color: context.palette.ink3,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          }
+          final day = days[i - 1];
+          return TxnDayGroup(
+            day: day,
+            rows: byDay[day]!,
+            categories: categories,
+            accounts: accounts,
+            locale: locale,
+            onTapTxn: (id) => showAddTransactionSheet(context, editId: id),
+            onCategorize: (t) => _categorize(context, ref, t),
+            onShowSlip: (t) => _showSlip(context, ref, t),
+          );
+        },
       ),
     );
   }
@@ -121,9 +133,11 @@ class AllTransactionsScreen extends ConsumerWidget {
     WidgetRef ref,
     TransactionRow txn,
   ) async {
-    final slip = txn.slipId == null
-        ? null
-        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    // Repos are captured before any await: the auth-state redirect can unmount
+    // this screen while a viewer/dialog is up, after which ref.read throws.
+    final txnRepo = ref.read(transactionRepositoryProvider);
+    final slipRepo = ref.read(slipRepositoryProvider);
+    final slip = txn.slipId == null ? null : await slipRepo.get(txn.slipId!);
     if (!context.mounted) return;
     if (slip == null) {
       showAddTransactionSheet(context, editId: txn.id);
@@ -132,7 +146,7 @@ class AllTransactionsScreen extends ConsumerWidget {
     showSlipViewer(
       context,
       slip,
-      onDelete: () => ref.read(transactionRepositoryProvider).delete(txn.id),
+      onDelete: () => txnRepo.delete(txn.id),
     );
   }
 
@@ -142,23 +156,21 @@ class AllTransactionsScreen extends ConsumerWidget {
     TransactionRow txn,
   ) async {
     final id = txn.id;
-    final existing = await ref.read(transactionRepositoryProvider).tagIds(id);
-    final slip = txn.slipId == null
-        ? null
-        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    final txnRepo = ref.read(transactionRepositoryProvider);
+    final slipRepo = ref.read(slipRepositoryProvider);
+    final db = ref.read(databaseProvider);
+    final existing = await txnRepo.tagIds(id);
+    final slip = txn.slipId == null ? null : await slipRepo.get(txn.slipId!);
     if (!context.mounted) return;
     final pick = await showCategoryPicker(
       context,
       initialTagIds: existing,
       slip: slip,
-      onTransfer: () =>
-          ref.read(transactionRepositoryProvider).reclassifyAsTransfer(id),
+      onTransfer: () => txnRepo.reclassifyAsTransfer(id),
     );
     if (pick != null) {
-      await ref
-          .read(transactionRepositoryProvider)
-          .setCategory(id, pick.categoryId);
-      await ref.read(databaseProvider).setTransactionTags(id, pick.tagIds);
+      await txnRepo.setCategory(id, pick.categoryId);
+      await db.setTransactionTags(id, pick.tagIds);
     }
   }
 }

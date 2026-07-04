@@ -86,5 +86,37 @@ void main() {
         '28 Jun–4 Jul 2026',
       );
     });
+
+    test('formatWeekRange labels each side of a New Year week (en)', () {
+      // Week of Sunday 2026-12-27 → Saturday 2027-01-02: December must not be
+      // labelled with January's year.
+      expect(
+        AppDate.formatWeekRange(DateTime(2026, 12, 27), locale: 'en'),
+        '27 Dec 2026–2 Jan 2027',
+      );
+    });
+
+    test('daysBetween counts whole calendar days regardless of time', () {
+      expect(
+        AppDate.daysBetween(DateTime(2026, 6, 14, 23), DateTime(2026, 6, 15)),
+        1,
+      );
+      expect(
+        AppDate.daysBetween(DateTime(2026, 6, 15), DateTime(2026, 6, 14)),
+        -1,
+      );
+      expect(
+        AppDate.daysBetween(DateTime(2026, 12, 31), DateTime(2027, 1, 1)),
+        1,
+      );
+    });
+
+    test('addMonths / addYears pin end-of-month overflow behaviour', () {
+      // Dart-normalised overflow (31 Jan + 1 month → 3 Mar) — pinned so a
+      // future change here is a conscious decision, not an accident.
+      expect(AppDate.addMonths(DateTime(2026, 1, 31), 1), DateTime(2026, 3, 3));
+      expect(AppDate.addMonths(DateTime(2026, 3, 31), 1), DateTime(2026, 5, 1));
+      expect(AppDate.addYears(DateTime(2024, 2, 29), 1), DateTime(2025, 3, 1));
+    });
   });
 }

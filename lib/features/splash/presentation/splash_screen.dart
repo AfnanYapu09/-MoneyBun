@@ -23,34 +23,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _boot() async {
-    final settings = await ref.read(settingsRepositoryProvider).read();
-    final auth = ref.read(authServiceProvider);
-    // Resolve the restored auth state concurrently with the brand beat.
-    // currentUser can still be null right after launch until Firebase finishes
-    // reading its persisted session, so fall back to the first authStateChanges
-    // emission (bounded) — otherwise a returning user would flash the login
-    // screen before the router redirect bounces them back to Home.
-    final Future<bool> signedInFuture = auth == null
-        ? Future.value(false)
-        : auth.currentUser != null
-            ? Future.value(true)
-            : auth
-                .authStateChanges()
-                .first
-                .timeout(const Duration(seconds: 2), onTimeout: () => null)
-                .then((u) => u != null);
-    // A short brand beat — kept snappy so the app reaches Home (and the local
-    // data already waiting there) without a needless wait on every cold start.
-    await Future.delayed(const Duration(milliseconds: 600));
-    final signedIn = await signedInFuture;
-    if (!mounted) return;
-    if (!settings.onboardingSeen) {
-      context.go('/onboarding');
-      return;
+    try {
+      final settings = await ref.read(settingsRepositoryProvider).read();
+      final auth = ref.read(authServiceProvider);
+      // Resolve the restored auth state concurrently with the brand beat.
+      // currentUser can still be null right after launch until Firebase finishes
+      // reading its persisted session, so fall back to the first authStateChanges
+      // emission (bounded) — otherwise a returning user would flash the login
+      // screen before the router redirect bounces them back to Home.
+      final Future<bool> signedInFuture = auth == null
+          ? Future.value(false)
+          : auth.currentUser != null
+              ? Future.value(true)
+              : auth
+                  .authStateChanges()
+                  .first
+                  .timeout(const Duration(seconds: 2), onTimeout: () => null)
+                  .then((u) => u != null);
+      // A short brand beat — kept snappy so the app reaches Home (and the local
+      // data already waiting there) without a needless wait on every cold start.
+      await Future.delayed(const Duration(milliseconds: 600));
+      final signedIn = await signedInFuture;
+      if (!mounted) return;
+      if (!settings.onboardingSeen) {
+        context.go('/onboarding');
+        return;
+      }
+      // Cloud-only: the app requires a signed-in account. The router's redirect
+      // enforces this for every route as a safety net.
+      context.go(signedIn ? '/home' : '/login');
+    } catch (_) {
+      // Whatever failed (settings read, auth state), never strand the user on
+      // the splash forever — the router redirect sends a signed-in user home.
+      if (mounted) context.go('/login');
     }
-    // Cloud-only: the app requires a signed-in account. The router's redirect
-    // enforces this for every route as a safety net.
-    context.go(signedIn ? '/home' : '/login');
   }
 
   @override

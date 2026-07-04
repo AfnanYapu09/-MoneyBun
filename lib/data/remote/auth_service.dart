@@ -100,9 +100,15 @@ class AuthService {
       ],
       nonce: hashedNonce,
     );
+    final idToken = appleCredential.identityToken;
+    if (idToken == null) {
+      // Documented to happen (rarely) — fail with a clear error instead of
+      // handing Firebase a null token.
+      throw StateError('Apple Sign-In returned no identity token');
+    }
     final oauth = OAuthProvider(
       'apple.com',
-    ).credential(idToken: appleCredential.identityToken, rawNonce: rawNonce);
+    ).credential(idToken: idToken, rawNonce: rawNonce);
     final result = await _auth.signInWithCredential(oauth);
     return result.user;
   }

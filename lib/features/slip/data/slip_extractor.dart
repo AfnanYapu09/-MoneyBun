@@ -146,11 +146,13 @@ class SlipExtractor {
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
     final hour = int.tryParse(m.group(4) ?? '') ?? 0;
     final minute = int.tryParse(m.group(5) ?? '') ?? 0;
-    try {
-      return DateTime(year, month, day, hour, minute);
-    } catch (_) {
-      return null;
-    }
+    if (hour > 23 || minute > 59) return null;
+    final dt = DateTime(year, month, day, hour, minute);
+    // Dart's DateTime never throws — it *normalises* (31/02 becomes 3 March).
+    // A misread date must be rejected instead, so the import falls back to the
+    // photo's own date rather than landing on a fabricated day.
+    if (dt.year != year || dt.month != month || dt.day != day) return null;
+    return dt;
   }
 
   static String? _firstRef(String text) {

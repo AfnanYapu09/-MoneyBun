@@ -41,7 +41,9 @@ class EmvTlvParser {
       final id = data.substring(i, i + 2);
       final lenStr = data.substring(i + 2, i + 4);
       final len = int.tryParse(lenStr);
-      if (len == null) break;
+      // int.tryParse accepts "-1": a negative length slips past the
+      // `end > data.length` guard and makes substring throw RangeError.
+      if (len == null || len < 0) break;
       final start = i + 4;
       final end = start + len;
       if (end > data.length) break;
@@ -60,7 +62,7 @@ class EmvTlvParser {
     while (i + 4 <= value.length) {
       final lenStr = value.substring(i + 2, i + 4);
       final len = int.tryParse(lenStr);
-      if (len == null) return const [];
+      if (len == null || len < 0) return const [];
       final end = i + 4 + len;
       if (end > value.length) return const [];
       children.add(
