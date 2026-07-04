@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../core/utils/app_date.dart';
 import '../../domain/enums/enums.dart';
@@ -26,6 +27,11 @@ class RecurringService {
     var created = 0;
     for (final rule in await _db.dueRecurringRules(now)) {
       var next = rule.nextRunAt;
+      // Rules from before schema v9 carry no anchor; derive it from the next
+      // occurrence (the best value still available) and persist it below so
+      // the rule keeps a stable day from here on.
+      final anchorDay =
+          rule.anchorDay ?? DateTime.fromMillisecondsSinceEpoch(next).day;
       var guard = 0;
       while (next <= now && guard < _maxCatchUp) {
         // Deterministic id (rule + occurrence) so the same occurrence generated
@@ -45,13 +51,14 @@ class RecurringService {
           );
           created++;
         }
-        next = _advance(next, rule.freq);
+        next = advance(next, rule.freq, anchorDay);
         guard++;
       }
       await _db.upsertRecurringRule(
         rule
             .copyWith(
               nextRunAt: next,
+              anchorDay: Value(anchorDay),
               lastRunAt: Value(now),
               updatedAt: now,
               syncStatus: rule.syncStatus == SyncStatus.pendingCreate
@@ -64,14 +71,33 @@ class RecurringService {
     return created;
   }
 
-  int _advance(int ms, RecurFreq freq) {
+  /// The occurrence after [ms] for [freq]. Monthly re-derives the day from
+  /// [anchorDay] and clamps it to the target month's length, so a rule
+  /// anchored on the 31st fires Jan 31 → Feb 28 → Mar 31. Without the clamp,
+  /// Dart's DateTime normalisation turns "Feb 31" into Mar 3 — February is
+  /// skipped and the rule silently re-anchors to the 3rd forever.
+  @visibleForTesting
+  static int advance(int ms, RecurFreq freq, int anchorDay) {
     final d = DateTime.fromMillisecondsSinceEpoch(ms);
     final next = switch (freq) {
       RecurFreq.daily => d.add(const Duration(days: 1)),
       RecurFreq.weekly => d.add(const Duration(days: 7)),
-      RecurFreq.monthly =>
-        DateTime(d.year, d.month + 1, d.day, d.hour, d.minute),
+      RecurFreq.monthly => _nextMonthly(d, anchorDay),
     };
     return next.millisecondsSinceEpoch;
+  }
+
+  static DateTime _nextMonthly(DateTime d, int anchorDay) {
+    // Month overflow (13 → January next year) is safe to let DateTime
+    // normalise; only the day-of-month must be clamped by hand.
+    final firstOfNext = DateTime(d.year, d.month + 1);
+    final lastDay = AppDate.daysInMonth(firstOfNext);
+    return DateTime(
+      firstOfNext.year,
+      firstOfNext.month,
+      anchorDay < lastDay ? anchorDay : lastDay,
+      d.hour,
+      d.minute,
+    );
   }
 }
