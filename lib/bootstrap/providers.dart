@@ -230,14 +230,23 @@ class ScanController extends Notifier<ScanState> {
         return;
       }
       try {
-        final result = await importer.scanNew();
+        // The scan is cancelled if the signed-in user changes while it runs:
+        // a sign-out wipes the local DB mid-scan, and imports written after
+        // the wipe would sync into the *next* account's cloud.
+        final startUid = ref.read(authServiceProvider)?.currentUser?.uid;
+        bool sameUser() =>
+            ref.read(authServiceProvider)?.currentUser?.uid == startUid;
+        final result = await importer.scanNew(isCancelled: () => !sameUser());
         // Record when the scan ran — for the "last read at" label only. The
         // scanner reads only slips newer than the last imported one and dedups
         // by asset id, so this timestamp is display-only and never gates
-        // scanning.
-        await ref
-            .read(settingsRepositoryProvider)
-            .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
+        // scanning. Skipped after an account switch (it belongs to the old
+        // account and would leak onto the next one's fresh settings).
+        if (sameUser()) {
+          await ref
+              .read(settingsRepositoryProvider)
+              .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
+        }
         state = ScanState(result: result, limited: perm.limited);
       } catch (e) {
         state = ScanState(error: e, limited: perm.limited);

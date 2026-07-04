@@ -220,11 +220,22 @@ class SlipImporter {
   /// (and the slip's transRef), so an already-imported photo is never imported
   /// twice. Photos outside a bank album (screenshots / downloads) are NOT read.
   /// Returns a [ScanResult].
-  Future<ScanResult> scanNew() async {
+  ///
+  /// [isCancelled] is polled between photos; when it turns true the scan stops
+  /// writing and returns what it has. The caller cancels when the signed-in
+  /// user changes mid-scan — continuing would write the old gallery's entries
+  /// into the just-wiped DB, from where they'd sync to the *next* account.
+  Future<ScanResult> scanNew({bool Function()? isCancelled}) async {
     final scanStart = DateTime.now();
+    bool cancelled() => isCancelled?.call() ?? false;
     try {
       final paths = await PhotoManager.getAssetPathList(
         type: RequestType.image,
+        // Explicit newest-first order. Without it the platform query has NO
+        // ORDER BY at all (just LIMIT/OFFSET), so which photos fall inside the
+        // per-album cap is undefined — an album bigger than the cap could
+        // silently drop its newest slips.
+        filterOption: FilterOptionGroup(orders: const [OrderOption()]),
       );
       if (paths.isEmpty) return const ScanResult();
       final already = await _importedAssetIds();
@@ -251,6 +262,7 @@ class SlipImporter {
       // an album is a slip). Already-imported ones are skipped via [already]
       // and the transRef dedup inside _ingest.
       for (final album in paths) {
+        if (cancelled()) break;
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
         final scanId = albumScanId(album.name);
         if (scanId != null && disabled.contains(scanId)) continue;
@@ -260,16 +272,16 @@ class SlipImporter {
         final assets = await album.getAssetListRange(start: 0, end: end);
         acc.albumCount += assets.length;
         final fresh = assets.where(inWindow).toList();
-        await _ingest(fresh, already, knownRefs, acc);
+        await _ingest(fresh, already, knownRefs, acc, cancelled);
       }
 
       // Record how far this scan read (the newest photo it considered, clamped
       // to the scan start so a future-dated photo can't jump the cursor), so
       // the next scan continues after it even when nothing was imported. Not
       // advanced when a photo errored — those get retried on the next scan
-      // instead of being skipped forever.
+      // instead of being skipped forever — nor when cancelled mid-scan.
       final seen = acc.newestSeenAt;
-      if (acc.errors == 0 && seen != null) {
+      if (!cancelled() && acc.errors == 0 && seen != null) {
         final startMs = scanStart.millisecondsSinceEpoch;
         await _saveScannedUpTo(seen < startMs ? seen : startMs);
       }
@@ -293,8 +305,10 @@ class SlipImporter {
     Set<String> already,
     Set<String> knownRefs,
     _ScanAcc acc,
+    bool Function() cancelled,
   ) async {
     for (final asset in assets) {
+      if (cancelled()) return;
       final seenMs = asset.createDateTime.millisecondsSinceEpoch;
       if (acc.newestSeenAt == null || seenMs > acc.newestSeenAt!) {
         acc.newestSeenAt = seenMs;
@@ -323,6 +337,9 @@ class SlipImporter {
           already.add(asset.id);
           continue;
         }
+        // Checked again right before writing — the OCR above takes long enough
+        // for a sign-out (and its DB wipe) to land in between.
+        if (cancelled()) return;
         final occurredAt = await _persist(parsed, asset.createDateTime);
         // Avoid a 2nd import if the photo also appears in another matched album.
         already.add(asset.id);
