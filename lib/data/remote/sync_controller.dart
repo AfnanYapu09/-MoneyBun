@@ -23,7 +23,17 @@ class SyncController with WidgetsBindingObserver {
   }) {
     WidgetsBinding.instance.addObserver(this);
     _authSub = _auth.authStateChanges().listen((user) {
-      if (user != null) _fullSync();
+      if (user == null) {
+        // Sign-out wipes the local DB, so if another account signs in within
+        // this same app session its restore must re-close the scanner gate:
+        // re-arm the completer (only when already fired — pending waiters keep
+        // the old one and resolve on the next successful sync).
+        if (_initialSync.isCompleted) _initialSync = Completer<void>();
+        _firstSyncRetriesLeft = _firstSyncRetries;
+        _firstSyncCompletedFired = false;
+        return;
+      }
+      _fullSync();
     });
     // Defer the launch-time sync out of the constructor (which runs during a
     // provider build) so its onSyncingChanged callback doesn't mutate another
@@ -53,16 +63,34 @@ class SyncController with WidgetsBindingObserver {
   /// are never throttled.
   static const _resumeMinInterval = Duration(minutes: 2);
 
+  /// How many times a failed first sync is retried (beyond the normal
+  /// triggers) while the scanner gate is still closed, and how long apart.
+  /// A transient network error right after login would otherwise leave the
+  /// gate closed until the next resume.
+  static const _firstSyncRetries = 3;
+  static const _firstSyncRetryGap = Duration(seconds: 8);
+
   StreamSubscription<void>? _authSub;
   Timer? _debounce;
+  Timer? _firstSyncRetry;
   bool _firstSyncStarted = false;
   bool _firstSyncCompletedFired = false;
+  int _firstSyncRetriesLeft = _firstSyncRetries;
   DateTime? _lastFullSyncAt;
-  final Completer<void> _initialSync = Completer<void>();
+  Completer<void> _initialSync = Completer<void>();
 
-  /// Resolves once the first cloud sync has finished (success or failure), or
-  /// immediately when the user isn't signed in. The slip scanner awaits this so
-  /// it never reads slips that are about to be pulled from the cloud.
+  /// Whether the first cloud sync since app start has *succeeded* (trivially
+  /// true when signed out). While false for a signed-in user, the local DB may
+  /// still be missing cloud rows — the slip scanner checks this before reading
+  /// the gallery so it never re-imports slips a pending restore is about to
+  /// deliver.
+  bool get initialSyncCompleted =>
+      !_auth.isSignedIn || _initialSync.isCompleted;
+
+  /// Resolves once the first cloud sync since app start has succeeded (pull +
+  /// push actually ran), or immediately when the user isn't signed in. A
+  /// failed or timed-out attempt does NOT resolve this — a later attempt
+  /// (retry, resume, sign-in) does — so callers must bound their wait.
   Future<void> awaitInitialSync() {
     if (!_auth.isSignedIn) return Future<void>.value();
     return _initialSync.future;
@@ -86,25 +114,51 @@ class SyncController with WidgetsBindingObserver {
       onSyncingChanged?.call(true);
     }
     _lastFullSyncAt = DateTime.now();
-    var ran = false;
+    final uid = _auth.currentUser?.uid;
+    final attempt = _engine.sync();
+    // The scanner gate and the "this device has synced" flag track the *real*
+    // outcome, never the time-boxed wait below: a first sync that outlives the
+    // loading-state timeout still opens the gate when it eventually succeeds,
+    // and a failed one keeps the gate closed (scanning before the restore has
+    // landed would re-import slips as duplicates) and is retried instead.
+    attempt.then((ran) {
+      // A late result from before an account switch must not open the new
+      // account's gate (its own restore hasn't run yet).
+      if (uid == null || _auth.currentUser?.uid != uid) return;
+      if (ran) {
+        if (!_initialSync.isCompleted) _initialSync.complete();
+        // Persist "this device has synced" so a returning user never sees the
+        // first-load skeleton again. Guarded to fire only once.
+        if (!_firstSyncCompletedFired) {
+          _firstSyncCompletedFired = true;
+          onFirstSyncCompleted?.call();
+        }
+      } else {
+        _scheduleFirstSyncRetry();
+      }
+    });
     try {
       // Bounded so a stalled Firestore call can't strand the loading skeleton
       // (the real sync keeps running; only the loading state is time-boxed).
-      ran = await _engine.sync().timeout(_firstSyncTimeout);
+      await attempt.timeout(_firstSyncTimeout);
     } catch (_) {
       // Best-effort; a failed / timed-out sync is retried on the next trigger.
     } finally {
-      // Unblock the slip scanner after the first sync, even if it failed.
-      if (!_initialSync.isCompleted) _initialSync.complete();
       if (ownsFirst) onSyncingChanged?.call(false);
-      // Persist "this device has synced" once a sync actually ran, so a returning
-      // user never sees the first-load skeleton again. Fired by whichever call
-      // did the real work (ran == true), guarded to fire only once.
-      if (ran && !_firstSyncCompletedFired) {
-        _firstSyncCompletedFired = true;
-        onFirstSyncCompleted?.call();
-      }
     }
+  }
+
+  /// While the first successful sync is still outstanding, retry a failed
+  /// attempt a few times. Checked again at fire time: by then the concurrent
+  /// attempt that made this one a no-op may have opened the gate already.
+  void _scheduleFirstSyncRetry() {
+    if (_initialSync.isCompleted || !_auth.isSignedIn) return;
+    if (_firstSyncRetriesLeft <= 0) return;
+    _firstSyncRetriesLeft--;
+    _firstSyncRetry?.cancel();
+    _firstSyncRetry = Timer(_firstSyncRetryGap, () {
+      if (!_initialSync.isCompleted && _auth.isSignedIn) _fullSync();
+    });
   }
 
   @override
@@ -123,5 +177,6 @@ class SyncController with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _authSub?.cancel();
     _debounce?.cancel();
+    _firstSyncRetry?.cancel();
   }
 }

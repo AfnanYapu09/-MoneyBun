@@ -239,6 +239,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.listen<ScanState>(scanControllerProvider, (prev, next) {
       if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
         _permissionDialog();
+      } else if (next.waitingForRestore &&
+          !(prev?.waitingForRestore ?? false)) {
+        // A fresh sign-in's cloud restore hasn't landed yet — the scan was
+        // skipped (it re-runs by itself when the restore completes).
+        _snack(l10n.homeScanWaitRestore);
       } else if ((prev?.scanning ?? false) &&
           !next.scanning &&
           next.error == null &&

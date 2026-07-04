@@ -267,6 +267,13 @@ class SlipImporter {
           file.path,
         ))
             .copyWith(imagePath: file.path, assetId: asset.id);
+        // Re-sync the dedup keys with the live DB before persisting: a cloud
+        // pull can land mid-scan (an app-resume sync) and restore this very
+        // slip after the sets were snapshotted at scan start. Cheap — runs
+        // only for images that survived the snapshot dedup above.
+        already.addAll(await _importedAssetIds());
+        knownRefs.addAll(await _importedSlipRefs());
+        if (already.contains(asset.id)) continue;
         // Skip if this exact slip (by bank transaction reference) was already
         // imported — guards against a re-import when the asset id differs
         // (e.g. after restoring data from the cloud).

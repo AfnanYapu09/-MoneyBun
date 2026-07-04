@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
@@ -158,6 +160,7 @@ class ScanState {
     this.result,
     this.limited = false,
     this.permissionDenied = false,
+    this.waitingForRestore = false,
     this.error,
   });
 
@@ -165,6 +168,10 @@ class ScanState {
   final ScanResult? result;
   final bool limited;
   final bool permissionDenied;
+
+  /// A fresh sign-in's cloud restore hasn't reached this device yet, so the
+  /// scan was skipped (it re-runs automatically once the restore lands).
+  final bool waitingForRestore;
   final Object? error;
 }
 
@@ -173,6 +180,17 @@ class ScanController extends Notifier<ScanState> {
   ScanState build() => const ScanState();
 
   bool _autoScanned = false;
+  bool _postRestoreScanArmed = false;
+
+  /// Claimed synchronously on entry to [scan] — `state.scanning` alone can't
+  /// stop a re-entrant call anymore because the restore gate check below
+  /// awaits before the state flips (two overlapping scans would import the
+  /// same photos twice).
+  bool _scanBusy = false;
+
+  /// How long an automatic launch scan waits for a fresh sign-in's first cloud
+  /// pull before deferring (the restore usually lands within a few seconds).
+  static const _restoreWait = Duration(seconds: 20);
 
   /// Trigger [scan] exactly once per app launch (called from Home on open).
   /// The flag lives on this app-lifetime provider, so revisiting Home via the
@@ -180,42 +198,79 @@ class ScanController extends Notifier<ScanState> {
   Future<void> autoScanOnce() async {
     if (_autoScanned) return;
     _autoScanned = true;
-    // When signed in, wait for the first cloud sync to finish so the restored
-    // slips + watermark exist before scanning — otherwise the scan would
-    // re-read slips that are about to arrive from the cloud (creating dupes).
-    // Bounded so an offline/slow sync can't block the scan indefinitely.
-    final sync = ref.read(syncControllerProvider);
-    if (sync != null) {
-      await sync.awaitInitialSync().timeout(
-            const Duration(seconds: 25),
-            onTimeout: () {},
-          );
-    }
-    await scan();
+    await scan(auto: true);
   }
 
   /// Read every new slip image from the gallery automatically (no album pick).
-  Future<void> scan() async {
-    if (state.scanning) return;
-    state = const ScanState(scanning: true);
-    final importer = ref.read(slipImporterProvider);
-    final perm = await importer.requestPermission();
-    if (!perm.granted) {
-      state = const ScanState(permissionDenied: true);
-      return;
-    }
+  ///
+  /// After a fresh sign-in, scanning is deferred until the first successful
+  /// cloud sync: the restored slips carry the dedup keys (asset ids, transRefs,
+  /// watermark), so scanning before they land would re-import every recent slip
+  /// as a duplicate. Automatic scans wait [_restoreWait] for it; a manual
+  /// pull-to-refresh skips immediately (no dead gesture) — both re-run
+  /// automatically the moment the restore completes.
+  Future<void> scan({bool auto = false}) async {
+    if (_scanBusy) return;
+    _scanBusy = true;
     try {
-      final result = await importer.scanNew();
-      // Record when the scan ran — for the "last read at" label only. The
-      // scanner reads only slips newer than the last imported one and dedups by
-      // asset id, so this timestamp is display-only and never gates scanning.
-      await ref
-          .read(settingsRepositoryProvider)
-          .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
-      state = ScanState(result: result, limited: perm.limited);
-    } catch (e) {
-      state = ScanState(error: e, limited: perm.limited);
+      if (!await _restoreDone(waitFor: auto ? _restoreWait : Duration.zero)) {
+        _armPostRestoreScan();
+        state = const ScanState(waitingForRestore: true);
+        return;
+      }
+      state = const ScanState(scanning: true);
+      final importer = ref.read(slipImporterProvider);
+      final perm = await importer.requestPermission();
+      if (!perm.granted) {
+        state = const ScanState(permissionDenied: true);
+        return;
+      }
+      try {
+        final result = await importer.scanNew();
+        // Record when the scan ran — for the "last read at" label only. The
+        // scanner reads only slips newer than the last imported one and dedups
+        // by asset id, so this timestamp is display-only and never gates
+        // scanning.
+        await ref
+            .read(settingsRepositoryProvider)
+            .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
+        state = ScanState(result: result, limited: perm.limited);
+      } catch (e) {
+        state = ScanState(error: e, limited: perm.limited);
+      }
+    } finally {
+      _scanBusy = false;
     }
+  }
+
+  /// Whether it is safe to read the gallery: this device has already finished
+  /// a first cloud sync at some point (its slips table is authoritative, so
+  /// dedup works even while a routine sync is still running), or the pending
+  /// first sync completes within [waitFor]. Guest mode is always safe.
+  Future<bool> _restoreDone({required Duration waitFor}) async {
+    final sync = ref.read(syncControllerProvider);
+    if (sync == null || sync.initialSyncCompleted) return true;
+    final settings = await ref.read(settingsRepositoryProvider).read();
+    if (settings.firstSyncDone) return true;
+    if (waitFor > Duration.zero) {
+      await sync.awaitInitialSync().timeout(waitFor, onTimeout: () {});
+    }
+    return sync.initialSyncCompleted;
+  }
+
+  /// Re-run the scan as soon as the pending restore lands, so a skipped scan
+  /// (auto or manual) never silently goes missing. Armed at most once per
+  /// pending restore; disarmed when it fires so a later account switch (whose
+  /// scans get skipped again) can re-arm.
+  void _armPostRestoreScan() {
+    if (_postRestoreScanArmed) return;
+    _postRestoreScanArmed = true;
+    final sync = ref.read(syncControllerProvider);
+    if (sync == null) return;
+    unawaited(sync.awaitInitialSync().then((_) {
+      _postRestoreScanArmed = false;
+      return scan(auto: true);
+    }));
   }
 }
 
