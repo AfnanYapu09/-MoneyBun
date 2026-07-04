@@ -420,6 +420,14 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
             alertEnabled: Value(_alert80),
             createdAt: b?.createdAt ?? now.millisecondsSinceEpoch,
             updatedAt: now.millisecondsSinceEpoch,
+            // upsertBudget only writes columns present on the companion, so an
+            // edit of an already-synced budget must flag itself for push here —
+            // otherwise the row stays `synced` and the change never uploads.
+            syncStatus: Value(
+              b == null || b.syncStatus == SyncStatus.pendingCreate
+                  ? SyncStatus.pendingCreate
+                  : SyncStatus.pendingUpdate,
+            ),
           ),
         );
     if (mounted) Navigator.of(context).pop(true);

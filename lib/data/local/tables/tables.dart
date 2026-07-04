@@ -177,6 +177,13 @@ class RecurringRules extends Table {
 
   /// Epoch ms of the next occurrence that has not yet been created.
   IntColumn get nextRunAt => integer()();
+
+  /// Day-of-month (1–31) the rule is anchored to (the start date's day).
+  /// Monthly advances clamp to the target month's length but re-derive from
+  /// this anchor each time, so a rule on the 31st fires Feb 28 → Mar 31
+  /// instead of drifting. Null on rows created before schema v9; the service
+  /// backfills it from `nextRunAt` on the first run.
+  IntColumn get anchorDay => integer().nullable()();
   IntColumn get lastRunAt => integer().nullable()();
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();

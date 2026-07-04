@@ -84,7 +84,10 @@ class SegmentedControl<T> extends StatelessWidget {
               )
             : Center(child: label));
     return GestureDetector(
-      onTap: () => onChanged(s.value),
+      // Re-tapping the active segment is a no-op: consumers treat onChanged as
+      // "the selection changed" (the add/edit sheet clears its category on it),
+      // so it must not fire for the value that is already selected.
+      onTap: on ? null : () => onChanged(s.value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         padding: EdgeInsets.symmetric(vertical: iconOverLabel ? 7 : 9),

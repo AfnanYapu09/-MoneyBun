@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moneybun/data/local/database.dart';
+import 'package:moneybun/data/repositories/tag_repository.dart';
 import 'package:moneybun/data/repositories/transaction_repository.dart';
 import 'package:moneybun/domain/enums/enums.dart';
 
@@ -129,5 +130,30 @@ void main() {
     expect(await db.getTransaction('gc_recent'), isNotNull);
     expect(await db.getTransaction('gc_pending'), isNotNull);
     expect(await db.getTransaction(liveId), isNotNull);
+  });
+
+  test('renaming a synced tag flags it for push and keeps createdAt', () async {
+    final tags = TagRepository(db);
+    final id = await tags.save(name: 'Food');
+    await db.markTagSynced(id);
+    final before = await db.getTag(id);
+    expect(before!.syncStatus, SyncStatus.synced);
+
+    await tags.save(id: id, name: 'Groceries');
+    final after = await db.getTag(id);
+    expect(after!.name, 'Groceries');
+    // The rename must re-enter the pending queue or it never uploads.
+    expect(after.syncStatus, SyncStatus.pendingUpdate);
+    expect((await db.pendingTags()).map((t) => t.id), contains(id));
+    // …and the edit must not clobber the original metadata.
+    expect(after.createdAt, before.createdAt);
+    expect(after.sortOrder, before.sortOrder);
+  });
+
+  test('renaming a tag that never synced stays pendingCreate', () async {
+    final tags = TagRepository(db);
+    final id = await tags.save(name: 'Trip');
+    await tags.save(id: id, name: 'Travel');
+    expect((await db.getTag(id))!.syncStatus, SyncStatus.pendingCreate);
   });
 }

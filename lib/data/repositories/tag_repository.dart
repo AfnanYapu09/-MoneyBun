@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../domain/enums/enums.dart';
 import '../local/database.dart';
 
 /// User-defined tags (local-only). Used by the category picker and Manage Tags.
@@ -32,6 +33,7 @@ class TagRepository {
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final tagId = id ?? _uuid.v4();
+    final existing = id == null ? null : await _db.getTag(id);
     var order = sortOrder;
     // A brand-new tag with no explicit order goes to the end, so tags keep a
     // stable, user-visible sequence instead of all sharing sortOrder 0.
@@ -47,9 +49,17 @@ class TagRepository {
         id: tagId,
         name: name,
         colorHex: Value(colorHex),
-        sortOrder: Value(order ?? 0),
-        createdAt: now,
+        sortOrder: Value(order ?? existing?.sortOrder ?? 0),
+        createdAt: existing?.createdAt ?? now,
         updatedAt: now,
+        // upsertTag only writes columns present on the companion, so a rename
+        // of an already-synced tag must flag itself for push here — otherwise
+        // the row stays `synced` and the new name never uploads.
+        syncStatus: Value(
+          existing == null || existing.syncStatus == SyncStatus.pendingCreate
+              ? SyncStatus.pendingCreate
+              : SyncStatus.pendingUpdate,
+        ),
       ),
     );
     return tagId;

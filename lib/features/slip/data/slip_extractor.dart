@@ -21,7 +21,13 @@ class SlipExtraction {
 class SlipExtractor {
   const SlipExtractor._();
 
-  static final _amount = RegExp(r'\d{1,3}(?:,\d{3})*\.\d{2}');
+  // A 2-decimal amount, comma-grouped ("1,234.56") or a plain digit run
+  // ("1234.56" — OCR often drops the comma glyph). The lookarounds pin the
+  // match to the whole number: without them "1234.56" would match from the
+  // second digit and read as 234.56, and "1,234.567" would be truncated to
+  // 1,234.56 instead of being skipped as not-an-amount.
+  static final _amount =
+      RegExp(r'(?<!\d)(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}(?!\d)');
   // dd/MM/yyyy or dd-MM-yy etc., optionally followed by HH:mm.
   static final _dateTime = RegExp(
     r'(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})(?:[^\d]{0,6}(\d{1,2}):(\d{2}))?',

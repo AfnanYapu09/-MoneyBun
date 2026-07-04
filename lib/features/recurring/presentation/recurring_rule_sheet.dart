@@ -352,6 +352,7 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
             amountCents: cents,
             freq: _freq,
             nextRunAt: AppDate.toMillis(_startAt),
+            anchorDay: Value(_startAt.day),
             createdAt: now,
             updatedAt: now,
             categoryId: Value(_categoryId),

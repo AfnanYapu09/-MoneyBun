@@ -9,6 +9,24 @@ void main() {
       expect(r.amountCents, 123456);
     });
 
+    test('reads a plain digit run in full (OCR dropped the comma)', () {
+      const text = 'Amount 1234.56 THB';
+      final r = SlipExtractor.extract(text);
+      expect(r.amountCents, 123456);
+    });
+
+    test('does not read a truncated slice of a longer decimal', () {
+      const text = 'Meter 1,234.567 kWh';
+      final r = SlipExtractor.extract(text);
+      expect(r.amountCents, isNull);
+    });
+
+    test('reads an amount after dot leaders', () {
+      const text = 'จำนวนเงิน.....100.00 บาท';
+      final r = SlipExtractor.extract(text);
+      expect(r.amountCents, 10000);
+    });
+
     test('parses a Gregorian date and time', () {
       const text = 'Date 15/06/2025 14:23 ref X';
       final r = SlipExtractor.extract(text);
