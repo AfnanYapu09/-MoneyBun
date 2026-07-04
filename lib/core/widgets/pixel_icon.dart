@@ -39,6 +39,11 @@ class PixelIconInfo {
 /// Whether [key] resolves to a pixel-art glyph (vs. a legacy font-icon key).
 bool hasPixelGlyph(String? key) => key != null && kPixelGlyphs.containsKey(key);
 
+/// Catalogue lookup by glyph id (e.g. to resolve a category's `iconKey`).
+final Map<String, PixelIconInfo> kPixelIconById = {
+  for (final i in kPixelIconCatalog) i.id: i,
+};
+
 /// Paints a [PixelGlyph] crisply: anti-aliasing off, with a half-pixel overscan
 /// so adjacent cells never leave a seam. The 16×16 grid fills the given size.
 class PixelIconPainter extends CustomPainter {
