@@ -78,6 +78,7 @@ class SettingsKeys {
   static const avatarPath = 'avatarPath';
   static const recentSearches = 'recentSearches';
   static const firstSyncDone = 'firstSyncDone';
+  static const slipScanUpTo = 'slipScanUpTo';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -122,6 +123,16 @@ class SettingsRepository {
   Future<void> setFirstSyncDone(bool v) =>
       setBool(SettingsKeys.firstSyncDone, v);
 
+  /// Photo time (epoch ms) the slip scanner has read up to on this device, or
+  /// null when never recorded. An extra guard against re-reading photos it has
+  /// already looked at; cleared on sign-out like the other per-account values.
+  Future<int?> getSlipScanUpTo() async {
+    final raw = await _db.getSetting(SettingsKeys.slipScanUpTo);
+    return int.tryParse(raw ?? '');
+  }
+
+  Future<void> setSlipScanUpTo(int ms) => setInt(SettingsKeys.slipScanUpTo, ms);
+
   /// Clear the signed-in user's local settings on sign-out. Device preferences
   /// (theme, language, currency, onboarding-seen) are intentionally kept; only
   /// account-specific values and the first-sync flag are removed so the next
@@ -137,6 +148,7 @@ class SettingsRepository {
       SettingsKeys.lastSlipReadAt,
       SettingsKeys.disabledScanIds,
       SettingsKeys.recentSearches,
+      SettingsKeys.slipScanUpTo,
     ];
     for (final key in userKeys) {
       await _db.deleteSetting(key);

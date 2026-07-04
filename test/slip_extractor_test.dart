@@ -53,4 +53,59 @@ void main() {
       expect(high.confidence, greaterThan(low.confidence));
     });
   });
+
+  group('SlipExtractor co-pay slips (เป๋าตัง ไทยช่วยไทย / คนละครึ่ง)', () {
+    test('reads the paid amount, not the gross, from a whole-baht slip', () {
+      // ไทยช่วยไทยพลัส 60/40: goods 210, subsidy -126, paid 84 — all printed
+      // without decimals. The recorded amount must be the 84 actually paid.
+      const text = 'ไทยช่วยไทย พลัส\n'
+          '60/40\n'
+          'ทำรายการสำเร็จ\n'
+          'be4e74d3f43f4bd590d48ccbb883\n'
+          '3 ก.ค. 2569 21:54 น.\n'
+          'G-Wallet ID: **** ******* 2993\n'
+          '210 บาท\n'
+          '-126 บาท\n'
+          '84 บาท';
+      final r = SlipExtractor.extract(text);
+      expect(r.amountCents, 8400);
+      expect(r.transRef, 'BE4E74D3F43F4BD590D48CCBB883');
+    });
+
+    test('noise integers (years, wallet IDs) cannot fake a co-pay match', () {
+      // 2569 (BE year), 2993 (masked wallet tail) and 3 (day) are candidates
+      // too, but no gross − subsidy = net triple exists among them.
+      const text = '3 ก.ค. 2569\n**** 2993\n210 บาท\n-126 บาท\n84 บาท';
+      expect(SlipExtractor.extract(text).amountCents, 8400);
+    });
+
+    test('resolves a 2-decimal co-pay slip to the paid amount', () {
+      const text = 'รวม 1,000.00\nส่วนลด -50.00\nยอดชำระ 950.00';
+      expect(SlipExtractor.extract(text).amountCents, 95000);
+    });
+
+    test('whole-baht figures without a subsidy line stay untrusted', () {
+      // No minus anywhere: bare integers are too noisy to pick from directly.
+      const text = '210 บาท\n84 บาท\n2569';
+      expect(SlipExtractor.extract(text).amountCents, isNull);
+    });
+
+    test('unconfirmed subtraction falls back to the largest decimal', () {
+      // A discount with no printed net that matches: keep the old behaviour.
+      const text = 'ส่วนลด -500.00\nได้รับ 300.00';
+      expect(SlipExtractor.extract(text).amountCents, 30000);
+    });
+
+    test('a lone negative decimal is a debit notation, not a subsidy', () {
+      const text = 'จำนวนเงิน -500.00 บาท';
+      expect(SlipExtractor.extract(text).amountCents, 50000);
+    });
+
+    test('times, dates and "60/40" fractions are never amount candidates', () {
+      const text = '60/40\n21:54\n15/06/2569\n-30 บาท\n90 บาท\n60 บาท';
+      // 90 − 30 = 60: a genuine triple among the บาท lines; the 60 in "60/40"
+      // and the date/time fragments must not have contributed candidates.
+      expect(SlipExtractor.extract(text).amountCents, 6000);
+    });
+  });
 }

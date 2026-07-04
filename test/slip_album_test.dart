@@ -25,12 +25,35 @@ void main() {
     });
   });
 
-  group('SlipImporter.scanCutoff', () {
-    test('always reads only the past 7 days (no watermark)', () {
-      final now = DateTime(2026, 6, 20, 12);
+  group('SlipImporter.effectiveCutoff', () {
+    test('with nothing read yet, reads from the start of the current month',
+        () {
+      final now = DateTime(2026, 7, 4, 12);
+      expect(SlipImporter.effectiveCutoff(now), DateTime(2026, 7));
+    });
+
+    test('never reaches back before the current month', () {
+      // Watermark / read-up-to from June must not pull an August scan into
+      // July — slips are only ever read from the month the scan runs in.
+      final now = DateTime(2026, 8, 2);
+      final june = DateTime(2026, 6, 30, 23, 59).millisecondsSinceEpoch;
       expect(
-        SlipImporter.scanCutoff(now),
-        now.subtract(const Duration(days: 7)),
+        SlipImporter.effectiveCutoff(now, watermarkMs: june),
+        DateTime(2026, 8),
+      );
+    });
+
+    test('continues after the newest of watermark and read-up-to record', () {
+      final now = DateTime(2026, 7, 20);
+      final imported = DateTime(2026, 7, 10, 9).millisecondsSinceEpoch;
+      final readUpTo = DateTime(2026, 7, 15, 18).millisecondsSinceEpoch;
+      expect(
+        SlipImporter.effectiveCutoff(
+          now,
+          watermarkMs: imported,
+          scannedUpToMs: readUpTo,
+        ),
+        DateTime(2026, 7, 15, 18),
       );
     });
   });
