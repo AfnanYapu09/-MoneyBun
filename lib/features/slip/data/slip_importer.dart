@@ -47,7 +47,8 @@ class ScanResult {
 /// NEXT, TrueMoney, …), so a scan imports **every** image in albums whose name
 /// matches a known bank/e-wallet. Photos outside a bank album (screenshots /
 /// downloads) are intentionally NOT read — for privacy and accuracy, only the
-/// bank albums are scanned. Dedups by gallery asset id (and slip transRef).
+/// bank albums are scanned. Every scan is scoped to the current calendar month
+/// (see [effectiveCutoff]) and dedups by gallery asset id (and slip transRef).
 /// Android-only.
 class SlipImporter {
   SlipImporter({
@@ -58,13 +59,17 @@ class SlipImporter {
     required Future<Set<String>> Function() importedSlipRefs,
     required Future<int?> Function() latestSlipPhotoTime,
     required Future<Set<String>> Function() disabledScanIds,
+    required Future<int?> Function() scannedUpTo,
+    required Future<void> Function(int ms) saveScannedUpTo,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
         _importedAssetIds = importedAssetIds,
         _importedSlipRefs = importedSlipRefs,
         _latestSlipPhotoTime = latestSlipPhotoTime,
-        _disabledScanIds = disabledScanIds;
+        _disabledScanIds = disabledScanIds,
+        _scannedUpTo = scannedUpTo,
+        _saveScannedUpTo = saveScannedUpTo;
 
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
@@ -83,19 +88,40 @@ class SlipImporter {
   /// Scan-catalog ids the user turned off (their albums are skipped this scan).
   final Future<Set<String>> Function() _disabledScanIds;
 
-  /// Cap on images read per bank album (protects a long slip history).
-  static const _albumCap = 300;
+  /// Photo time (epoch ms) the previous scan read up to, or null when never
+  /// recorded. A device-local record of "read this far" so photos already
+  /// looked at — including ones that produced no import — aren't read again.
+  final Future<int?> Function() _scannedUpTo;
 
-  /// Bootstrap window: when no slip has ever been imported, a scan reads only
-  /// the past this-many days so it never trawls the whole gallery. Once a slip
-  /// exists, the watermark (latest imported slip's photo time) takes over.
-  static const _scanWindowDays = 7;
+  /// Persist the read-up-to record after a scan.
+  final Future<void> Function(int ms) _saveScannedUpTo;
 
-  /// The bootstrap cutoff (used only before any slip exists): the last
-  /// [_scanWindowDays] days. Once slips exist, [scanNew] uses the watermark
-  /// instead. Pure + static so it can be unit-tested.
-  static DateTime scanCutoff(DateTime now) =>
-      now.subtract(const Duration(days: _scanWindowDays));
+  /// Cap on images read per bank album. A backstop only — the month window
+  /// below bounds real scans; the cap just keeps a pathological album (tens of
+  /// thousands of images) from stalling a scan forever.
+  static const _albumCap = 2000;
+
+  /// Where a scan starts reading. Never before the current calendar month —
+  /// slips are only ever read from the month the scan runs in ("July shows
+  /// July") — and never before what was already read: the newest imported
+  /// slip's photo time ([watermarkMs], rebuilt from synced data after a
+  /// restore) and the previous scan's own high-water mark ([scannedUpToMs],
+  /// recorded per device so a photo that was read but yielded no import isn't
+  /// re-read). Inclusive at the boundary; the asset-id / transRef dedup
+  /// catches a photo saved the same instant. Pure + static for unit tests.
+  static DateTime effectiveCutoff(
+    DateTime now, {
+    int? watermarkMs,
+    int? scannedUpToMs,
+  }) {
+    var cutoff = DateTime(now.year, now.month);
+    for (final ms in [watermarkMs, scannedUpToMs]) {
+      if (ms == null) continue;
+      final t = DateTime.fromMillisecondsSinceEpoch(ms);
+      if (t.isAfter(cutoff)) cutoff = t;
+    }
+    return cutoff;
+  }
 
   /// Album-name fragments (lowercase) that Thai banking / e-wallet apps use for
   /// the folder they save slips into. Matched albums are imported in full.
@@ -203,15 +229,15 @@ class SlipImporter {
       if (paths.isEmpty) return const ScanResult();
       final already = await _importedAssetIds();
       final knownRefs = await _importedSlipRefs();
-      // Watermark: once any slip has been imported, read only photos newer than
-      // the latest one — so a scan continues *after* the last slip and never
-      // re-reads older ones. The watermark is recomputed from the slips table
-      // (whose photoTakenAt syncs), so it survives a sign-out or reinstall.
-      // Before the first slip exists, bootstrap from the past week.
-      final watermarkMs = await _latestSlipPhotoTime();
-      final cutoff = watermarkMs != null
-          ? DateTime.fromMillisecondsSinceEpoch(watermarkMs)
-          : scanCutoff(scanStart);
+      // Read only the current calendar month, and within it continue after
+      // whatever was already read: the newest imported slip's photo time (from
+      // the slips table, whose photoTakenAt syncs — survives a sign-out or
+      // reinstall) and the previous scan's own read-up-to record.
+      final cutoff = effectiveCutoff(
+        scanStart,
+        watermarkMs: await _latestSlipPhotoTime(),
+        scannedUpToMs: await _scannedUpTo(),
+      );
       // Inclusive at the cutoff so a slip saved in the same second as the
       // watermark isn't missed; the already-imported one is skipped by the
       // asset-id / transRef dedup below.
@@ -237,6 +263,17 @@ class SlipImporter {
         await _ingest(fresh, already, knownRefs, acc);
       }
 
+      // Record how far this scan read (the newest photo it considered, clamped
+      // to the scan start so a future-dated photo can't jump the cursor), so
+      // the next scan continues after it even when nothing was imported. Not
+      // advanced when a photo errored — those get retried on the next scan
+      // instead of being skipped forever.
+      final seen = acc.newestSeenAt;
+      if (acc.errors == 0 && seen != null) {
+        final startMs = scanStart.millisecondsSinceEpoch;
+        await _saveScannedUpTo(seen < startMs ? seen : startMs);
+      }
+
       return ScanResult(
         albumCount: acc.albumCount,
         matchedAlbums: acc.matchedAlbums,
@@ -258,6 +295,10 @@ class SlipImporter {
     _ScanAcc acc,
   ) async {
     for (final asset in assets) {
+      final seenMs = asset.createDateTime.millisecondsSinceEpoch;
+      if (acc.newestSeenAt == null || seenMs > acc.newestSeenAt!) {
+        acc.newestSeenAt = seenMs;
+      }
       if (already.contains(asset.id)) continue;
       try {
         final file = await asset.file;
@@ -326,4 +367,8 @@ class _ScanAcc {
   int imported = 0;
   int errors = 0;
   int? newestImportedAt;
+
+  /// Photo time (epoch ms) of the newest in-window asset this scan considered
+  /// (imported or deduped) — persisted as the read-up-to record afterwards.
+  int? newestSeenAt;
 }

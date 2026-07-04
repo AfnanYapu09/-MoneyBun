@@ -150,6 +150,10 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     // Banks turned off in the accounts sheet (their scan-catalog ids).
     disabledScanIds: () async =>
         (await ref.read(settingsRepositoryProvider).read()).disabledScanIds,
+    // Device-local "read this far" record (extra re-read guard).
+    scannedUpTo: () => ref.read(settingsRepositoryProvider).getSlipScanUpTo(),
+    saveScannedUpTo: (ms) =>
+        ref.read(settingsRepositoryProvider).setSlipScanUpTo(ms),
   );
 });
 
