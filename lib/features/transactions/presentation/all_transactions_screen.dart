@@ -120,6 +120,8 @@ class AllTransactionsScreen extends ConsumerWidget {
             onTapTxn: (id) => showAddTransactionSheet(context, editId: id),
             onCategorize: (t) => _categorize(context, ref, t),
             onShowSlip: (t) => _showSlip(context, ref, t),
+            onDelete: (t) =>
+                ref.read(transactionRepositoryProvider).delete(t.id),
           );
         },
       ),

@@ -4,8 +4,10 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/app_date.dart';
 import '../../../../core/utils/money.dart';
+import '../../../../core/widgets/app_icons.dart';
 import '../../../../data/local/database.dart';
 import '../../../../domain/enums/enums.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../txn_display.dart';
 import 'scanned_txn_row.dart';
 import 'txn_row.dart';
@@ -25,6 +27,7 @@ class TxnDayGroup extends StatelessWidget {
     required this.onTapTxn,
     required this.onCategorize,
     this.onShowSlip,
+    this.onDelete,
   });
 
   final DateTime day;
@@ -37,6 +40,11 @@ class TxnDayGroup extends StatelessWidget {
 
   /// View the source slip of a row (used by the zero-amount warning).
   final void Function(TransactionRow txn)? onShowSlip;
+
+  /// Delete a row. When set, each row becomes swipe-to-delete: dragging it from
+  /// right to left reveals a red delete action and, after a confirm dialog,
+  /// removes the transaction. Null disables the gesture.
+  final Future<void> Function(TransactionRow txn)? onDelete;
 
   static bool isUncategorized(TransactionRow t) =>
       t.type == TxnType.expense && t.categoryId == null;
@@ -87,6 +95,7 @@ class TxnDayGroup extends StatelessWidget {
           ),
         ),
         Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: context.palette.surface,
             borderRadius: BorderRadius.circular(18),
@@ -107,8 +116,9 @@ class TxnDayGroup extends StatelessWidget {
   }
 
   Widget _buildRow(BuildContext context, TransactionRow t) {
+    final Widget row;
     if (isUncategorized(t)) {
-      return ScannedTxnRow(
+      row = ScannedTxnRow(
         txn: t,
         time: AppDate.formatTime(
           AppDate.fromMillis(t.occurredAt),
@@ -118,23 +128,83 @@ class TxnDayGroup extends StatelessWidget {
         onCategorize: () => onCategorize(t),
         onShowSlip: onShowSlip == null ? null : () => onShowSlip!(t),
       );
+    } else {
+      final d = txnDisplay(
+        t,
+        categories: categories,
+        accounts: accounts,
+        locale: locale,
+        context: context,
+      );
+      row = TxnRow(
+        icon: d.icon,
+        title: d.title,
+        sub: d.sub,
+        iconColor: d.color,
+        iconKey: d.iconKey,
+        amountCents: t.amountCents,
+        type: t.type,
+        onTap: () => onTapTxn(t.id),
+      );
     }
-    final d = txnDisplay(
-      t,
-      categories: categories,
-      accounts: accounts,
-      locale: locale,
+    if (onDelete == null) return row;
+    return Dismissible(
+      key: ValueKey('txn-${t.id}'),
+      direction: DismissDirection.endToStart,
+      background: _deleteBackground(context),
+      // Always returns false: the delete is performed here and the reactive
+      // transaction list rebuilds without this row, so we never ask the
+      // Dismissible to remove a widget that's still owned by the parent list
+      // (which would trip the "dismissed widget still in the tree" assertion).
+      confirmDismiss: (_) => _confirmDelete(context, t),
+      child: row,
+    );
+  }
+
+  /// Red action revealed while swiping a row from right to left.
+  Widget _deleteBackground(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      color: context.palette.dangerFg,
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 22),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(AppIcons.trash2, size: 19, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(
+            l10n.delete,
+            style: AppTypography.heading(
+              size: 15,
+              weight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _confirmDelete(BuildContext context, TransactionRow t) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
       context: context,
+      builder: (c) => AlertDialog(
+        content: Text(l10n.addtxnConfirmDelete),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
     );
-    return TxnRow(
-      icon: d.icon,
-      title: d.title,
-      sub: d.sub,
-      iconColor: d.color,
-      iconKey: d.iconKey,
-      amountCents: t.amountCents,
-      type: t.type,
-      onTap: () => onTapTxn(t.id),
-    );
+    if (ok == true) await onDelete!(t);
+    return false;
   }
 }
