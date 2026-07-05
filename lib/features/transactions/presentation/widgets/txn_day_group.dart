@@ -161,27 +161,26 @@ class TxnDayGroup extends StatelessWidget {
     );
   }
 
-  /// Red action revealed while swiping a row from right to left.
+  /// Compact, iOS-style delete affordance revealed while swiping a row from
+  /// right to left: a soft rounded pill (light red wash) holding a dark red
+  /// trash icon — a small hint pinned to the right edge, not a full-bleed band.
   Widget _deleteBackground(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     return Container(
-      color: context.palette.dangerFg,
       alignment: Alignment.centerRight,
-      padding: const EdgeInsets.only(right: 22),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(AppIcons.trash2, size: 19, color: Colors.white),
-          const SizedBox(width: 8),
-          Text(
-            l10n.delete,
-            style: AppTypography.heading(
-              size: 15,
-              weight: FontWeight.w600,
-              color: Colors.white,
-            ),
+      child: Container(
+        width: 56,
+        margin: const EdgeInsets.symmetric(vertical: 7),
+        decoration: BoxDecoration(
+          color: context.palette.dangerWash,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Center(
+          child: Icon(
+            AppIcons.trash2,
+            size: 20,
+            color: context.palette.dangerFg,
           ),
-        ],
+        ),
       ),
     );
   }

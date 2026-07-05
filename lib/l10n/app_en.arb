@@ -410,7 +410,6 @@
   "addtxnMore": "More",
   "addtxnRecurring": "Schedule recurring",
   "addtxnRecurringSoon": "Recurring entries — coming soon",
-  "addtxnDeleteEntry": "Delete this entry",
   "addtxnTagSuffix": " · {count} tags",
   "@addtxnTagSuffix": {
     "placeholders": {

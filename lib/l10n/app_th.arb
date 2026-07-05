@@ -410,7 +410,6 @@
   "addtxnMore": "เพิ่มเติม",
   "addtxnRecurring": "จดซ้ำล่วงหน้า",
   "addtxnRecurringSoon": "จดซ้ำล่วงหน้า — เร็วๆ นี้",
-  "addtxnDeleteEntry": "ลบรายการนี้",
   "addtxnTagSuffix": " · {count} แท็ก",
   "@addtxnTagSuffix": {
     "placeholders": {
