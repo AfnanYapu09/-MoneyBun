@@ -203,6 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 showAddTransactionSheet(context, editId: id),
                             onCategorize: _categorize,
                             onShowSlip: _showSlip,
+                            onDelete: _delete,
                           ),
                         ],
                 ),
@@ -299,6 +300,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onDelete: () => txnRepo.delete(txn.id),
     );
   }
+
+  Future<void> _delete(TransactionRow txn) =>
+      ref.read(transactionRepositoryProvider).delete(txn.id);
 
   Future<void> _categorize(TransactionRow txn) async {
     final txnRepo = ref.read(transactionRepositoryProvider);
@@ -663,6 +667,7 @@ class _RecentList extends StatelessWidget {
     required this.onTapTxn,
     required this.onCategorize,
     required this.onShowSlip,
+    required this.onDelete,
   });
 
   final List<TransactionRow> uncategorized;
@@ -672,6 +677,7 @@ class _RecentList extends StatelessWidget {
   final void Function(String id) onTapTxn;
   final void Function(TransactionRow) onCategorize;
   final void Function(TransactionRow) onShowSlip;
+  final Future<void> Function(TransactionRow) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -713,6 +719,7 @@ class _RecentList extends StatelessWidget {
             onTapTxn: onTapTxn,
             onCategorize: onCategorize,
             onShowSlip: onShowSlip,
+            onDelete: onDelete,
           ),
       ],
     );
