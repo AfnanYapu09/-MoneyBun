@@ -171,9 +171,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _snack(AppLocalizations.of(context).authFirebaseNotConfigured);
       return;
     }
+    // Captured before the await: the auth-state redirect can dispose this
+    // screen the moment Firebase emits the signed-in user, after which
+    // ref.read throws and the seeding below would be silently skipped.
+    final db = ref.read(databaseProvider);
     setState(() => _busy = true);
     try {
       await action();
+      // Ensure the starter categories/accounts exist. This is the only entry
+      // point for first-time Google/Apple users (they never pass the signup
+      // screen, whose seeding otherwise covers this), and the local DB may
+      // have been wiped by a previous sign-out. Safe for returning users:
+      // seeds carry updatedAt 0, so their real cloud rows win the pull's
+      // last-write-wins and overwrite the defaults.
+      await db.seedDefaults();
       // Enter the app immediately; SyncController kicks off the first sync in
       // the background on the auth-state change, so login no longer blocks on a
       // full push+pull.

@@ -164,8 +164,79 @@ class AppDatabase extends _$AppDatabase {
       // pull instead of resuming from the previous account's high-water mark.
       await (delete(settings)..where((s) => s.key.like('pullWatermark:%')))
           .go();
+      // Drop the per-key settings push markers for the same reason: they
+      // belong to the signed-out account, and the next account must not treat
+      // its own first profile edits as already-pushed.
+      await (delete(settings)
+            ..where((s) => s.key.like('$settingsPushedPrefix%')))
+          .go();
     });
   }
+
+  // ---- Synced settings (profile & per-user preferences) -------------------
+
+  /// Settings keys that sync to the cloud (one Firestore doc per key under
+  /// `users/{uid}/settings/{key}`). These are the user-scoped values that a
+  /// sign-out wipes and a sign-in must restore: the profile fields, the savings
+  /// goal, and the per-bank scan toggles. Keys not listed here never leave the
+  /// device (theme/locale/currency are device preferences; scan cursors, pull
+  /// watermarks, and push markers are per-device bookkeeping; avatarPath is a
+  /// local file path that would be meaningless on another device).
+  ///
+  /// Values mirror the key constants in `SettingsKeys` (settings_repository) —
+  /// duplicated as literals here because the repository layer imports this file.
+  static const Set<String> syncedSettingsKeys = {
+    'displayName',
+    'username',
+    'phone',
+    'savingsGoalCents',
+    'disabledScanIds',
+  };
+
+  /// Prefix for the per-key push markers. A marker row's VALUE holds the
+  /// `updatedAt` of the last successfully pushed version of that key, so
+  /// "pending" is simply `row.updatedAt > marker` — the same compare-and-set
+  /// idea as the markXSynced helpers, without adding a syncStatus column to
+  /// the key/value table.
+  static const settingsPushedPrefix = 'settingsPushed:';
+
+  Future<List<SettingRow>> getAllSettings() => select(settings).get();
+
+  /// Synced-settings rows whose latest edit has not been pushed yet (edited
+  /// while offline, or since the last push). Checked by the sync engine's push
+  /// pass and by [hasPendingRows] before a sign-out wipe.
+  Future<List<SettingRow>> pendingSyncedSettings() async {
+    final rows = await getAllSettings();
+    final pushed = <String, int>{
+      for (final r in rows)
+        if (r.key.startsWith(settingsPushedPrefix))
+          r.key.substring(settingsPushedPrefix.length):
+              int.tryParse(r.value) ?? -1,
+    };
+    return rows
+        .where((r) =>
+            syncedSettingsKeys.contains(r.key) &&
+            r.updatedAt > (pushed[r.key] ?? -1))
+        .toList();
+  }
+
+  /// Record that [key]'s version stamped [updatedAtMs] reached the cloud. If
+  /// the user edited the key while the upload was in flight, the row now
+  /// carries a newer `updatedAt` than this marker and stays pending.
+  Future<void> markSettingPushed(String key, int updatedAtMs) =>
+      setSetting('$settingsPushedPrefix$key', updatedAtMs.toString());
+
+  /// Write a setting pulled from the cloud, keeping the REMOTE `updatedAt`
+  /// (unlike [setSetting], which stamps `now` and would make every pulled
+  /// value look like a fresh local edit that needs pushing back).
+  Future<void> upsertPulledSetting(String key, String value, int updatedAtMs) =>
+      into(settings).insertOnConflictUpdate(
+        SettingsCompanion.insert(
+          key: key,
+          value: value,
+          updatedAt: updatedAtMs,
+        ),
+      );
 
   // ---- Pull cursors ------------------------------------------------------
 
@@ -592,6 +663,7 @@ class AppDatabase extends _$AppDatabase {
             ..where((r) => r.syncStatus.isNotValue(SyncStatus.synced.index))
             ..limit(1))
           .get(),
+      pendingSyncedSettings(),
     ]);
     return probes.any((rows) => rows.isNotEmpty);
   }

@@ -117,6 +117,10 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
   ref.listen(tagsProvider, (_, __) => controller.nudgePush());
   ref.listen(budgetsProvider, (_, __) => controller.nudgePush());
   ref.listen(recurringRulesProvider, (_, __) => controller.nudgePush());
+  // Settings too: profile edits / savings goal / scan toggles sync per-key
+  // (see SyncEngine._pushSettings). pushOnly leaves nothing pending, so the
+  // stream events its own push causes converge instead of looping.
+  ref.listen(appSettingsProvider, (_, __) => controller.nudgePush());
   ref.onDispose(controller.dispose);
   return controller;
 });
