@@ -205,6 +205,91 @@ void main() {
     expect(await db.hasPendingRows(), isTrue);
   });
 
+  test('synced settings: edits go pending, markSettingPushed settles them',
+      () async {
+    // Only whitelisted keys are ever considered for upload.
+    await db.setSetting('themeMode', 'dark');
+    expect(await db.pendingSyncedSettings(), isEmpty);
+
+    await db.setSetting('displayName', 'บันน้อย');
+    var pending = await db.pendingSyncedSettings();
+    expect(pending.map((r) => r.key), ['displayName']);
+
+    // Marker CAS: recording the pushed stamp clears the key…
+    await db.markSettingPushed('displayName', pending.single.updatedAt);
+    expect(await db.pendingSyncedSettings(), isEmpty);
+
+    // …and a later edit (newer updatedAt) re-raises it.
+    await Future<void>.delayed(const Duration(milliseconds: 2));
+    await db.setSetting('displayName', 'บันใหญ่');
+    pending = await db.pendingSyncedSettings();
+    expect(pending.map((r) => r.key), ['displayName']);
+  });
+
+  test('markSettingPushed misses when the row was edited mid-flight',
+      () async {
+    await db.setSetting('phone', '0812345678');
+    final pushed = (await db.pendingSyncedSettings()).single;
+
+    await Future<void>.delayed(const Duration(milliseconds: 2));
+    await db.setSetting('phone', '0899999999');
+
+    // The marker carries the PRE-edit stamp, so the newer edit stays pending.
+    await db.markSettingPushed('phone', pushed.updatedAt);
+    expect(
+      (await db.pendingSyncedSettings()).map((r) => r.key),
+      ['phone'],
+    );
+  });
+
+  test('upsertPulledSetting keeps the remote stamp and does not re-upload',
+      () async {
+    // A pull writes the cloud value with the cloud's own updatedAt…
+    await db.upsertPulledSetting('username', 'bunbun', 5000);
+    await db.markSettingPushed('username', 5000);
+    expect(await db.getSetting('username'), 'bunbun');
+    expect(await db.pendingSyncedSettings(), isEmpty);
+
+    // …and a real local edit afterwards becomes pending as usual.
+    await db.setSetting('username', 'newbun');
+    expect(
+      (await db.pendingSyncedSettings()).map((r) => r.key),
+      ['username'],
+    );
+  });
+
+  test('hasPendingRows covers pending synced settings', () async {
+    for (final c in await db.pendingCategories()) {
+      await db.markCategorySynced(c.id, c.updatedAt);
+    }
+    for (final a in await db.pendingAccounts()) {
+      await db.markAccountSynced(a.id, a.updatedAt);
+    }
+    expect(await db.hasPendingRows(), isFalse);
+
+    // An unsynced profile edit must block a silent sign-out wipe too.
+    await db.setSetting('displayName', 'ยังไม่ได้ซิงค์');
+    expect(await db.hasPendingRows(), isTrue);
+  });
+
+  test('clearAllData drops sync bookkeeping but keeps device prefs', () async {
+    await db.setSetting('themeMode', 'dark');
+    await db.setSetting('displayName', 'บัน');
+    await db.markSettingPushed('displayName', 123);
+    await db.setPullWatermark('slips', 456);
+
+    await db.clearAllData();
+
+    // Device preference survives; per-account cursors/markers are gone so the
+    // next account starts from a clean slate.
+    expect(await db.getSetting('themeMode'), 'dark');
+    expect(await db.pullWatermark('slips'), 0);
+    expect(
+      await db.getSetting('${AppDatabase.settingsPushedPrefix}displayName'),
+      isNull,
+    );
+  });
+
   test('slipAssetExists / slipRefExists are point lookups', () async {
     expect(await db.slipAssetExists('asset-1'), isFalse);
     expect(await db.slipRefExists('REF123'), isFalse);

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../local/database.dart';
 import 'auth_service.dart';
@@ -79,8 +80,11 @@ class SyncEngine {
         );
       } catch (_) {}
       return true;
-    } catch (_) {
+    } catch (e) {
       // Best-effort: a failed/timed-out sync is retried on the next trigger.
+      // Logged (not rethrown) so a systemic failure — e.g. PERMISSION_DENIED
+      // from undeployed Firestore rules — is visible instead of silent.
+      debugPrint('SyncEngine.sync failed: $e');
       return false;
     } finally {
       _running = false;
@@ -96,7 +100,8 @@ class SyncEngine {
     try {
       await _pushAll(uid).timeout(_networkTimeout);
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('SyncEngine.pushOnly failed: $e');
       return false;
     } finally {
       _running = false;
@@ -133,6 +138,7 @@ class SyncEngine {
         _pushBudgets(uid),
         _pushTags(uid),
         _pushRecurringRules(uid),
+        _pushSettings(uid),
       ]);
 
   Future<void> _pullAll(String uid) => Future.wait([
@@ -143,6 +149,7 @@ class SyncEngine {
         _pullBudgets(uid),
         _pullSlips(uid),
         _pullRecurringRules(uid),
+        _pullSettings(uid),
       ]);
 
   // ---- Push (a soft-deleted row carries deleted:true in its map) ----------
@@ -244,6 +251,24 @@ class SyncEngine {
       await _pushDoc(col.doc(r.id), FirestoreMappers.recurringRuleToMap(r));
       if (!_sameUser(uid)) return;
       await _db.markRecurringRuleSynced(r.id, r.updatedAt);
+    }));
+  }
+
+  /// Upload profile & per-user preference settings (see
+  /// [AppDatabase.syncedSettingsKeys]) — one doc per key, LWW on `updatedAt`
+  /// like every other collection. Without this, a profile edit lives only in
+  /// the local key/value table, which the sign-out wipe destroys.
+  Future<void> _pushSettings(String uid) async {
+    final col = _col(uid, 'settings');
+    await Future.wait((await _db.pendingSyncedSettings()).map((r) async {
+      await _pushDoc(col.doc(r.key), {
+        'value': r.value,
+        'updatedAt': r.updatedAt,
+      });
+      if (!_sameUser(uid)) return;
+      // Marker CAS: an edit made while this upload was in flight bumps the
+      // row's updatedAt past this marker, keeping the key pending.
+      await _db.markSettingPushed(r.key, r.updatedAt);
     }));
   }
 
@@ -434,5 +459,34 @@ class SyncEngine {
     if (!_sameUser(uid)) return;
     if (rows.isNotEmpty) await _db.batchUpsertRecurringRules(rows);
     await _saveWatermark('recurringRules', maxUpdated);
+  }
+
+  /// Restore synced settings. The collection holds at most a handful of docs
+  /// (one per key in [AppDatabase.syncedSettingsKeys]), so it is always fetched
+  /// whole — no watermark cursor to maintain. Per-key last-write-wins against
+  /// the local row's `updatedAt`, so a pending local edit (newer stamp) is
+  /// never overwritten by a stale cloud value.
+  Future<void> _pullSettings(String uid) async {
+    final snap = await _col(uid, 'settings').get();
+    if (snap.docs.isEmpty || !_sameUser(uid)) return;
+    final local = {
+      for (final r in await _db.getAllSettings()) r.key: r.updatedAt,
+    };
+    for (final doc in snap.docs) {
+      // Only known keys: junk or future keys in the cloud must not be able to
+      // plant arbitrary rows in the local table.
+      if (!AppDatabase.syncedSettingsKeys.contains(doc.id)) continue;
+      final data = doc.data();
+      final value = data['value'] as String?;
+      if (value == null) continue;
+      final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      final localUpdated = local[doc.id];
+      if (localUpdated != null && remoteUpdated <= localUpdated) continue;
+      if (!_sameUser(uid)) return;
+      await _db.upsertPulledSetting(doc.id, value, remoteUpdated);
+      // The pulled value is by definition in the cloud already — mark it
+      // pushed so the push pass doesn't immediately re-upload it.
+      await _db.markSettingPushed(doc.id, remoteUpdated);
+    }
   }
 }
