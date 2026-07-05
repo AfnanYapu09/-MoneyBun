@@ -226,8 +226,7 @@ void main() {
     expect(pending.map((r) => r.key), ['displayName']);
   });
 
-  test('markSettingPushed misses when the row was edited mid-flight',
-      () async {
+  test('markSettingPushed misses when the row was edited mid-flight', () async {
     await db.setSetting('phone', '0812345678');
     final pushed = (await db.pendingSyncedSettings()).single;
 
