@@ -343,39 +343,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                     _type == TxnType.income ? TxnType.income : TxnType.expense,
               ),
             ),
-            if (widget.editId != null) ...[
-              const SizedBox(height: 22),
-              InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: _confirmDelete,
-                child: Container(
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: context.palette.dangerWash,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        AppIcons.trash2,
-                        size: 19,
-                        color: context.palette.dangerFg,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.addtxnDeleteEntry,
-                        style: AppTypography.heading(
-                          size: 16,
-                          weight: FontWeight.w500,
-                          color: context.palette.dangerFg,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ],
         ],
       ),
@@ -549,38 +516,6 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       return;
     }
     if (mounted) Navigator.of(context).pop(true);
-  }
-
-  Future<void> _confirmDelete() async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    try {
-      final l10n = AppLocalizations.of(context);
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (c) => AlertDialog(
-          content: Text(l10n.addtxnConfirmDelete),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(c, true),
-              child: Text(l10n.delete),
-            ),
-          ],
-        ),
-      );
-      if (ok == true) {
-        await ref.read(transactionRepositoryProvider).delete(widget.editId!);
-        if (mounted) Navigator.of(context).pop(true);
-        return; // keep _busy set — the sheet is closing
-      }
-    } catch (_) {
-      // fall through to re-enable
-    }
-    if (mounted) setState(() => _busy = false);
   }
 }
 
