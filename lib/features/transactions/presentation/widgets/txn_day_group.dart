@@ -42,9 +42,9 @@ class TxnDayGroup extends StatelessWidget {
   /// View the source slip of a row (used by the zero-amount warning).
   final void Function(TransactionRow txn)? onShowSlip;
 
-  /// Delete a row. When set, rows can be swiped left to reveal a trash action
-  /// (confirmed with a dialog before anything is removed).
-  final void Function(TransactionRow txn)? onDelete;
+  /// Delete a row. When set, rows can be swiped left to pin a trash action
+  /// open; tapping it (then confirming) removes the transaction.
+  final Future<void> Function(TransactionRow txn)? onDelete;
 
   /// Anchor for the Home walkthrough — attached to this group's first row.
   final GlobalKey? firstRowKey;
@@ -98,6 +98,7 @@ class TxnDayGroup extends StatelessWidget {
           ),
         ),
         Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: context.palette.surface,
             borderRadius: BorderRadius.circular(18),
@@ -162,9 +163,10 @@ class TxnDayGroup extends StatelessWidget {
       key: ValueKey('txn-swipe-${t.id}'),
       onDeleteTap: () async {
         final ok = await confirmDeleteTxn(context);
-        if (ok) onDelete!(t);
+        if (ok) await onDelete!(t);
       },
       child: row,
     );
   }
+
 }

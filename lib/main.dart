@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +11,20 @@ import 'bootstrap/providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Global error handlers: keep an uncaught async error (a failed plugin call,
+  // a stray Firestore exception) from killing the whole app, and make errors
+  // visible in logs — without these, release-mode failures vanish silently.
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError: ${details.exceptionAsString()}\n'
+        '${details.stack ?? ''}');
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Uncaught error: $error\n$stack');
+    return true; // handled — don't crash the app
+  };
+  // (initializeDateFormatting runs concurrently in the Future.wait below.)
 
   // Use the bundled fonts in google_fonts/ instead of fetching at runtime
   // (works fully offline).

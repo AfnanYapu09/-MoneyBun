@@ -47,7 +47,8 @@ class ScanResult {
 /// NEXT, TrueMoney, …), so a scan imports **every** image in albums whose name
 /// matches a known bank/e-wallet. Photos outside a bank album (screenshots /
 /// downloads) are intentionally NOT read — for privacy and accuracy, only the
-/// bank albums are scanned. Dedups by gallery asset id (and slip transRef).
+/// bank albums are scanned. Every scan is scoped to the current calendar month
+/// (see [effectiveCutoff]) and dedups by gallery asset id (and slip transRef).
 /// Android-only.
 class SlipImporter {
   SlipImporter({
@@ -56,15 +57,23 @@ class SlipImporter {
     required TransactionRepository transactions,
     required Future<Set<String>> Function() importedAssetIds,
     required Future<Set<String>> Function() importedSlipRefs,
+    required Future<bool> Function(String assetId) assetImported,
+    required Future<bool> Function(String transRef) refImported,
     required Future<int?> Function() latestSlipPhotoTime,
     required Future<Set<String>> Function() disabledScanIds,
+    required Future<int?> Function() scannedUpTo,
+    required Future<void> Function(int ms) saveScannedUpTo,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
         _importedAssetIds = importedAssetIds,
         _importedSlipRefs = importedSlipRefs,
+        _assetImported = assetImported,
+        _refImported = refImported,
         _latestSlipPhotoTime = latestSlipPhotoTime,
-        _disabledScanIds = disabledScanIds;
+        _disabledScanIds = disabledScanIds,
+        _scannedUpTo = scannedUpTo,
+        _saveScannedUpTo = saveScannedUpTo;
 
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
@@ -76,6 +85,13 @@ class SlipImporter {
   /// restore, where the asset id may be missing.
   final Future<Set<String>> Function() _importedSlipRefs;
 
+  /// Point lookups against the live DB for the just-before-write dedup
+  /// re-check (a cloud pull can restore a slip mid-scan). Indexed single-row
+  /// queries — unlike re-reading the whole table per image, which made a big
+  /// backlog scan O(images × slips).
+  final Future<bool> Function(String assetId) _assetImported;
+  final Future<bool> Function(String transRef) _refImported;
+
   /// Source-photo time of the latest imported slip (epoch ms), or null when
   /// none yet. Used as the scan watermark: read only photos newer than this.
   final Future<int?> Function() _latestSlipPhotoTime;
@@ -83,19 +99,40 @@ class SlipImporter {
   /// Scan-catalog ids the user turned off (their albums are skipped this scan).
   final Future<Set<String>> Function() _disabledScanIds;
 
-  /// Cap on images read per bank album (protects a long slip history).
-  static const _albumCap = 300;
+  /// Photo time (epoch ms) the previous scan read up to, or null when never
+  /// recorded. A device-local record of "read this far" so photos already
+  /// looked at — including ones that produced no import — aren't read again.
+  final Future<int?> Function() _scannedUpTo;
 
-  /// Bootstrap window: when no slip has ever been imported, a scan reads only
-  /// the past this-many days so it never trawls the whole gallery. Once a slip
-  /// exists, the watermark (latest imported slip's photo time) takes over.
-  static const _scanWindowDays = 7;
+  /// Persist the read-up-to record after a scan.
+  final Future<void> Function(int ms) _saveScannedUpTo;
 
-  /// The bootstrap cutoff (used only before any slip exists): the last
-  /// [_scanWindowDays] days. Once slips exist, [scanNew] uses the watermark
-  /// instead. Pure + static so it can be unit-tested.
-  static DateTime scanCutoff(DateTime now) =>
-      now.subtract(const Duration(days: _scanWindowDays));
+  /// Cap on images read per bank album. A backstop only — the month window
+  /// below bounds real scans; the cap just keeps a pathological album (tens of
+  /// thousands of images) from stalling a scan forever.
+  static const _albumCap = 2000;
+
+  /// Where a scan starts reading. Never before the current calendar month —
+  /// slips are only ever read from the month the scan runs in ("July shows
+  /// July") — and never before what was already read: the newest imported
+  /// slip's photo time ([watermarkMs], rebuilt from synced data after a
+  /// restore) and the previous scan's own high-water mark ([scannedUpToMs],
+  /// recorded per device so a photo that was read but yielded no import isn't
+  /// re-read). Inclusive at the boundary; the asset-id / transRef dedup
+  /// catches a photo saved the same instant. Pure + static for unit tests.
+  static DateTime effectiveCutoff(
+    DateTime now, {
+    int? watermarkMs,
+    int? scannedUpToMs,
+  }) {
+    var cutoff = DateTime(now.year, now.month);
+    for (final ms in [watermarkMs, scannedUpToMs]) {
+      if (ms == null) continue;
+      final t = DateTime.fromMillisecondsSinceEpoch(ms);
+      if (t.isAfter(cutoff)) cutoff = t;
+    }
+    return cutoff;
+  }
 
   /// Album-name fragments (lowercase) that Thai banking / e-wallet apps use for
   /// the folder they save slips into. Matched albums are imported in full.
@@ -215,28 +252,43 @@ class SlipImporter {
   /// (and the slip's transRef), so an already-imported photo is never imported
   /// twice. Photos outside a bank album (screenshots / downloads) are NOT read.
   /// Returns a [ScanResult].
-  Future<ScanResult> scanNew() async {
+  ///
+  /// [isCancelled] is polled between photos; when it turns true the scan stops
+  /// writing and returns what it has. The caller cancels when the signed-in
+  /// user changes mid-scan — continuing would write the old gallery's entries
+  /// into the just-wiped DB, from where they'd sync to the *next* account.
+  Future<ScanResult> scanNew({bool Function()? isCancelled}) async {
     final scanStart = DateTime.now();
+    bool cancelled() => isCancelled?.call() ?? false;
     try {
       final paths = await PhotoManager.getAssetPathList(
         type: RequestType.image,
+        // Explicit newest-first order. Without it the platform query has NO
+        // ORDER BY at all (just LIMIT/OFFSET), so which photos fall inside the
+        // per-album cap is undefined — an album bigger than the cap could
+        // silently drop its newest slips.
+        filterOption: FilterOptionGroup(orders: const [OrderOption()]),
       );
       if (paths.isEmpty) return const ScanResult();
       final already = await _importedAssetIds();
       final knownRefs = await _importedSlipRefs();
-      // Watermark: once any slip has been imported, read only photos newer than
-      // the latest one — so a scan continues *after* the last slip and never
-      // re-reads older ones. The watermark is recomputed from the slips table
-      // (whose photoTakenAt syncs), so it survives a sign-out or reinstall.
-      // Before the first slip exists, bootstrap from the past week.
-      final watermarkMs = await _latestSlipPhotoTime();
-      final cutoff = watermarkMs != null
-          ? DateTime.fromMillisecondsSinceEpoch(watermarkMs)
-          : scanCutoff(scanStart);
+      // Read only the current calendar month, and within it continue after
+      // whatever was already read: the newest imported slip's photo time (from
+      // the slips table, whose photoTakenAt syncs — survives a sign-out or
+      // reinstall) and the previous scan's own read-up-to record.
+      final cutoff = effectiveCutoff(
+        scanStart,
+        watermarkMs: await _latestSlipPhotoTime(),
+        scannedUpToMs: await _scannedUpTo(),
+      );
       // Inclusive at the cutoff so a slip saved in the same second as the
       // watermark isn't missed; the already-imported one is skipped by the
-      // asset-id / transRef dedup below.
-      bool inWindow(AssetEntity a) => !a.createDateTime.isBefore(cutoff);
+      // asset-id / transRef dedup below. A photo whose creation time the
+      // gallery doesn't know (epoch 0) can never pass the cutoff — include it
+      // anyway; after its first import the asset-id dedup skips it.
+      bool inWindow(AssetEntity a) =>
+          a.createDateTime.millisecondsSinceEpoch == 0 ||
+          !a.createDateTime.isBefore(cutoff);
       // Banks the user turned off in the accounts sheet — skip their albums.
       final disabled = await _disabledScanIds();
 
@@ -246,6 +298,7 @@ class SlipImporter {
       // an album is a slip). Already-imported ones are skipped via [already]
       // and the transRef dedup inside _ingest.
       for (final album in paths) {
+        if (cancelled()) break;
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
         final scanId = albumScanId(album.name);
         if (scanId != null && disabled.contains(scanId)) continue;
@@ -255,7 +308,24 @@ class SlipImporter {
         final assets = await album.getAssetListRange(start: 0, end: end);
         acc.albumCount += assets.length;
         final fresh = assets.where(inWindow).toList();
-        await _ingest(fresh, already, knownRefs, acc);
+        await _ingest(fresh, already, knownRefs, acc, cancelled);
+      }
+
+      // Record how far this scan read (the newest photo it considered, clamped
+      // to the scan start so a future-dated photo can't jump the cursor), so
+      // the next scan continues after it even when nothing was imported.
+      // Errored photos stay ahead of the cursor and get retried: the record
+      // stops just BEFORE the oldest failure instead of not advancing at all —
+      // one permanently unreadable photo must not force every future scan to
+      // re-OCR the whole month window. Never advanced when cancelled mid-scan.
+      final seen = acc.newestSeenAt;
+      if (!cancelled() && seen != null) {
+        var upTo = seen;
+        final startMs = scanStart.millisecondsSinceEpoch;
+        if (upTo > startMs) upTo = startMs;
+        final failedAt = acc.oldestErrorAt;
+        if (failedAt != null && failedAt - 1 < upTo) upTo = failedAt - 1;
+        await _saveScannedUpTo(upTo);
       }
 
       return ScanResult(
@@ -277,8 +347,14 @@ class SlipImporter {
     Set<String> already,
     Set<String> knownRefs,
     _ScanAcc acc,
+    bool Function() cancelled,
   ) async {
     for (final asset in assets) {
+      if (cancelled()) return;
+      final seenMs = asset.createDateTime.millisecondsSinceEpoch;
+      if (acc.newestSeenAt == null || seenMs > acc.newestSeenAt!) {
+        acc.newestSeenAt = seenMs;
+      }
       if (already.contains(asset.id)) continue;
       try {
         final file = await asset.file;
@@ -288,14 +364,28 @@ class SlipImporter {
           file.path,
         ))
             .copyWith(imagePath: file.path, assetId: asset.id);
+        // Re-check the dedup keys against the live DB before persisting: a
+        // cloud pull can land mid-scan (an app-resume sync) and restore this
+        // very slip after the sets were snapshotted at scan start. Targeted
+        // point lookups — re-reading the whole table per image made a big
+        // backlog scan O(images × slips).
+        if (await _assetImported(asset.id)) {
+          already.add(asset.id);
+          continue;
+        }
         // Skip if this exact slip (by bank transaction reference) was already
         // imported — guards against a re-import when the asset id differs
         // (e.g. after restoring data from the cloud).
         final ref = parsed.transRef;
-        if (ref != null && ref.isNotEmpty && knownRefs.contains(ref)) {
+        if (ref != null &&
+            ref.isNotEmpty &&
+            (knownRefs.contains(ref) || await _refImported(ref))) {
           already.add(asset.id);
           continue;
         }
+        // Checked again right before writing — the OCR above takes long enough
+        // for a sign-out (and its DB wipe) to land in between.
+        if (cancelled()) return;
         final occurredAt = await _persist(parsed, asset.createDateTime);
         // Avoid a 2nd import if the photo also appears in another matched album.
         already.add(asset.id);
@@ -308,6 +398,9 @@ class SlipImporter {
       } catch (_) {
         // One unreadable photo shouldn't abort the whole scan.
         acc.errors++;
+        if (acc.oldestErrorAt == null || seenMs < acc.oldestErrorAt!) {
+          acc.oldestErrorAt = seenMs;
+        }
       }
     }
   }
@@ -340,4 +433,13 @@ class _ScanAcc {
   int imported = 0;
   int errors = 0;
   int? newestImportedAt;
+
+  /// Photo time (epoch ms) of the newest in-window asset this scan considered
+  /// (imported or deduped) — persisted as the read-up-to record afterwards.
+  int? newestSeenAt;
+
+  /// Photo time (epoch ms) of the OLDEST asset whose read threw this scan.
+  /// The read-up-to record stops just before it, so failed photos are retried
+  /// while everything read successfully is never re-read.
+  int? oldestErrorAt;
 }

@@ -124,14 +124,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 SocialButton(
                   icon: AppIcons.google,
                   label: 'Google',
-                  onPressed: _google,
+                  onPressed: _busy ? null : _google,
                 ),
                 if (appleAvailable) ...[
                   const SizedBox(width: 12),
                   SocialButton(
                     icon: AppIcons.apple,
                     label: 'Apple',
-                    onPressed: _apple,
+                    onPressed: _busy ? null : _apple,
                   ),
                 ],
               ],
@@ -168,20 +168,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _run(Future<void> Function() action) async {
+    // Single-flight: the social buttons stay tappable while an email login is
+    // in flight (and vice versa) — overlapping GoogleSignIn.authenticate()
+    // calls throw on Android and stack error snacks.
+    if (_busy) return;
     final auth = ref.read(authServiceProvider);
     if (auth == null) {
       _snack(AppLocalizations.of(context).authFirebaseNotConfigured);
       return;
     }
+    // Captured before the await: the auth-state redirect can dispose this
+    // screen the moment Firebase emits the signed-in user, after which
+    // ref.read throws and the seeding below would be silently skipped.
+    final db = ref.read(databaseProvider);
     setState(() => _busy = true);
     try {
       await action();
+      // Ensure the starter categories/accounts exist. This is the only entry
+      // point for first-time Google/Apple users (they never pass the signup
+      // screen, whose seeding otherwise covers this), and the local DB may
+      // have been wiped by a previous sign-out. Safe for returning users:
+      // seeds carry updatedAt 0, so their real cloud rows win the pull's
+      // last-write-wins and overwrite the defaults.
+      await db.seedDefaults();
       // Enter the app immediately; SyncController kicks off the first sync in
       // the background on the auth-state change, so login no longer blocks on a
       // full push+pull.
       if (mounted) context.go('/home');
     } catch (e) {
       if (!mounted) return;
+      // The user closing the Google/Apple account sheet themselves is not a
+      // failure — stay silent instead of flashing "เข้าสู่ระบบไม่สำเร็จ".
+      if (isAuthCancelled(e)) return;
       final l10n = AppLocalizations.of(context);
       _snack(authErrorMessage(e, l10n, fallback: l10n.authLoginFailed));
     } finally {

@@ -51,6 +51,10 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   // dragging down.
   static const _actionsExtent = 64.0;
 
+  /// The sheet pops itself exactly once: rapid taps on categories would
+  /// otherwise pop twice and close the Add sheet underneath (losing its input).
+  bool _popped = false;
+
   late final bool _hasActions =
       widget.slip != null || widget.onTransfer != null;
   late final ScrollController _controller = ScrollController(
@@ -94,6 +98,8 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
                         icon: AppIcons.arrowLeftRight,
                         label: l10n.transfer,
                         onTap: () {
+                          if (_popped) return;
+                          _popped = true;
                           widget.onTransfer!();
                           Navigator.of(context).maybePop();
                         },
@@ -106,8 +112,11 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
             CategoryTagBoard(
               categoryType: widget.categoryType,
               initialTagIds: widget.initialTagIds,
-              onPick: (categoryId, tagIds) =>
-                  Navigator.of(context).pop(CategoryPick(categoryId, tagIds)),
+              onPick: (categoryId, tagIds) {
+                if (_popped) return;
+                _popped = true;
+                Navigator.of(context).pop(CategoryPick(categoryId, tagIds));
+              },
             ),
           ],
         ),

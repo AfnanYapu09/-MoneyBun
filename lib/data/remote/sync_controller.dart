@@ -23,7 +23,17 @@ class SyncController with WidgetsBindingObserver {
   }) {
     WidgetsBinding.instance.addObserver(this);
     _authSub = _auth.authStateChanges().listen((user) {
-      if (user != null) _fullSync();
+      if (user == null) {
+        // Sign-out wipes the local DB, so if another account signs in within
+        // this same app session its restore must re-close the scanner gate:
+        // re-arm the completer (only when already fired — pending waiters keep
+        // the old one and resolve on the next successful sync).
+        if (_initialSync.isCompleted) _initialSync = Completer<void>();
+        _firstSyncRetriesLeft = _firstSyncRetries;
+        _firstSyncCompletedFired = false;
+        return;
+      }
+      _fullSync();
     });
     // Defer the launch-time sync out of the constructor (which runs during a
     // provider build) so its onSyncingChanged callback doesn't mutate another
@@ -53,33 +63,66 @@ class SyncController with WidgetsBindingObserver {
   /// are never throttled.
   static const _resumeMinInterval = Duration(minutes: 2);
 
+  /// How many times a failed first sync is retried (beyond the normal
+  /// triggers) while the scanner gate is still closed, and how long apart.
+  /// A transient network error right after login would otherwise leave the
+  /// gate closed until the next resume.
+  static const _firstSyncRetries = 3;
+  static const _firstSyncRetryGap = Duration(seconds: 8);
+
+  /// How many times a debounced push that couldn't run (a full sync held the
+  /// engine, or the network failed) is re-armed before giving up until the
+  /// next trigger. Without this, an edit made while a full sync is in flight
+  /// stays pending until some unrelated event pushes it.
+  static const _pushRetries = 5;
+
   StreamSubscription<void>? _authSub;
   Timer? _debounce;
+  Timer? _firstSyncRetry;
+  int _pushRetriesLeft = 0;
   bool _firstSyncStarted = false;
   bool _firstSyncCompletedFired = false;
+  int _firstSyncRetriesLeft = _firstSyncRetries;
   DateTime? _lastFullSyncAt;
-  final Completer<void> _initialSync = Completer<void>();
+  Completer<void> _initialSync = Completer<void>();
 
-  /// Resolves once the first cloud sync has actually COMPLETED (pull + push
-  /// ran to the end), or immediately when the user isn't signed in. The slip
-  /// scanner awaits this so it never imports slips that are about to arrive
-  /// from the cloud — a failed or slow sync keeps the scanner locked until a
-  /// later sync succeeds, because scanning early creates duplicates.
+  /// Whether the first cloud sync since app start has *succeeded* (trivially
+  /// true when signed out). While false for a signed-in user, the local DB may
+  /// still be missing cloud rows — the slip scanner checks this before reading
+  /// the gallery so it never re-imports slips a pending restore is about to
+  /// deliver.
+  bool get initialSyncCompleted =>
+      !_auth.isSignedIn || _initialSync.isCompleted;
+
+  /// Resolves once the first cloud sync since app start has succeeded (pull +
+  /// push actually ran), or immediately when the user isn't signed in. A
+  /// failed or timed-out attempt does NOT resolve this — a later attempt
+  /// (retry, resume, sign-in) does — so callers must bound their wait.
   Future<void> awaitInitialSync() {
     if (!_auth.isSignedIn) return Future<void>.value();
     return _initialSync.future;
   }
 
-  /// Synchronous view of [awaitInitialSync] so UI actions (pull-to-refresh)
-  /// can refuse to scan instead of hanging while the first pull is running.
-  bool get initialSyncDone => !_auth.isSignedIn || _initialSync.isCompleted;
-
   /// Push pending local changes after a (debounced) delay. Push-only does no
   /// reads, and markSynced leaves nothing pending, so repeated triggers
   /// converge instead of looping.
   void nudgePush() {
+    _pushRetriesLeft = _pushRetries;
+    _armPush(const Duration(seconds: 3));
+  }
+
+  void _armPush(Duration delay) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(seconds: 3), _engine.pushOnly);
+    _debounce = Timer(delay, () async {
+      final ran = await _engine.pushOnly();
+      // pushOnly is a no-op while a full sync holds the engine (and returns
+      // false on a network error) — re-arm a bounded retry so the pending rows
+      // aren't stranded until the next unrelated trigger.
+      if (!ran && _auth.isSignedIn && _pushRetriesLeft > 0) {
+        _pushRetriesLeft--;
+        _armPush(const Duration(seconds: 5));
+      }
+    });
   }
 
   Future<void> _fullSync() async {
@@ -92,37 +135,52 @@ class SyncController with WidgetsBindingObserver {
       onSyncingChanged?.call(true);
     }
     _lastFullSyncAt = DateTime.now();
-    var ran = false;
-    // Time-box only the VISUAL loading state: the skeleton/blur clears after
-    // [_firstSyncTimeout] even if a slow pull keeps running. The slip-scanner
-    // lock below is NOT time-boxed — scanning before the pull lands would
-    // import duplicates of the rows that are about to arrive.
-    Timer? loadingCap;
-    if (ownsFirst) {
-      loadingCap = Timer(
-        _firstSyncTimeout,
-        () => onSyncingChanged?.call(false),
-      );
-    }
-    try {
-      ran = await _engine.sync();
-    } catch (_) {
-      // Best-effort; a failed sync is retried on the next trigger (resume /
-      // sign-in), which will also unlock the scanner when it succeeds.
-    } finally {
-      loadingCap?.cancel();
-      if (ownsFirst) onSyncingChanged?.call(false);
+    final uid = _auth.currentUser?.uid;
+    final attempt = _engine.sync();
+    // The scanner gate and the "this device has synced" flag track the *real*
+    // outcome, never the time-boxed wait below: a first sync that outlives the
+    // loading-state timeout still opens the gate when it eventually succeeds,
+    // and a failed one keeps the gate closed (scanning before the restore has
+    // landed would re-import slips as duplicates) and is retried instead.
+    attempt.then((ran) {
+      // A late result from before an account switch must not open the new
+      // account's gate (its own restore hasn't run yet).
+      if (uid == null || _auth.currentUser?.uid != uid) return;
       if (ran) {
-        // Unblock the slip scanner ONLY after a sync that really completed.
         if (!_initialSync.isCompleted) _initialSync.complete();
-        // Persist "this device has synced" once, so a returning user never
-        // sees the first-load skeleton again.
+        // Persist "this device has synced" so a returning user never sees the
+        // first-load skeleton again. Guarded to fire only once.
         if (!_firstSyncCompletedFired) {
           _firstSyncCompletedFired = true;
           onFirstSyncCompleted?.call();
         }
+      } else {
+        _scheduleFirstSyncRetry();
       }
+    });
+    try {
+      // Bounded so a stalled Firestore call can't strand the loading skeleton
+      // (the real sync keeps running; only the loading state is time-boxed).
+      await attempt.timeout(_firstSyncTimeout);
+    } catch (_) {
+      // Best-effort; a failed sync is retried on the next trigger (resume /
+      // sign-in), which will also unlock the scanner when it succeeds.
+    } finally {
+      if (ownsFirst) onSyncingChanged?.call(false);
     }
+  }
+
+  /// While the first successful sync is still outstanding, retry a failed
+  /// attempt a few times. Checked again at fire time: by then the concurrent
+  /// attempt that made this one a no-op may have opened the gate already.
+  void _scheduleFirstSyncRetry() {
+    if (_initialSync.isCompleted || !_auth.isSignedIn) return;
+    if (_firstSyncRetriesLeft <= 0) return;
+    _firstSyncRetriesLeft--;
+    _firstSyncRetry?.cancel();
+    _firstSyncRetry = Timer(_firstSyncRetryGap, () {
+      if (!_initialSync.isCompleted && _auth.isSignedIn) _fullSync();
+    });
   }
 
   @override
@@ -141,5 +199,6 @@ class SyncController with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _authSub?.cancel();
     _debounce?.cancel();
+    _firstSyncRetry?.cancel();
   }
 }

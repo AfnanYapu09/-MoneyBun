@@ -338,7 +338,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _listenScan() {
     final l10n = AppLocalizations.of(context);
     ref.listen<ScanState>(scanControllerProvider, (prev, next) {
-      if (next.blockedBySync && !(prev?.blockedBySync ?? false)) {
+      if (next.waitingForRestore && !(prev?.waitingForRestore ?? false)) {
         // Manual scan while the first cloud pull is still running.
         _snack(l10n.homeScanWaitSync);
       } else if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
@@ -346,6 +346,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // app session (every cold launch) until access is granted.
         ref.read(photoPermissionProvider.notifier).markDenied();
         _permissionDialog();
+      } else if (next.waitingForRestore &&
+          !(prev?.waitingForRestore ?? false)) {
+        // A fresh sign-in's cloud restore hasn't landed yet — the scan was
+        // skipped (it re-runs by itself when the restore completes).
+        _snack(l10n.homeScanWaitRestore);
       } else if ((prev?.scanning ?? false) &&
           !next.scanning &&
           next.error == null &&
@@ -385,9 +390,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Open the source slip for a row, with a "ลบรายการ" button — used by the
   /// zero-amount warning so the user can read or delete the failed import.
   Future<void> _showSlip(TransactionRow txn) async {
-    final slip = txn.slipId == null
-        ? null
-        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    // Repos are captured before any await: the auth-state redirect can unmount
+    // this screen while a viewer/dialog is up, after which ref.read throws.
+    final txnRepo = ref.read(transactionRepositoryProvider);
+    final slipRepo = ref.read(slipRepositoryProvider);
+    final slip = txn.slipId == null ? null : await slipRepo.get(txn.slipId!);
     if (!mounted) return;
     if (slip == null) {
       showAddTransactionSheet(context, editId: txn.id);
@@ -396,29 +403,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     showSlipViewer(
       context,
       slip,
-      onDelete: () => ref.read(transactionRepositoryProvider).delete(txn.id),
+      onDelete: () => txnRepo.delete(txn.id),
     );
   }
 
   Future<void> _categorize(TransactionRow txn) async {
-    final slip = txn.slipId == null
-        ? null
-        : await ref.read(slipRepositoryProvider).get(txn.slipId!);
+    final txnRepo = ref.read(transactionRepositoryProvider);
+    final slipRepo = ref.read(slipRepositoryProvider);
+    final db = ref.read(databaseProvider);
+    final slip = txn.slipId == null ? null : await slipRepo.get(txn.slipId!);
     if (!mounted) return;
     final pick = await showCategoryPicker(
       context,
       slip: slip,
-      onTransfer: () =>
-          ref.read(transactionRepositoryProvider).reclassifyAsTransfer(txn.id),
+      onTransfer: () => txnRepo.reclassifyAsTransfer(txn.id),
     );
     if (pick != null) {
-      await ref
-          .read(transactionRepositoryProvider)
-          .setCategory(txn.id, pick.categoryId);
+      await txnRepo.setCategory(txn.id, pick.categoryId);
       if (pick.tagIds.isNotEmpty) {
-        await ref
-            .read(databaseProvider)
-            .setTransactionTags(txn.id, pick.tagIds);
+        await db.setTransactionTags(txn.id, pick.tagIds);
       }
     }
   }
@@ -440,9 +443,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // denied, but revisiting Home in the same session only keeps the banner.
     if (ref.read(permDialogShownProvider)) return;
     ref.read(permDialogShownProvider.notifier).mark();
+    // Captured before the awaits so a mid-dialog unmount can't break reads.
+    final importer = ref.read(slipImporterProvider);
     final grant = await showPhotoPermissionDialog(context);
     if (!mounted) return;
-    final importer = ref.read(slipImporterProvider);
     if (grant) {
       // Re-request first — on a fresh deny the OS prompt can still appear.
       // After "don't ask again" it resolves denied instantly → settings page.
@@ -800,7 +804,7 @@ class _RecentList extends StatelessWidget {
   final void Function(String id) onTapTxn;
   final void Function(TransactionRow) onCategorize;
   final void Function(TransactionRow) onShowSlip;
-  final void Function(TransactionRow) onDelete;
+  final Future<void> Function(TransactionRow) onDelete;
 
   @override
   Widget build(BuildContext context) {

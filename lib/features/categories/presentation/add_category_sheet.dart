@@ -152,12 +152,46 @@ const List<_IconGroup> _groups = [
 /// Icons are grouped into labelled sections so they are easy to find. The
 /// chosen icon's Thai name + accent colour become the new category, appended to
 /// the end of the list. Icons already in use are shown ticked and not tappable.
-class AddCategorySheet extends ConsumerWidget {
+class AddCategorySheet extends ConsumerStatefulWidget {
   const AddCategorySheet({super.key, this.type = CategoryType.expense});
   final CategoryType type;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AddCategorySheet> createState() => _AddCategorySheetState();
+}
+
+class _AddCategorySheetState extends ConsumerState<AddCategorySheet> {
+  /// Single-flight guard: rapid taps (same or different icons) would insert
+  /// duplicate categories and pop the sheet more than once.
+  bool _busy = false;
+
+  Future<void> _add(PixelIconInfo info, List<CategoryRow> categories) async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      // Append after the current highest sortOrder so it lands last.
+      var maxOrder = -1;
+      for (final c in categories) {
+        if (c.sortOrder > maxOrder) maxOrder = c.sortOrder;
+      }
+      await ref.read(categoryRepositoryProvider).save(
+            name: info.nameTh,
+            nameEn: info.nameEn,
+            type: widget.type,
+            iconKey: info.id,
+            colorHex: info.colorHex,
+            sortOrder: maxOrder + 1,
+          );
+    } catch (_) {
+      _busy = false;
+      return;
+    }
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final type = widget.type;
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).languageCode;
     final categories =
@@ -170,23 +204,6 @@ class AddCategorySheet extends ConsumerWidget {
     final catalog = {for (final i in kPixelIconCatalog) i.id: i};
     final income = type == CategoryType.income;
     final groups = _groups.where((g) => g.income == income);
-
-    Future<void> add(PixelIconInfo info) async {
-      // Append after the current highest sortOrder so it lands last.
-      var maxOrder = -1;
-      for (final c in categories) {
-        if (c.sortOrder > maxOrder) maxOrder = c.sortOrder;
-      }
-      await ref.read(categoryRepositoryProvider).save(
-            name: info.nameTh,
-            nameEn: info.nameEn,
-            type: type,
-            iconKey: info.id,
-            colorHex: info.colorHex,
-            sortOrder: maxOrder + 1,
-          );
-      if (context.mounted) Navigator.of(context).pop(true);
-    }
 
     return SheetScaffold(
       title: income ? l10n.catAddIncomeTitle : l10n.catAddExpenseTitle,
@@ -219,7 +236,7 @@ class AddCategorySheet extends ConsumerWidget {
                     _IconTile(
                       info: info,
                       added: used.contains(id),
-                      onTap: () => add(info),
+                      onTap: () => _add(info, categories),
                     ),
               ],
             ),

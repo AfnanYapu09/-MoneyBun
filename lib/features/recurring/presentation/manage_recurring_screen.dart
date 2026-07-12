@@ -152,16 +152,19 @@ class ManageRecurringScreen extends ConsumerWidget {
     String id,
   ) async {
     final l10n = AppLocalizations.of(context);
+    // Captured before the await — ref.read after the dialog would throw if the
+    // auth-state redirect unmounted this screen while the dialog was up.
+    final db = ref.read(databaseProvider);
     final ok = await confirmDeleteTxn(
       context,
       title: l10n.recurManageTitle,
       body: l10n.recurConfirmDelete,
     );
     if (ok) {
-      await ref.read(databaseProvider).softDeleteRecurringRule(
-            id,
-            DateTime.now().millisecondsSinceEpoch,
-          );
+      await db.softDeleteRecurringRule(
+        id,
+        DateTime.now().millisecondsSinceEpoch,
+      );
     }
   }
 }

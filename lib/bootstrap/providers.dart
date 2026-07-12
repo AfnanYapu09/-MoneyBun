@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
@@ -115,6 +117,10 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
   ref.listen(tagsProvider, (_, __) => controller.nudgePush());
   ref.listen(budgetsProvider, (_, __) => controller.nudgePush());
   ref.listen(recurringRulesProvider, (_, __) => controller.nudgePush());
+  // Settings too: profile edits / savings goal / scan toggles sync per-key
+  // (see SyncEngine._pushSettings). pushOnly leaves nothing pending, so the
+  // stream events its own push causes converge instead of looping.
+  ref.listen(appSettingsProvider, (_, __) => controller.nudgePush());
   ref.onDispose(controller.dispose);
   return controller;
 });
@@ -144,10 +150,16 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     transactions: ref.watch(transactionRepositoryProvider),
     importedAssetIds: db.importedAssetIds,
     importedSlipRefs: db.importedSlipRefs,
+    assetImported: db.slipAssetExists,
+    refImported: db.slipRefExists,
     latestSlipPhotoTime: db.latestSlipPhotoTime,
     // Banks turned off in the accounts sheet (their scan-catalog ids).
     disabledScanIds: () async =>
         (await ref.read(settingsRepositoryProvider).read()).disabledScanIds,
+    // Device-local "read this far" record (extra re-read guard).
+    scannedUpTo: () => ref.read(settingsRepositoryProvider).getSlipScanUpTo(),
+    saveScannedUpTo: (ms) =>
+        ref.read(settingsRepositoryProvider).setSlipScanUpTo(ms),
   );
 });
 
@@ -158,7 +170,7 @@ class ScanState {
     this.result,
     this.limited = false,
     this.permissionDenied = false,
-    this.blockedBySync = false,
+    this.waitingForRestore = false,
     this.error,
   });
 
@@ -167,9 +179,9 @@ class ScanState {
   final bool limited;
   final bool permissionDenied;
 
-  /// A manual scan was refused because the first cloud pull hasn't finished —
-  /// scanning now would import duplicates of rows that are about to arrive.
-  final bool blockedBySync;
+  /// A fresh sign-in's cloud restore hasn't reached this device yet, so the
+  /// scan was skipped (it re-runs automatically once the restore lands).
+  final bool waitingForRestore;
   final Object? error;
 }
 
@@ -178,6 +190,17 @@ class ScanController extends Notifier<ScanState> {
   ScanState build() => const ScanState();
 
   bool _autoScanned = false;
+  bool _postRestoreScanArmed = false;
+
+  /// Claimed synchronously on entry to [scan] — `state.scanning` alone can't
+  /// stop a re-entrant call anymore because the restore gate check below
+  /// awaits before the state flips (two overlapping scans would import the
+  /// same photos twice).
+  bool _scanBusy = false;
+
+  /// How long an automatic launch scan waits for a fresh sign-in's first cloud
+  /// pull before deferring (the restore usually lands within a few seconds).
+  static const _restoreWait = Duration(seconds: 20);
 
   /// Trigger [scan] exactly once per app launch (called from Home on open).
   /// The flag lives on this app-lifetime provider, so revisiting Home via the
@@ -185,46 +208,91 @@ class ScanController extends Notifier<ScanState> {
   Future<void> autoScanOnce() async {
     if (_autoScanned) return;
     _autoScanned = true;
-    // HARD LOCK: when signed in, the scanner waits until the first cloud pull
-    // has actually completed — no timeout escape. Scanning earlier imports
-    // gallery slips whose cloud twins are still in flight, creating duplicate
-    // entries on every fresh login. (A brand-new signup completes its first
-    // sync immediately, so this never delays new accounts.)
-    final sync = ref.read(syncControllerProvider);
-    if (sync != null) await sync.awaitInitialSync();
-    await scan();
+    await scan(auto: true);
   }
 
   /// Read every new slip image from the gallery automatically (no album pick).
-  Future<void> scan() async {
-    if (state.scanning) return;
-    // Manual scans (pull-to-refresh, permission banner) are refused — not
-    // queued — while the first pull is running, so the UI can explain instead
-    // of hanging.
-    final sync = ref.read(syncControllerProvider);
-    if (sync != null && !sync.initialSyncDone) {
-      state = const ScanState(blockedBySync: true);
-      return;
-    }
-    state = const ScanState(scanning: true);
-    final importer = ref.read(slipImporterProvider);
-    final perm = await importer.requestPermission();
-    if (!perm.granted) {
-      state = const ScanState(permissionDenied: true);
-      return;
-    }
+  ///
+  /// After a fresh sign-in, scanning is deferred until the first successful
+  /// cloud sync: the restored slips carry the dedup keys (asset ids, transRefs,
+  /// watermark), so scanning before they land would re-import every recent slip
+  /// as a duplicate. Automatic scans wait [_restoreWait] for it; a manual
+  /// pull-to-refresh skips immediately (no dead gesture) — both re-run
+  /// automatically the moment the restore completes.
+  Future<void> scan({bool auto = false}) async {
+    if (_scanBusy) return;
+    _scanBusy = true;
     try {
-      final result = await importer.scanNew();
-      // Record when the scan ran — for the "last read at" label only. The
-      // scanner reads only slips newer than the last imported one and dedups by
-      // asset id, so this timestamp is display-only and never gates scanning.
-      await ref
-          .read(settingsRepositoryProvider)
-          .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
-      state = ScanState(result: result, limited: perm.limited);
-    } catch (e) {
-      state = ScanState(error: e, limited: perm.limited);
+      if (!await _restoreDone(waitFor: auto ? _restoreWait : Duration.zero)) {
+        _armPostRestoreScan();
+        state = const ScanState(waitingForRestore: true);
+        return;
+      }
+      state = const ScanState(scanning: true);
+      final importer = ref.read(slipImporterProvider);
+      final perm = await importer.requestPermission();
+      if (!perm.granted) {
+        state = const ScanState(permissionDenied: true);
+        return;
+      }
+      try {
+        // The scan is cancelled if the signed-in user changes while it runs:
+        // a sign-out wipes the local DB mid-scan, and imports written after
+        // the wipe would sync into the *next* account's cloud.
+        final startUid = ref.read(authServiceProvider)?.currentUser?.uid;
+        bool sameUser() =>
+            ref.read(authServiceProvider)?.currentUser?.uid == startUid;
+        final result = await importer.scanNew(isCancelled: () => !sameUser());
+        // Record when the scan ran — for the "last read at" label only. The
+        // scanner reads only slips newer than the last imported one and dedups
+        // by asset id, so this timestamp is display-only and never gates
+        // scanning. Skipped after an account switch (it belongs to the old
+        // account and would leak onto the next one's fresh settings).
+        if (sameUser()) {
+          await ref
+              .read(settingsRepositoryProvider)
+              .setLastSlipReadAt(DateTime.now().millisecondsSinceEpoch);
+        }
+        state = ScanState(result: result, limited: perm.limited);
+      } catch (e) {
+        state = ScanState(error: e, limited: perm.limited);
+      }
+    } finally {
+      _scanBusy = false;
     }
+  }
+
+  /// Whether it is safe to read the gallery: this device has already finished
+  /// a first cloud sync at some point (its slips table is authoritative, so
+  /// dedup works even while a routine sync is still running), or the pending
+  /// first sync completes within [waitFor]. Guest mode is always safe.
+  Future<bool> _restoreDone({required Duration waitFor}) async {
+    final sync = ref.read(syncControllerProvider);
+    if (sync == null || sync.initialSyncCompleted) return true;
+    final settings = await ref.read(settingsRepositoryProvider).read();
+    if (settings.firstSyncDone) return true;
+    if (waitFor > Duration.zero) {
+      await sync.awaitInitialSync().timeout(waitFor, onTimeout: () {});
+    }
+    return sync.initialSyncCompleted;
+  }
+
+  /// Re-run the scan as soon as the pending restore lands, so a skipped scan
+  /// (auto or manual) never silently goes missing. Armed at most once per
+  /// pending restore; disarmed when it fires so a later account switch (whose
+  /// scans get skipped again) can re-arm.
+  void _armPostRestoreScan() {
+    if (_postRestoreScanArmed) return;
+    _postRestoreScanArmed = true;
+    final sync = ref.read(syncControllerProvider);
+    if (sync == null) return;
+    unawaited(sync.awaitInitialSync().then((_) {
+      _postRestoreScanArmed = false;
+      return scan(auto: true);
+    }).catchError((_) {
+      // The container was torn down (app shutdown) before the restore landed —
+      // nothing to scan for anymore; never surface as an unhandled error.
+    }));
   }
 }
 
@@ -330,8 +398,10 @@ final monthTransactionsProvider = StreamProvider<List<TransactionRow>>((ref) {
   return ref.watch(transactionRepositoryProvider).watchMonth(month);
 });
 
-/// A single transaction by id (Transaction detail screen).
-final transactionByIdProvider = StreamProvider.family<TransactionRow?, String>((
+/// A single transaction by id (Transaction detail screen). autoDispose: a
+/// plain family would keep one live stream per id ever watched.
+final transactionByIdProvider =
+    StreamProvider.autoDispose.family<TransactionRow?, String>((
   ref,
   id,
 ) {

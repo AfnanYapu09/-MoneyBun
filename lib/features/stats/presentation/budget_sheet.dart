@@ -44,6 +44,10 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   final _scroll = ScrollController();
   bool _calcOpen = false;
 
+  /// Single-flight guard: a double-tap on save/delete would insert a second
+  /// budget row (double-counting the category forever) and pop twice.
+  bool _busy = false;
+
   @override
   void initState() {
     super.initState();
@@ -115,7 +119,11 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
       maxHeightFactor: 0.9,
       footer: _calcOpen
           ? null
-          : PrimaryButton(label: l10n.statsSaveBudget, onPressed: _save),
+          : PrimaryButton(
+              label: l10n.statsSaveBudget,
+              loading: _busy,
+              onPressed: _busy ? null : _save,
+            ),
       child: SingleChildScrollView(
         controller: _scroll,
         // While the keypad is open the bottom room equals the keypad height, so
@@ -368,6 +376,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
   }
 
   Future<void> _save() async {
+    if (_busy) return;
     final cents = Money.parseToCents(_amount.text) ?? 0;
     if (_categoryId == null || cents <= 0) {
       final l10n = AppLocalizations.of(context);
@@ -376,21 +385,35 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
       );
       return;
     }
+    setState(() => _busy = true);
     final now = DateTime.now();
     final b = widget.budget;
     final start = b?.startDate ?? AppDate.toMillis(AppDate.startOfMonth(now));
-    await ref.read(databaseProvider).upsertBudget(
-          BudgetsCompanion.insert(
-            id: b?.id ?? const Uuid().v4(),
-            categoryId: Value(_categoryId),
-            period: _period,
-            amountCents: cents,
-            startDate: start,
-            alertEnabled: Value(_alert80),
-            createdAt: b?.createdAt ?? now.millisecondsSinceEpoch,
-            updatedAt: now.millisecondsSinceEpoch,
-          ),
-        );
+    try {
+      await ref.read(databaseProvider).upsertBudget(
+            BudgetsCompanion.insert(
+              id: b?.id ?? const Uuid().v4(),
+              categoryId: Value(_categoryId),
+              period: _period,
+              amountCents: cents,
+              startDate: start,
+              alertEnabled: Value(_alert80),
+              createdAt: b?.createdAt ?? now.millisecondsSinceEpoch,
+              updatedAt: now.millisecondsSinceEpoch,
+              // upsertBudget only writes columns present on the companion, so an
+              // edit of an already-synced budget must flag itself for push here —
+              // otherwise the row stays `synced` and the change never uploads.
+              syncStatus: Value(
+                b == null || b.syncStatus == SyncStatus.pendingCreate
+                    ? SyncStatus.pendingCreate
+                    : SyncStatus.pendingUpdate,
+              ),
+            ),
+          );
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      return;
+    }
     if (mounted) Navigator.of(context).pop(true);
   }
 

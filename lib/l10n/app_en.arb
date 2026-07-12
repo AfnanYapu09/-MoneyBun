@@ -294,6 +294,7 @@
   "homeScanNoNew": "No new slips found",
   "homeScanNoAlbum": "No bank slip album found — Bun only reads photos saved by your banking apps",
   "homeScanLimited": "Only selected photos are shared. Allow access to all photos so Bun can find your bank slip album.",
+  "homeScanWaitRestore": "Still restoring your data from the cloud — Bun will read your slips automatically once it finishes.",
   "homePhotoPermissionTitle": "Photo access permission",
   "homePhotoPermissionBody": "MoneyBun needs access to your photos to read slips from the gallery.\n\nIf you previously tapped \"Don't allow\", open Settings → Permissions → Photos and videos → Allow",
   "homeOpenSettings": "Open settings",
@@ -441,7 +442,6 @@
   "addtxnMore": "More",
   "addtxnRecurring": "Schedule recurring",
   "addtxnRecurringSoon": "Recurring entries — coming soon",
-  "addtxnDeleteEntry": "Delete this entry",
   "addtxnTagSuffix": " · {count} tags",
   "@addtxnTagSuffix": {
     "placeholders": {
@@ -520,6 +520,9 @@
   "splashTagline": "Track easily · Save smart · Understand your money",
   "logoutTitle": "Log out?",
   "logoutBody": "Your data is saved. You can sign back in anytime.",
+  "logoutUnsyncedTitle": "Some data isn't synced yet",
+  "logoutUnsyncedBody": "Some entries haven't been uploaded to the cloud (you may be offline). If you log out now, those entries will be lost for good.",
+  "logoutUnsyncedConfirm": "Log out and discard",
   "bunReadingSlips": "Bun is reading slips",
   "releaseToScan": "Release to let Bun read slips",
   "pullToScan": "Pull down to refresh slips",

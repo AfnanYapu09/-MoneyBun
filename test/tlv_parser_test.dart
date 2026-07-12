@@ -36,6 +36,12 @@ void main() {
     test('stops cleanly on malformed length', () {
       expect(EmvTlvParser.parseFields('00XX01'), isEmpty);
     });
+
+    test('rejects a negative length instead of throwing RangeError', () {
+      // int.tryParse accepts "-1"; a negative length must not reach substring.
+      expect(EmvTlvParser.parseFields('00-1AB'), isEmpty);
+      expect(() => EmvTlvParser.parseSlip('00-1AB6304FFFF'), returnsNormally);
+    });
   });
 
   group('validateCrc', () {

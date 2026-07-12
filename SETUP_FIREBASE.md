@@ -103,4 +103,5 @@ firebase deploy --only firestore:rules          # อัปกฎความป
 | สมัคร/ล็อกอินด้วยอีเมลไม่ได้ (`operation-not-allowed`) | ยังไม่ได้เปิด provider **Email/Password** ใน Authentication (ข้อ 1.2) |
 | รหัสผ่านสั้นไป (`weak-password`) | Firebase ต้องการรหัสผ่าน ≥ 6 ตัวอักษร |
 | ล็อกอิน Google แล้วเด้งออก / token ไม่ผ่าน | ยังไม่ส่ง `--dart-define=GOOGLE_SERVER_CLIENT_ID=...` หรือยังไม่เพิ่ม SHA-1 (ข้อ 3) |
+| **ออกจากระบบแล้วล็อกอินใหม่ ข้อมูลหาย** | ซิงค์ขึ้นคลาวด์ไม่เคยสำเร็จ — เกือบทุกครั้งเกิดจากกฎ Firestore: สร้าง database ในโหมด **test** แล้วกฎหมดอายุ (30 วัน) หรือยังไม่ deploy กฎของ repo → ทุก push/pull โดน `PERMISSION_DENIED` เงียบ ๆ ตรวจใน console (Firestore → Rules) แล้วรัน `firebase deploy --only firestore:rules` จากนั้นทดสอบตามหัวข้อ "ตรวจสอบ" ด้านบน (ดู log แอปได้ — sync ที่ล้มจะพิมพ์ `SyncEngine.sync failed: ...`) |
 | จำนวนเงินบนสลิปอ่านพลาด | รูปเบลอ/ฟอนต์ตกแต่ง — ลองรูปคมชัดขึ้น (แอปอ่านเฉพาะจำนวนเงินด้วย ML Kit + QR) |

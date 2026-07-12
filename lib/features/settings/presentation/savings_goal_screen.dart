@@ -53,8 +53,13 @@ class _SavingsGoalScreenState extends ConsumerState<SavingsGoalScreen> {
   Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsProvider).value;
     if (!_init && settings != null) {
-      if (settings.savingsGoalCents > 0) {
-        _amount.text = (settings.savingsGoalCents ~/ 100).toString();
+      final cents = settings.savingsGoalCents;
+      if (cents > 0) {
+        // Keep the satang: `~/ 100` truncated them, so merely opening this
+        // screen and saving again shaved the goal's fraction off.
+        _amount.text = cents % 100 == 0
+            ? (cents ~/ 100).toString()
+            : Money.toEditString(cents);
       }
       _init = true;
     }

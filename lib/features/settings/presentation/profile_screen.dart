@@ -248,11 +248,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
+  /// Guards against a second tap opening a second system picker on top of the
+  /// first (`PlatformException(already_active)`).
+  bool _picking = false;
+
   /// Pick a photo from the gallery, copy it into the app's documents dir, and
   /// store its path — so the avatar is actually changed and persists.
   Future<void> _pickAvatar() async {
+    if (_picking) return;
+    _picking = true;
     final l10n = AppLocalizations.of(context);
+    // Captured before the awaits: the picker is a separate activity, so the
+    // user can easily back out of this screen while it's open — after which
+    // ref.read throws and the chosen photo would be lost.
     final old = ref.read(appSettingsProvider).value?.avatarPath;
+    final repo = ref.read(settingsRepositoryProvider);
     try {
       final picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
@@ -265,7 +275,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final dir = await getApplicationDocumentsDirectory();
       final dest = p.join(dir.path, name);
       await File(picked.path).copy(dest);
-      await ref.read(settingsRepositoryProvider).setAvatarPath(dest);
+      await repo.setAvatarPath(dest);
       // Best-effort cleanup of the previous photo.
       if (old != null && old.isNotEmpty && old != dest) {
         try {
@@ -274,9 +284,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
       if (mounted) _snack(l10n.profileAvatarUpdated);
     } catch (_) {
-      // Picker unavailable / file copy failed — tell the user instead of
-      // silently doing nothing.
+      // Picker unavailable / already open / copy failed — tell the user
+      // instead of silently doing nothing.
       if (mounted) _snack(l10n.profileAvatarFailed);
+    } finally {
+      _picking = false;
     }
   }
 

@@ -173,6 +173,9 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
   Future<void> _confirmDeleteCategory(CategoryRow c) async {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).languageCode;
+    // Captured before the await: the auth-state redirect can unmount this
+    // board while the dialog is up, after which ref.read throws.
+    final repo = ref.read(categoryRepositoryProvider);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -193,7 +196,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
       ),
     );
     if (ok == true) {
-      await ref.read(categoryRepositoryProvider).delete(c.id);
+      await repo.delete(c.id);
     }
   }
 
@@ -203,6 +206,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
   Future<void> _editCategory(CategoryRow c) async {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).languageCode;
+    final repo = ref.read(categoryRepositoryProvider);
     final controller = TextEditingController(text: c.displayName(locale));
     final name = await showDialog<String>(
       context: context,
@@ -221,15 +225,15 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         ],
       ),
     );
+    controller.dispose();
     if (name != null && name.isNotEmpty) {
-      await ref
-          .read(categoryRepositoryProvider)
-          .rename(c.id, name, english: locale.startsWith('en'));
+      await repo.rename(c.id, name, english: locale.startsWith('en'));
     }
   }
 
   Future<void> _addTag() async {
     final l10n = AppLocalizations.of(context);
+    final repo = ref.read(tagRepositoryProvider);
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
@@ -252,8 +256,9 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         ],
       ),
     );
+    controller.dispose();
     if (name != null && name.isNotEmpty) {
-      final id = await ref.read(tagRepositoryProvider).save(name: name);
+      final id = await repo.save(name: name);
       if (mounted && !widget.manage) setState(() => _tags.add(id));
     }
   }
@@ -270,6 +275,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
 
   Future<void> _editTag(TagRow t) async {
     final l10n = AppLocalizations.of(context);
+    final repo = ref.read(tagRepositoryProvider);
     final controller = TextEditingController(text: t.name);
     // Rename only — deleting a tag lives in the wiggle edit mode's − badge.
     final action = await showDialog<String>(
@@ -289,13 +295,14 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         ],
       ),
     );
+    controller.dispose();
     if (action == null || action.isEmpty) return;
-    await ref.read(tagRepositoryProvider).save(
-          id: t.id,
-          name: action,
-          colorHex: t.colorHex,
-          sortOrder: t.sortOrder,
-        );
+    await repo.save(
+      id: t.id,
+      name: action,
+      colorHex: t.colorHex,
+      sortOrder: t.sortOrder,
+    );
   }
 }
 
@@ -775,7 +782,13 @@ class _ManagedCategoryGridState extends State<_ManagedCategoryGrid>
     final current = _items.map((c) => c.id).toSet();
     if (incoming.length != current.length || !incoming.containsAll(current)) {
       _items = [...widget.categories];
+      return;
     }
+    // Same id set: refresh each row's CONTENT (a rename here, or an edit that
+    // arrived via sync) while preserving the local drag order — otherwise the
+    // tiles keep showing the old name until something is added or deleted.
+    final byId = {for (final c in widget.categories) c.id: c};
+    _items = [for (final c in _items) byId[c.id] ?? c];
   }
 
   @override

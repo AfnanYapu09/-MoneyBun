@@ -171,6 +171,43 @@ Future<bool?> showAddCategorySheet(
   );
 }
 
+/// Second-stage logout warning: some rows never reached the cloud (offline /
+/// failed push) and will be destroyed by the sign-out wipe. Returns true only
+/// when the user explicitly chooses to discard them.
+Future<bool> confirmLogoutUnsynced(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    barrierColor: _barrier,
+    builder: (c) => AlertDialog(
+      backgroundColor: context.palette.bg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Text(
+        l10n.logoutUnsyncedTitle,
+        style: AppTypography.heading(size: 18, weight: FontWeight.w600),
+      ),
+      content: Text(
+        l10n.logoutUnsyncedBody,
+        style: AppTypography.body(size: 14, color: context.palette.ink2),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(c, false),
+          child: Text(l10n.cancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(c, true),
+          child: Text(
+            l10n.logoutUnsyncedConfirm,
+            style: TextStyle(color: context.palette.dangerFg),
+          ),
+        ),
+      ],
+    ),
+  );
+  return ok ?? false;
+}
+
 /// Centered logout confirmation dialog. Returns true if confirmed.
 /// Styled photo-permission prompt (same visual grammar as [confirmLogout]).
 /// Returns true when the user wants to grant access now.

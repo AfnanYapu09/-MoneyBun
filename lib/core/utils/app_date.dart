@@ -8,10 +8,19 @@ class AppDate {
 
   static DateTime startOfDay(DateTime d) => DateTime(d.year, d.month, d.day);
 
+  // Day-based arithmetic below is CALENDAR arithmetic — `DateTime(y, m, d ± n)`
+  // — never `add/subtract(Duration(days: n))`. A Duration is exactly n×24h, so
+  // in a timezone with DST it can land an hour short of (or past) the intended
+  // calendar day, which shifted weeks, dropped Saturday-night transactions from
+  // week totals and made "next week" not move. Thailand has no DST, but the
+  // device timezone is whatever the user set.
+
   static DateTime startOfMonth(DateTime d) => DateTime(d.year, d.month);
 
+  /// End of the month (last day, 23:59:59.999) containing [d].
+  /// (Day 0 of month m+1 is the last day of month m.)
   static DateTime endOfMonth(DateTime d) =>
-      DateTime(d.year, d.month + 1).subtract(const Duration(milliseconds: 1));
+      DateTime(d.year, d.month + 1, 0, 23, 59, 59, 999);
 
   static DateTime addMonths(DateTime d, int months) =>
       DateTime(d.year, d.month + months, d.day);
@@ -22,29 +31,47 @@ class AppDate {
   static DateTime startOfYear(DateTime d) => DateTime(d.year);
 
   static DateTime endOfYear(DateTime d) =>
-      DateTime(d.year + 1).subtract(const Duration(milliseconds: 1));
+      DateTime(d.year, 12, 31, 23, 59, 59, 999);
 
   /// Number of days in the calendar month containing [d].
   static int daysInMonth(DateTime d) => DateTime(d.year, d.month + 1, 0).day;
 
   /// Number of days in [year] (366 on leap years).
   static int daysInYear(int year) =>
-      DateTime(year, 12, 31).difference(DateTime(year, 1, 1)).inDays + 1;
+      DateTime.utc(year, 12, 31).difference(DateTime.utc(year, 1, 1)).inDays +
+      1;
+
+  /// Whole calendar days from [from] to [to], by date parts only. Computed in
+  /// UTC so a DST hop between the two local midnights can't make the count come
+  /// up a day short.
+  static int daysBetween(DateTime from, DateTime to) =>
+      DateTime.utc(to.year, to.month, to.day)
+          .difference(DateTime.utc(from.year, from.month, from.day))
+          .inDays;
 
   // ---- Weeks (Sunday-first, the Thai convention) -------------------------
 
   /// Start of the week (Sunday 00:00) containing [d]. `weekday` is 1..7 with
   /// Mon=1 … Sun=7, so `weekday % 7` is the number of days since Sunday.
   static DateTime startOfWeek(DateTime d) =>
-      startOfDay(d).subtract(Duration(days: d.weekday % 7));
+      DateTime(d.year, d.month, d.day - d.weekday % 7);
 
   /// End of the week (Saturday 23:59:59.999) containing [d].
-  static DateTime endOfWeek(DateTime d) => startOfWeek(
-        d,
-      ).add(const Duration(days: 7)).subtract(const Duration(milliseconds: 1));
+  static DateTime endOfWeek(DateTime d) {
+    final s = startOfWeek(d);
+    return DateTime(s.year, s.month, s.day + 6, 23, 59, 59, 999);
+  }
 
-  static DateTime addWeeks(DateTime d, int weeks) =>
-      d.add(Duration(days: 7 * weeks));
+  static DateTime addWeeks(DateTime d, int weeks) => DateTime(
+        d.year,
+        d.month,
+        d.day + 7 * weeks,
+        d.hour,
+        d.minute,
+        d.second,
+        d.millisecond,
+        d.microsecond,
+      );
 
   static bool isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -99,7 +126,7 @@ class AppDate {
   static String formatWeekRange(DateTime weekStart, {required String locale}) {
     final isThai = locale.startsWith('th');
     final start = startOfWeek(weekStart);
-    final end = start.add(const Duration(days: 6));
+    final end = DateTime(start.year, start.month, start.day + 6);
     final tag = isThai ? 'th_TH' : 'en_US';
     final dayFmt = DateFormat('d', tag);
     final monthFmt = DateFormat('MMM', tag);
@@ -107,6 +134,13 @@ class AppDate {
     if (start.month == end.month) {
       return '${dayFmt.format(start)}–${dayFmt.format(end)} '
           '${monthFmt.format(end)} $year';
+    }
+    // A week straddling New Year carries a year on each side, so 28 Dec isn't
+    // labelled with January's year.
+    if (start.year != end.year) {
+      final startYear = isThai ? start.year + buddhistOffset : start.year;
+      return '${dayFmt.format(start)} ${monthFmt.format(start)} $startYear–'
+          '${dayFmt.format(end)} ${monthFmt.format(end)} $year';
     }
     return '${dayFmt.format(start)} ${monthFmt.format(start)}–'
         '${dayFmt.format(end)} ${monthFmt.format(end)} $year';
@@ -127,7 +161,7 @@ class AppDate {
   /// "วันนี้" / "เมื่อวาน" / short date, for day-group headers.
   static String relativeDayLabel(DateTime d, {required String locale}) {
     final isThai = locale.startsWith('th');
-    final diff = startOfDay(DateTime.now()).difference(startOfDay(d)).inDays;
+    final diff = daysBetween(d, DateTime.now());
     if (diff == 0) return isThai ? 'วันนี้' : 'Today';
     if (diff == 1) return isThai ? 'เมื่อวาน' : 'Yesterday';
     return formatDayShort(d, locale: locale);

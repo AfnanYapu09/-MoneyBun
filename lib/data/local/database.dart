@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +75,11 @@ class AppDatabase extends _$AppDatabase {
           // v8: per-budget "alert at 80%" toggle.
           if (from < 8) {
             await m.addColumn(budgets, budgets.alertEnabled);
+          }
+          // v9: keep the day-of-month a monthly rule is anchored to, so
+          // advancing past a short month clamps instead of drifting.
+          if (from < 9) {
+            await m.addColumn(recurringRules, recurringRules.anchorDay);
           }
         },
       );
@@ -159,8 +164,79 @@ class AppDatabase extends _$AppDatabase {
       // pull instead of resuming from the previous account's high-water mark.
       await (delete(settings)..where((s) => s.key.like('pullWatermark:%')))
           .go();
+      // Drop the per-key settings push markers for the same reason: they
+      // belong to the signed-out account, and the next account must not treat
+      // its own first profile edits as already-pushed.
+      await (delete(settings)
+            ..where((s) => s.key.like('$settingsPushedPrefix%')))
+          .go();
     });
   }
+
+  // ---- Synced settings (profile & per-user preferences) -------------------
+
+  /// Settings keys that sync to the cloud (one Firestore doc per key under
+  /// `users/{uid}/settings/{key}`). These are the user-scoped values that a
+  /// sign-out wipes and a sign-in must restore: the profile fields, the savings
+  /// goal, and the per-bank scan toggles. Keys not listed here never leave the
+  /// device (theme/locale/currency are device preferences; scan cursors, pull
+  /// watermarks, and push markers are per-device bookkeeping; avatarPath is a
+  /// local file path that would be meaningless on another device).
+  ///
+  /// Values mirror the key constants in `SettingsKeys` (settings_repository) —
+  /// duplicated as literals here because the repository layer imports this file.
+  static const Set<String> syncedSettingsKeys = {
+    'displayName',
+    'username',
+    'phone',
+    'savingsGoalCents',
+    'disabledScanIds',
+  };
+
+  /// Prefix for the per-key push markers. A marker row's VALUE holds the
+  /// `updatedAt` of the last successfully pushed version of that key, so
+  /// "pending" is simply `row.updatedAt > marker` — the same compare-and-set
+  /// idea as the markXSynced helpers, without adding a syncStatus column to
+  /// the key/value table.
+  static const settingsPushedPrefix = 'settingsPushed:';
+
+  Future<List<SettingRow>> getAllSettings() => select(settings).get();
+
+  /// Synced-settings rows whose latest edit has not been pushed yet (edited
+  /// while offline, or since the last push). Checked by the sync engine's push
+  /// pass and by [hasPendingRows] before a sign-out wipe.
+  Future<List<SettingRow>> pendingSyncedSettings() async {
+    final rows = await getAllSettings();
+    final pushed = <String, int>{
+      for (final r in rows)
+        if (r.key.startsWith(settingsPushedPrefix))
+          r.key.substring(settingsPushedPrefix.length):
+              int.tryParse(r.value) ?? -1,
+    };
+    return rows
+        .where((r) =>
+            syncedSettingsKeys.contains(r.key) &&
+            r.updatedAt > (pushed[r.key] ?? -1))
+        .toList();
+  }
+
+  /// Record that [key]'s version stamped [updatedAtMs] reached the cloud. If
+  /// the user edited the key while the upload was in flight, the row now
+  /// carries a newer `updatedAt` than this marker and stays pending.
+  Future<void> markSettingPushed(String key, int updatedAtMs) =>
+      setSetting('$settingsPushedPrefix$key', updatedAtMs.toString());
+
+  /// Write a setting pulled from the cloud, keeping the REMOTE `updatedAt`
+  /// (unlike [setSetting], which stamps `now` and would make every pulled
+  /// value look like a fresh local edit that needs pushing back).
+  Future<void> upsertPulledSetting(String key, String value, int updatedAtMs) =>
+      into(settings).insertOnConflictUpdate(
+        SettingsCompanion.insert(
+          key: key,
+          value: value,
+          updatedAt: updatedAtMs,
+        ),
+      );
 
   // ---- Pull cursors ------------------------------------------------------
 
@@ -436,6 +512,25 @@ class AppDatabase extends _$AppDatabase {
     return row?.photoTakenAt;
   }
 
+  /// Whether a slip with this gallery asset id already exists — a targeted
+  /// point lookup so the importer's just-before-write dedup re-check doesn't
+  /// re-read the whole table for every image.
+  Future<bool> slipAssetExists(String assetId) async {
+    final q = select(slips)
+      ..where((s) => s.assetId.equals(assetId))
+      ..limit(1);
+    return (await q.get()).isNotEmpty;
+  }
+
+  /// Whether a non-deleted slip with this bank transaction reference exists
+  /// (same point-lookup role as [slipAssetExists]).
+  Future<bool> slipRefExists(String transRef) async {
+    final q = select(slips)
+      ..where((s) => s.transRef.equals(transRef) & s.deleted.equals(false))
+      ..limit(1);
+    return (await q.get()).isNotEmpty;
+  }
+
   /// Stable bank transaction references already imported. Used as a second
   /// dedup key so the same slip is not re-imported after a cloud restore (where
   /// the gallery asset id may be missing or differ).
@@ -506,8 +601,16 @@ class AppDatabase extends _$AppDatabase {
       )..where((r) => r.syncStatus.isNotValue(SyncStatus.synced.index)))
           .get();
 
-  Future<void> markRecurringRuleSynced(String id) =>
-      (update(recurringRules)..where((r) => r.id.equals(id))).write(
+  // Every markXSynced below is a compare-and-set on `updatedAt` (the value read
+  // when the push started): if the user edits the row while its upload is still
+  // in flight, the edit bumps `updatedAt`, the CAS misses, and the row stays
+  // pending for the next push — instead of being stamped `synced` and never
+  // uploaded (which loses the edit on the next sign-out).
+
+  Future<void> markRecurringRuleSynced(String id, int updatedAt) => (update(
+        recurringRules,
+      )..where((r) => r.id.equals(id) & r.updatedAt.equals(updatedAt)))
+          .write(
         const RecurringRulesCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
@@ -526,6 +629,44 @@ class AppDatabase extends _$AppDatabase {
       batch((b) => b.insertAllOnConflictUpdate(recurringRules, rows));
 
   // ---- Sync helpers ------------------------------------------------------
+
+  /// Whether ANY row in any synced table is still waiting to upload. Checked
+  /// before a sign-out wipes the local DB, so unsynced work isn't silently
+  /// destroyed.
+  Future<bool> hasPendingRows() async {
+    final probes = await Future.wait<List<Object?>>([
+      (select(transactions)
+            ..where((t) => t.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(accounts)
+            ..where((a) => a.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(categories)
+            ..where((c) => c.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(slips)
+            ..where((s) => s.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(budgets)
+            ..where((b) => b.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(tags)
+            ..where((t) => t.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      (select(recurringRules)
+            ..where((r) => r.syncStatus.isNotValue(SyncStatus.synced.index))
+            ..limit(1))
+          .get(),
+      pendingSyncedSettings(),
+    ]);
+    return probes.any((rows) => rows.isNotEmpty);
+  }
 
   Future<List<TransactionRow>> pendingTransactions() => (select(
         transactions,
@@ -547,23 +688,31 @@ class AppDatabase extends _$AppDatabase {
       )..where((s) => s.syncStatus.isNotValue(SyncStatus.synced.index)))
           .get();
 
-  Future<void> markTransactionSynced(String id) =>
-      (update(transactions)..where((t) => t.id.equals(id))).write(
+  Future<void> markTransactionSynced(String id, int updatedAt) => (update(
+        transactions,
+      )..where((t) => t.id.equals(id) & t.updatedAt.equals(updatedAt)))
+          .write(
         const TransactionsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
-  Future<void> markAccountSynced(String id) =>
-      (update(accounts)..where((a) => a.id.equals(id))).write(
+  Future<void> markAccountSynced(String id, int updatedAt) => (update(
+        accounts,
+      )..where((a) => a.id.equals(id) & a.updatedAt.equals(updatedAt)))
+          .write(
         const AccountsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
-  Future<void> markCategorySynced(String id) =>
-      (update(categories)..where((c) => c.id.equals(id))).write(
+  Future<void> markCategorySynced(String id, int updatedAt) => (update(
+        categories,
+      )..where((c) => c.id.equals(id) & c.updatedAt.equals(updatedAt)))
+          .write(
         const CategoriesCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
-  Future<void> markSlipSynced(String id) =>
-      (update(slips)..where((s) => s.id.equals(id))).write(
+  Future<void> markSlipSynced(String id, int updatedAt) => (update(
+        slips,
+      )..where((s) => s.id.equals(id) & s.updatedAt.equals(updatedAt)))
+          .write(
         const SlipsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
@@ -575,8 +724,10 @@ class AppDatabase extends _$AppDatabase {
   Future<BudgetRow?> getBudget(String id) =>
       (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
 
-  Future<void> markBudgetSynced(String id) =>
-      (update(budgets)..where((b) => b.id.equals(id))).write(
+  Future<void> markBudgetSynced(String id, int updatedAt) => (update(
+        budgets,
+      )..where((b) => b.id.equals(id) & b.updatedAt.equals(updatedAt)))
+          .write(
         const BudgetsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 
@@ -588,8 +739,10 @@ class AppDatabase extends _$AppDatabase {
   Future<TagRow?> getTag(String id) =>
       (select(tags)..where((t) => t.id.equals(id))).getSingleOrNull();
 
-  Future<void> markTagSynced(String id) =>
-      (update(tags)..where((t) => t.id.equals(id))).write(
+  Future<void> markTagSynced(String id, int updatedAt) => (update(
+        tags,
+      )..where((t) => t.id.equals(id) & t.updatedAt.equals(updatedAt)))
+          .write(
         const TagsCompanion(syncStatus: Value(SyncStatus.synced)),
       );
 

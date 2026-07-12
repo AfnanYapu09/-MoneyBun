@@ -1,7 +1,21 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
+
+/// Whether [error] means the user dismissed the Google/Apple sign-in sheet
+/// themselves — not a failure, so no error snack should be shown.
+bool isAuthCancelled(Object error) {
+  if (error is GoogleSignInException) {
+    return error.code == GoogleSignInExceptionCode.canceled ||
+        error.code == GoogleSignInExceptionCode.interrupted;
+  }
+  if (error is SignInWithAppleAuthorizationException) {
+    return error.code == AuthorizationErrorCode.canceled;
+  }
+  return false;
+}
 
 /// Maps a Firebase Auth error to a clear, localized message so the user knows
 /// exactly why a sign-up / sign-in / reset failed. Falls back to [fallback]

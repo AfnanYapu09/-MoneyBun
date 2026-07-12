@@ -14,9 +14,9 @@ List<int> weeklyExpenseCents(DateTime weekStart, List<TransactionRow> txns) {
   final daily = List<int>.filled(7, 0);
   for (final t in txns) {
     if (t.type != TxnType.expense) continue;
-    final i = AppDate.startOfDay(
-      AppDate.fromMillis(t.occurredAt),
-    ).difference(start).inDays;
+    // Calendar-day slot, not Duration-based — a DST hop inside the week would
+    // otherwise bucket a transaction into the previous day's bar.
+    final i = AppDate.daysBetween(start, AppDate.fromMillis(t.occurredAt));
     if (i >= 0 && i < 7) daily[i] += t.amountCents;
   }
   return daily;

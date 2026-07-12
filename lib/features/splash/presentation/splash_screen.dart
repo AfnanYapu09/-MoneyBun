@@ -62,35 +62,42 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _boot() async {
-    final settings = await ref.read(settingsRepositoryProvider).read();
-    final auth = ref.read(authServiceProvider);
-    // Resolve the restored auth state concurrently with the animation.
-    // currentUser can still be null right after launch until Firebase finishes
-    // reading its persisted session, so fall back to the first authStateChanges
-    // emission (bounded) — otherwise a returning user would flash the login
-    // screen before the router redirect bounces them back to Home.
-    final Future<bool> signedInFuture = auth == null
-        ? Future.value(false)
-        : auth.currentUser != null
-            ? Future.value(true)
-            : auth
-                .authStateChanges()
-                .first
-                .timeout(const Duration(seconds: 2), onTimeout: () => null)
-                .then((u) => u != null);
-    // Leave right after the wordmark has fully revealed (the jump + reveal
-    // finish by ~1.5s) — the breathing/blink keeps playing under the page
-    // fade, so the exit feels alive without padding the wait.
-    await Future.delayed(const Duration(milliseconds: 2000));
-    final signedIn = await signedInFuture;
-    if (!mounted) return;
-    if (!settings.onboardingSeen) {
-      context.go('/onboarding');
-      return;
+    try {
+      final settings = await ref.read(settingsRepositoryProvider).read();
+      final auth = ref.read(authServiceProvider);
+      // Resolve the restored auth state concurrently with the animation.
+      // currentUser can still be null right after launch until Firebase
+      // finishes reading its persisted session, so fall back to the first
+      // authStateChanges emission (bounded) — otherwise a returning user
+      // would flash the login screen before the router redirect bounces them
+      // back to Home.
+      final Future<bool> signedInFuture = auth == null
+          ? Future.value(false)
+          : auth.currentUser != null
+              ? Future.value(true)
+              : auth
+                  .authStateChanges()
+                  .first
+                  .timeout(const Duration(seconds: 2), onTimeout: () => null)
+                  .then((u) => u != null);
+      // Leave right after the wordmark has fully revealed (the jump + reveal
+      // finish by ~1.5s) — the breathing/blink keeps playing under the page
+      // fade, so the exit feels alive without padding the wait.
+      await Future.delayed(const Duration(milliseconds: 2000));
+      final signedIn = await signedInFuture;
+      if (!mounted) return;
+      if (!settings.onboardingSeen) {
+        context.go('/onboarding');
+        return;
+      }
+      // Cloud-only: the app requires a signed-in account. The router's
+      // redirect enforces this for every route as a safety net.
+      context.go(signedIn ? '/home' : '/login');
+    } catch (_) {
+      // Whatever failed (settings read, auth state), never strand the user on
+      // the splash forever — the router redirect sends a signed-in user home.
+      if (mounted) context.go('/login');
     }
-    // Cloud-only: the app requires a signed-in account. The router's redirect
-    // enforces this for every route as a safety net.
-    context.go(signedIn ? '/home' : '/login');
   }
 
   double _easeOut(double t) => 1 - (1 - t) * (1 - t) * (1 - t);
