@@ -215,8 +215,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                 offset: Offset(0, y),
                                 child: Transform(
                                   alignment: Alignment.bottomCenter,
-                                  transform:
-                                      Matrix4.diagonal3Values(sx, sy, 1),
+                                  transform: Matrix4.diagonal3Values(sx, sy, 1),
                                   child: CustomPaint(
                                     size: Size(bunW, bunH),
                                     painter: _BunPainter(pose, cell),

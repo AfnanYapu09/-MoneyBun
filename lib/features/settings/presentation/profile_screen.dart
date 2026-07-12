@@ -31,7 +31,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(appSettingsProvider).value ?? const AppSettings();
+    final settings =
+        ref.watch(appSettingsProvider).value ?? const AppSettings();
     final email = ref.watch(authStateProvider).value?.email ?? '—';
     final l10n = AppLocalizations.of(context);
     final repo = ref.read(settingsRepositoryProvider);
@@ -94,8 +95,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     title: l10n.settingsUsername,
                     initial: settings.username,
                     prefix: '@',
-                    onSave: (v) =>
-                        repo.setUsername(v.isEmpty ? 'moneybun' : v),
+                    onSave: (v) => repo.setUsername(v.isEmpty ? 'moneybun' : v),
                   ),
                 ),
                 SettingRow(

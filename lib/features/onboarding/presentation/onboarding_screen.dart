@@ -124,9 +124,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     height: 7,
                     margin: const EdgeInsets.symmetric(horizontal: 3.5),
                     decoration: BoxDecoration(
-                      color: i == _page
-                          ? AppColors.terra
-                          : context.palette.line,
+                      color:
+                          i == _page ? AppColors.terra : context.palette.line,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -195,8 +194,7 @@ class _OnbPage extends StatelessWidget {
             animation: controller,
             builder: (_, child) {
               double delta = 0;
-              if (controller.hasClients &&
-                  controller.position.haveDimensions) {
+              if (controller.hasClients && controller.position.haveDimensions) {
                 delta = (controller.page ?? index.toDouble()) - index;
               }
               return Transform.translate(

@@ -41,7 +41,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   (int, int)? get _window => switch (_range) {
         _ExportRange.all => null,
         _ExportRange.day => (
-            AppDate.toMillis(DateTime(_anchor.year, _anchor.month, _anchor.day)),
+            AppDate.toMillis(
+                DateTime(_anchor.year, _anchor.month, _anchor.day)),
             AppDate.toMillis(
               DateTime(_anchor.year, _anchor.month, _anchor.day + 1),
             ),
@@ -279,9 +280,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
           xl.TextCellValue(t.type.name),
           xl.DoubleCellValue(t.amountCents / 100),
           xl.TextCellValue(
-            t.categoryId == null
-                ? ''
-                : (categories[t.categoryId]?.name ?? ''),
+            t.categoryId == null ? '' : (categories[t.categoryId]?.name ?? ''),
           ),
           xl.TextCellValue(t.note ?? ''),
         ]);

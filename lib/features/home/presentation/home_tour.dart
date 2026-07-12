@@ -337,8 +337,7 @@ class _TooltipCard extends StatelessWidget {
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.terra,
                             foregroundColor: AppColors.reverse,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 18),
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(13),
                             ),

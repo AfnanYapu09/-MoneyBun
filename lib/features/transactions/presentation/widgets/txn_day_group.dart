@@ -168,5 +168,4 @@ class TxnDayGroup extends StatelessWidget {
       child: row,
     );
   }
-
 }

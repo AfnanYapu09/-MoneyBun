@@ -130,8 +130,7 @@ class SettingsRepository {
   Future<void> setPhone(String v) => set(SettingsKeys.phone, v);
   Future<void> setFirstSyncDone(bool v) =>
       setBool(SettingsKeys.firstSyncDone, v);
-  Future<void> setHomeTourSeen(bool v) =>
-      setBool(SettingsKeys.homeTourSeen, v);
+  Future<void> setHomeTourSeen(bool v) => setBool(SettingsKeys.homeTourSeen, v);
 
   /// Photo time (epoch ms) the slip scanner has read up to on this device, or
   /// null when never recorded. An extra guard against re-reading photos it has

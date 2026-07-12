@@ -43,9 +43,8 @@ class RecurringRuleSheet extends ConsumerStatefulWidget {
 class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
   late final TxnType _type = widget.rule?.type ?? widget.type;
   late final _amount = TextEditingController(
-    text: widget.rule == null
-        ? ''
-        : Money.toEditString(widget.rule!.amountCents),
+    text:
+        widget.rule == null ? '' : Money.toEditString(widget.rule!.amountCents),
   );
   late String? _categoryId = widget.rule?.categoryId;
   late RecurFreq _freq = widget.rule?.freq ?? RecurFreq.monthly;

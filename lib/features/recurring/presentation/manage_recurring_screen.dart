@@ -90,46 +90,46 @@ class ManageRecurringScreen extends ConsumerWidget {
                           vertical: 12,
                         ),
                         child: Row(
-                        children: [
-                          const IconChip(
-                            icon: AppIcons.repeat,
-                            size: 38,
-                            radius: 12,
-                            iconSize: 19,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  title,
-                                  style: AppTypography.heading(
-                                    size: 15,
-                                    weight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${_freqLabel(l10n, r.freq)} · '
-                                  '${l10n.recurNextRun} $next',
-                                  style: AppTypography.body(
-                                    size: 12.5,
-                                    color: context.palette.ink3,
-                                  ),
-                                ),
-                              ],
+                          children: [
+                            const IconChip(
+                              icon: AppIcons.repeat,
+                              size: 38,
+                              radius: 12,
+                              iconSize: 19,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            Money.format(r.amountCents),
-                            style: AppTypography.heading(
-                              size: 15,
-                              weight: FontWeight.w600,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: AppTypography.heading(
+                                      size: 15,
+                                      weight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_freqLabel(l10n, r.freq)} · '
+                                    '${l10n.recurNextRun} $next',
+                                    style: AppTypography.body(
+                                      size: 12.5,
+                                      color: context.palette.ink3,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Text(
+                              Money.format(r.amountCents),
+                              style: AppTypography.heading(
+                                size: 15,
+                                weight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
