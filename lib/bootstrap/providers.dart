@@ -300,6 +300,53 @@ final scanControllerProvider = NotifierProvider<ScanController, ScanState>(
   ScanController.new,
 );
 
+/// Silent photo-permission status driving the Home permission banner. Refresh
+/// on Home entry and on every lifecycle resume; never prompts the user.
+enum PhotoPermStatus { unknown, granted, limited, denied }
+
+class PhotoPermission extends Notifier<PhotoPermStatus> {
+  @override
+  PhotoPermStatus build() => PhotoPermStatus.unknown;
+
+  Future<void> refresh() async {
+    final p = await ref.read(slipImporterProvider).checkPermission();
+    state = p.granted
+        ? (p.limited ? PhotoPermStatus.limited : PhotoPermStatus.granted)
+        : PhotoPermStatus.denied;
+  }
+
+  /// Called from the scan-denied edge so the banner appears immediately
+  /// without waiting for the next silent check.
+  void markDenied() => state = PhotoPermStatus.denied;
+}
+
+final photoPermissionProvider =
+    NotifierProvider<PhotoPermission, PhotoPermStatus>(PhotoPermission.new);
+
+/// Once-per-process guard so the styled photo-permission dialog nags on every
+/// app launch but not on every Home revisit within one session (the banner
+/// stays persistent instead). Mirrors ScanController._autoScanned.
+class PermDialogShown extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void mark() => state = true;
+}
+
+final permDialogShownProvider =
+    NotifierProvider<PermDialogShown, bool>(PermDialogShown.new);
+
+/// One-shot signal from Settings → Home asking to replay the walkthrough.
+class TourReplay extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void request() => state = true;
+  void clear() => state = false;
+}
+
+final tourReplayProvider = NotifierProvider<TourReplay, bool>(TourReplay.new);
+
 // ---- Reactive data ---------------------------------------------------------
 
 final categoriesProvider = StreamProvider<List<CategoryRow>>(

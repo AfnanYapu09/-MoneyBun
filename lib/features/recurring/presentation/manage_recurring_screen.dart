@@ -11,6 +11,7 @@ import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/swipe_action_row.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
@@ -68,65 +69,70 @@ class ManageRecurringScreen extends ConsumerWidget {
                   AppDate.fromMillis(r.nextRunAt),
                   locale: locale,
                 );
+                // The card stays put; its CONTENT slides left inside (over
+                // the surface), matching the transaction lists' look.
                 return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
                   decoration: BoxDecoration(
                     color: context.palette.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: context.palette.line),
                   ),
-                  child: Row(
-                    children: [
-                      const IconChip(
-                        icon: AppIcons.repeat,
-                        size: 38,
-                        radius: 12,
-                        iconSize: 19,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  clipBehavior: Clip.antiAlias,
+                  child: SwipeActionRow(
+                    key: ValueKey('recur-swipe-${r.id}'),
+                    onDeleteTap: () => _confirmDelete(context, ref, r.id),
+                    child: InkWell(
+                      // Tap to edit the rule in the same sheet used to create.
+                      onTap: () => showRecurringRuleSheet(context, rule: r),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              title,
-                              style: AppTypography.heading(
-                                size: 15,
-                                weight: FontWeight.w500,
+                            const IconChip(
+                              icon: AppIcons.repeat,
+                              size: 38,
+                              radius: 12,
+                              iconSize: 19,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: AppTypography.heading(
+                                      size: 15,
+                                      weight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${_freqLabel(l10n, r.freq)} · '
+                                    '${l10n.recurNextRun} $next',
+                                    style: AppTypography.body(
+                                      size: 12.5,
+                                      color: context.palette.ink3,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(width: 8),
                             Text(
-                              '${_freqLabel(l10n, r.freq)} · '
-                              '${l10n.recurNextRun} $next',
-                              style: AppTypography.body(
-                                size: 12.5,
-                                color: context.palette.ink3,
+                              Money.format(r.amountCents),
+                              style: AppTypography.heading(
+                                size: 15,
+                                weight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        Money.format(r.amountCents),
-                        style: AppTypography.heading(
-                          size: 15,
-                          weight: FontWeight.w600,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => _confirmDelete(context, ref, r.id),
-                        icon: Icon(
-                          AppIcons.trash2,
-                          size: 18,
-                          color: context.palette.ink3,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 );
               },
@@ -149,23 +155,12 @@ class ManageRecurringScreen extends ConsumerWidget {
     // Captured before the await — ref.read after the dialog would throw if the
     // auth-state redirect unmounted this screen while the dialog was up.
     final db = ref.read(databaseProvider);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        content: Text(l10n.recurConfirmDelete),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
+    final ok = await confirmDeleteTxn(
+      context,
+      title: l10n.recurManageTitle,
+      body: l10n.recurConfirmDelete,
     );
-    if (ok == true) {
+    if (ok) {
       await db.softDeleteRecurringRule(
         id,
         DateTime.now().millisecondsSinceEpoch,

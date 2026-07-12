@@ -24,11 +24,7 @@ Future<void> main() async {
     debugPrint('Uncaught error: $error\n$stack');
     return true; // handled — don't crash the app
   };
-
-  // Load locale data for `intl`'s DateFormat so Thai (`th_TH`) and English
-  // (`en_US`) date/month/weekday names render in either language. Without this,
-  // formatting a date in a non-default locale throws once the user switches.
-  await initializeDateFormatting();
+  // (initializeDateFormatting runs concurrently in the Future.wait below.)
 
   // Use the bundled fonts in google_fonts/ instead of fetching at runtime
   // (works fully offline).
@@ -40,16 +36,28 @@ Future<void> main() async {
   // placeholder); detection inspects the apiKey so it survives a regenerated
   // firebase_options.dart with no `isPlaceholder` flag. A build without real
   // config can't sign in, so it can't be used until configured.
-  var firebaseReady = false;
-  final options = DefaultFirebaseOptions.currentPlatform;
-  if (!options.apiKey.startsWith('PLACEHOLDER')) {
+  Future<bool> initFirebase() async {
+    final options = DefaultFirebaseOptions.currentPlatform;
+    if (options.apiKey.startsWith('PLACEHOLDER')) return false;
     try {
       await Firebase.initializeApp(options: options);
-      firebaseReady = true;
+      return true;
     } catch (_) {
-      firebaseReady = false;
+      return false;
     }
   }
+
+  // Run the two startup awaits CONCURRENTLY (intl locale data + Firebase) so
+  // the first frame — the splash's Bun jump — appears as early as possible.
+  final results = await Future.wait([
+    // Load locale data for `intl`'s DateFormat so Thai (`th_TH`) and English
+    // (`en_US`) date/month/weekday names render in either language. Without
+    // this, formatting a date in a non-default locale throws once the user
+    // switches.
+    initializeDateFormatting().then((_) => true),
+    initFirebase(),
+  ]);
+  final firebaseReady = results[1];
 
   runApp(
     ProviderScope(

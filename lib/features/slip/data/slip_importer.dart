@@ -223,9 +223,30 @@ class SlipImporter {
     );
   }
 
+  /// Check photo access WITHOUT prompting — safe to call on every app entry
+  /// and lifecycle resume to drive the permission banner.
+  Future<({bool granted, bool limited})> checkPermission() async {
+    final state = await PhotoManager.getPermissionState(
+      requestOption: const PermissionRequestOption(
+        androidPermission: AndroidPermission(
+          type: RequestType.image,
+          mediaLocation: false,
+        ),
+      ),
+    );
+    return (
+      granted: state.isAuth || state.hasAccess,
+      limited: state == PermissionState.limited,
+    );
+  }
+
   /// Open the system app-settings page so the user can grant photo access
   /// after a previous denial (where the prompt no longer re-appears).
   Future<void> openSettings() => PhotoManager.openSetting();
+
+  /// Re-open the Android 14 "select photos" sheet so the user can widen a
+  /// limited/partial grant.
+  Future<void> presentLimited() => PhotoManager.presentLimited();
 
   /// Scan recognised bank/e-wallet albums for slips. Dedups by gallery asset id
   /// (and the slip's transRef), so an already-imported photo is never imported

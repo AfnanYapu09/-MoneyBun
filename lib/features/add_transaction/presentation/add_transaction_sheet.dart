@@ -343,6 +343,8 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
                     _type == TxnType.income ? TxnType.income : TxnType.expense,
               ),
             ),
+            // Deleting an entry now lives on the list rows themselves (swipe
+            // left) — no duplicate delete button inside the edit form.
           ],
         ],
       ),

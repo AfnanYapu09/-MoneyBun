@@ -139,6 +139,7 @@ Future<bool?> showBudgetSheet(BuildContext context, {BudgetRow? budget}) {
 Future<bool?> showRecurringRuleSheet(
   BuildContext context, {
   TxnType type = TxnType.expense,
+  RecurringRuleRow? rule,
 }) {
   return _tracked(
     context,
@@ -147,7 +148,7 @@ Future<bool?> showRecurringRuleSheet(
       isScrollControlled: true,
       barrierColor: _barrier,
       backgroundColor: Colors.transparent,
-      builder: (_) => RecurringRuleSheet(type: type),
+      builder: (_) => RecurringRuleSheet(type: type, rule: rule),
     ),
   );
 }
@@ -208,6 +209,126 @@ Future<bool> confirmLogoutUnsynced(BuildContext context) async {
 }
 
 /// Centered logout confirmation dialog. Returns true if confirmed.
+/// Styled photo-permission prompt (same visual grammar as [confirmLogout]).
+/// Returns true when the user wants to grant access now.
+Future<bool> showPhotoPermissionDialog(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    barrierColor: _barrier,
+    builder: (c) => Dialog(
+      backgroundColor: context.palette.bg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: context.palette.terraWash,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                AppIcons.image,
+                color: context.palette.terraFg,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.homePhotoPermissionTitle,
+              textAlign: TextAlign.center,
+              style: AppTypography.heading(size: 19, weight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              l10n.homePhotoPermissionBody,
+              textAlign: TextAlign.center,
+              style: AppTypography.body(size: 14, color: context.palette.ink2),
+            ),
+            const SizedBox(height: 18),
+            PrimaryButton(
+              label: l10n.homeOpenSettings,
+              onPressed: () => Navigator.pop(c, true),
+            ),
+            const SizedBox(height: 10),
+            SecondaryButton(
+              label: l10n.homePermLater,
+              onPressed: () => Navigator.pop(c, false),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  return ok ?? false;
+}
+
+/// Confirm deleting a swiped list row. Defaults to transaction wording;
+/// pass [title]/[body] for other row types (recurring rules, …).
+Future<bool> confirmDeleteTxn(
+  BuildContext context, {
+  String? title,
+  String? body,
+}) async {
+  final l10n = AppLocalizations.of(context);
+  final ok = await showDialog<bool>(
+    context: context,
+    barrierColor: _barrier,
+    builder: (c) => Dialog(
+      backgroundColor: context.palette.bg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 26, 22, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: context.palette.dangerWash,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                AppIcons.trash2,
+                color: context.palette.dangerFg,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title ?? l10n.txnDeleteTitle,
+              style: AppTypography.heading(size: 19, weight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              body ?? l10n.txnDeleteBody,
+              textAlign: TextAlign.center,
+              style: AppTypography.body(size: 14, color: context.palette.ink2),
+            ),
+            const SizedBox(height: 18),
+            PrimaryButton(
+              label: l10n.txnDeleteConfirm,
+              color: AppColors.danger,
+              onPressed: () => Navigator.pop(c, true),
+            ),
+            const SizedBox(height: 10),
+            SecondaryButton(
+              label: l10n.cancel,
+              onPressed: () => Navigator.pop(c, false),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  return ok ?? false;
+}
+
 Future<bool> confirmLogout(BuildContext context) async {
   final l10n = AppLocalizations.of(context);
   final ok = await showDialog<bool>(

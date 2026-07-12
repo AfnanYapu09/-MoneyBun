@@ -121,6 +121,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push('/settings/export'),
                 ),
                 SettingRow(
+                  icon: AppIcons.sparkles,
+                  label: l10n.settingsShowTour,
+                  onTap: () {
+                    // Jump to Home and replay the walkthrough there.
+                    ref.read(tourReplayProvider.notifier).request();
+                    context.go('/home');
+                  },
+                ),
+                SettingRow(
                   icon: AppIcons.circleHelp,
                   label: l10n.settingsHelp,
                   onTap: () => context.push('/settings/help'),
@@ -231,7 +240,11 @@ class _ProfileCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: AppColors.terra,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.terra, AppColors.terra700],
+          ),
           borderRadius: BorderRadius.circular(24),
         ),
         child: Row(

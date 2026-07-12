@@ -22,26 +22,35 @@ import '../../../domain/enums/enums.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../add_transaction/presentation/category_picker_sheet.dart';
 
-/// Bottom sheet to create a recurring rule that auto-creates a transaction on a
-/// daily / weekly / monthly schedule (materialised on app launch).
+/// Bottom sheet to create OR edit a recurring rule that auto-creates a
+/// transaction on a daily / weekly / monthly schedule (materialised on app
+/// launch). Pass [rule] to edit an existing one.
 class RecurringRuleSheet extends ConsumerStatefulWidget {
-  const RecurringRuleSheet({super.key, this.type = TxnType.expense});
+  const RecurringRuleSheet({super.key, this.type = TxnType.expense, this.rule});
 
   /// Income vs. expense is inherited from where the sheet was opened (e.g. the
   /// current tab of the Add-transaction sheet) — this form has no picker of its
   /// own, since choosing it here would just duplicate that selection.
   final TxnType type;
 
+  /// When set, the sheet edits this rule instead of creating a new one.
+  final RecurringRuleRow? rule;
+
   @override
   ConsumerState<RecurringRuleSheet> createState() => _RecurringRuleSheetState();
 }
 
 class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
-  late final TxnType _type = widget.type;
-  final _amount = TextEditingController();
-  String? _categoryId;
-  RecurFreq _freq = RecurFreq.monthly;
-  DateTime _startAt = DateTime.now();
+  late final TxnType _type = widget.rule?.type ?? widget.type;
+  late final _amount = TextEditingController(
+    text:
+        widget.rule == null ? '' : Money.toEditString(widget.rule!.amountCents),
+  );
+  late String? _categoryId = widget.rule?.categoryId;
+  late RecurFreq _freq = widget.rule?.freq ?? RecurFreq.monthly;
+  late DateTime _startAt = widget.rule == null
+      ? DateTime.now()
+      : AppDate.fromMillis(widget.rule!.nextRunAt);
   String _calcHistory = '';
   final _scroll = ScrollController();
   bool _calcOpen = false;
@@ -358,13 +367,15 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
     try {
       await ref.read(databaseProvider).upsertRecurringRule(
             RecurringRulesCompanion.insert(
-              id: const Uuid().v4(),
+              // Editing keeps the rule's identity + creation time; a new rule
+              // gets fresh ones.
+              id: widget.rule?.id ?? const Uuid().v4(),
               type: _type,
               amountCents: cents,
               freq: _freq,
               nextRunAt: AppDate.toMillis(_startAt),
               anchorDay: Value(_startAt.day),
-              createdAt: now,
+              createdAt: widget.rule?.createdAt ?? now,
               updatedAt: now,
               categoryId: Value(_categoryId),
             ),

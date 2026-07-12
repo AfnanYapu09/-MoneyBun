@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ ignores windowBackground during launch and shows the
+         system splash instead; brand it terracotta so there is no white
+         flash before the Dart splash takes over. The icon is intentionally
+         omitted: the OS masks it into a circle, which clips the rounded
+         cream logo tile — the Dart splash carries the branding instead. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/splash_cream</item>
+        <!-- Android 12+ shows the launcher icon on the system splash by default;
+             a transparent "icon" hides it so the Dart Bun jump is the first thing seen. -->
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">?android:colorBackground</item>
+    </style>
+</resources>

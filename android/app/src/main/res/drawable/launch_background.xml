@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- MoneyBun native splash: terracotta background + centered cream-tile Bun logo. -->
+<!-- MoneyBun native splash: a plain cream stage. No logo bitmap — the Dart
+     splash's Bun must be the FIRST bun on screen so its jump-in lands as
+     the opening moment, not a repeat. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@color/splash_terra" />
-    <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@drawable/splash_logo" />
-    </item>
+    <item android:drawable="@color/splash_cream" />
 </layer-list>

@@ -7,6 +7,7 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/bun_avatar.dart';
+import '../../../core/widgets/wordmark.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -43,8 +44,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
         children: [
-          const Center(child: BunAvatar(size: 70)),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
+          // Brand lockup: mascot beside the wordmark, same as the login page.
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              BunAvatar(size: 56),
+              SizedBox(width: 12),
+              Wordmark(size: 34),
+            ],
+          ),
+          const SizedBox(height: 14),
           Center(
             child: Text(
               l10n.authCreateAccount,
@@ -206,6 +216,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       // already "done" — this keeps the Home first-load skeleton from flashing
       // for a user who has nothing to wait for.
       await repo.setFirstSyncDone(true);
+      // Fresh registration always gets the walkthrough, even if this device
+      // has shown it to a previous account.
+      await repo.setHomeTourSeen(false);
       if (name.isNotEmpty) {
         await repo.setDisplayName(name);
       }

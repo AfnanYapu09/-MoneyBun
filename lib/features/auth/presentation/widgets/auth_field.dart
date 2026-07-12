@@ -51,7 +51,14 @@ class _AuthFieldState extends State<AuthField> {
               decoration: InputDecoration(
                 isCollapsed: true,
                 filled: false,
+                // Kill EVERY themed border, not just `border` — the app-wide
+                // InputDecorationTheme sets enabled/focused outlines, which
+                // otherwise paint a second box inside this field's frame.
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
                 hintText: widget.hint,
                 hintStyle: AppTypography.body(
                   size: 15,

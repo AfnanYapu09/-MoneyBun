@@ -4,4 +4,6 @@
     <color name="ic_launcher_background">#F1EEE4</color>
     <!-- Native splash background = brand terracotta (matches the Dart splash). -->
     <color name="splash_terra">#C4694A</color>
+    <!-- New splash design: plain cream stage (matches the Dart splash). -->
+    <color name="splash_cream">#F1EEE4</color>
 </resources>

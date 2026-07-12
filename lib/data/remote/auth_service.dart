@@ -17,10 +17,14 @@ class AuthService {
   final FirebaseAuth _auth;
   bool _gsiInitialized = false;
 
-  /// The Web OAuth client id from the Firebase/Google Cloud console (passed via
-  ///   --dart-define=GOOGLE_SERVER_CLIENT_ID=xxxx.apps.googleusercontent.com).
+  /// The Web OAuth client id from the Firebase/Google Cloud console. A web
+  /// client id is public by design (it ships in every web app's JS), so the
+  /// project default is checked in; --dart-define=GOOGLE_SERVER_CLIENT_ID
+  /// still overrides it for other Firebase projects.
   static const _serverClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue:
+        '881474200616-7tmiknbktnl3hq8bfj0dlvie4i7ljjkr.apps.googleusercontent.com',
   );
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
@@ -65,7 +69,9 @@ class AuthService {
     _gsiInitialized = true;
   }
 
-  Future<User?> signInWithGoogle() async {
+  /// Runs the Google account-chooser and returns the Firebase credential, or
+  /// null when the user backs out. Throws for real failures.
+  Future<AuthCredential?> _googleCredential() async {
     await _ensureGsi();
     final gsi = GoogleSignIn.instance;
     if (!gsi.supportsAuthenticate()) {
@@ -73,14 +79,49 @@ class AuthService {
         'Google Sign-In is not supported on this platform',
       );
     }
-    final account = await gsi.authenticate();
+    final GoogleSignInAccount account;
+    try {
+      account = await gsi.authenticate();
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      rethrow;
+    }
     final idToken = account.authentication.idToken;
     if (idToken == null) {
       throw StateError('Google Sign-In returned no ID token');
     }
-    final credential = GoogleAuthProvider.credential(idToken: idToken);
+    return GoogleAuthProvider.credential(idToken: idToken);
+  }
+
+  /// Returns null when the user backs out of the account chooser; throws for
+  /// real failures (configuration, network, Firebase). [isNew] tells whether
+  /// this Google sign-in just created the account — used to show the app tour
+  /// to genuinely-new users only.
+  Future<({User user, bool isNew})?> signInWithGoogle() async {
+    final credential = await _googleCredential();
+    if (credential == null) return null;
     final result = await _auth.signInWithCredential(credential);
-    return result.user;
+    final user = result.user;
+    if (user == null) return null;
+    return (user: user, isNew: result.additionalUserInfo?.isNewUser ?? false);
+  }
+
+  /// Whether the signed-in account already has Google linked.
+  bool get googleLinked =>
+      _auth.currentUser?.providerData
+          .any((p) => p.providerId == 'google.com') ??
+      false;
+
+  /// Link Google to the currently signed-in account so the user can also sign
+  /// in with Google later. Returns false when the chooser was dismissed.
+  Future<bool> linkWithGoogle() async {
+    final user = _auth.currentUser;
+    if (user == null) throw StateError('Not signed in');
+    final credential = await _googleCredential();
+    if (credential == null) return false;
+    await user.linkWithCredential(credential);
+    await user.reload();
+    return true;
   }
 
   // ---- Apple (iOS/macOS only) -------------------------------------------

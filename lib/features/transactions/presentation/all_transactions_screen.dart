@@ -120,8 +120,8 @@ class AllTransactionsScreen extends ConsumerWidget {
             onTapTxn: (id) => showAddTransactionSheet(context, editId: id),
             onCategorize: (t) => _categorize(context, ref, t),
             onShowSlip: (t) => _showSlip(context, ref, t),
-            onDelete: (t) =>
-                ref.read(transactionRepositoryProvider).delete(t.id),
+            // Deletes confirm + snackbar via the shared helper.
+            onDelete: (t) => _delete(context, ref, t),
           );
         },
       ),
@@ -130,6 +130,19 @@ class AllTransactionsScreen extends ConsumerWidget {
 
   /// Open the source slip for a row, with a "ลบรายการ" button — used by the
   /// zero-amount warning so the user can read or delete the failed import.
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    TransactionRow txn,
+  ) async {
+    await ref.read(transactionRepositoryProvider).delete(txn.id);
+    if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(l10n.txnDeleted)));
+  }
+
   Future<void> _showSlip(
     BuildContext context,
     WidgetRef ref,

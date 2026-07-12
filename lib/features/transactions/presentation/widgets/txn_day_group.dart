@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/router/sheets.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/app_date.dart';
 import '../../../../core/utils/money.dart';
-import '../../../../core/widgets/app_icons.dart';
+import '../../../../core/widgets/swipe_action_row.dart';
 import '../../../../data/local/database.dart';
 import '../../../../domain/enums/enums.dart';
-import '../../../../l10n/generated/app_localizations.dart';
 import '../txn_display.dart';
 import 'scanned_txn_row.dart';
 import 'txn_row.dart';
@@ -28,6 +28,7 @@ class TxnDayGroup extends StatelessWidget {
     required this.onCategorize,
     this.onShowSlip,
     this.onDelete,
+    this.firstRowKey,
   });
 
   final DateTime day;
@@ -41,10 +42,12 @@ class TxnDayGroup extends StatelessWidget {
   /// View the source slip of a row (used by the zero-amount warning).
   final void Function(TransactionRow txn)? onShowSlip;
 
-  /// Delete a row. When set, each row becomes swipe-to-delete: dragging it from
-  /// right to left reveals a red delete action and, after a confirm dialog,
-  /// removes the transaction. Null disables the gesture.
+  /// Delete a row. When set, rows can be swiped left to pin a trash action
+  /// open; tapping it (then confirming) removes the transaction.
   final Future<void> Function(TransactionRow txn)? onDelete;
+
+  /// Anchor for the Home walkthrough — attached to this group's first row.
+  final GlobalKey? firstRowKey;
 
   static bool isUncategorized(TransactionRow t) =>
       t.type == TxnType.expense && t.categoryId == null;
@@ -106,7 +109,13 @@ class TxnDayGroup extends StatelessWidget {
             children: [
               for (var i = 0; i < rows.length; i++) ...[
                 if (i > 0) const Divider(height: 1),
-                _buildRow(context, rows[i]),
+                if (i == 0 && firstRowKey != null)
+                  KeyedSubtree(
+                    key: firstRowKey,
+                    child: _buildRow(context, rows[i]),
+                  )
+                else
+                  _buildRow(context, rows[i]),
               ],
             ],
           ),
@@ -116,7 +125,7 @@ class TxnDayGroup extends StatelessWidget {
   }
 
   Widget _buildRow(BuildContext context, TransactionRow t) {
-    final Widget row;
+    Widget row;
     if (isUncategorized(t)) {
       row = ScannedTxnRow(
         txn: t,
@@ -148,62 +157,15 @@ class TxnDayGroup extends StatelessWidget {
       );
     }
     if (onDelete == null) return row;
-    return Dismissible(
-      key: ValueKey('txn-${t.id}'),
-      direction: DismissDirection.endToStart,
-      background: _deleteBackground(context),
-      // Always returns false: the delete is performed here and the reactive
-      // transaction list rebuilds without this row, so we never ask the
-      // Dismissible to remove a widget that's still owned by the parent list
-      // (which would trip the "dismissed widget still in the tree" assertion).
-      confirmDismiss: (_) => _confirmDelete(context, t),
+    // iOS-style: a small left swipe pins a trash button open; only TAPPING it
+    // (then confirming) deletes.
+    return SwipeActionRow(
+      key: ValueKey('txn-swipe-${t.id}'),
+      onDeleteTap: () async {
+        final ok = await confirmDeleteTxn(context);
+        if (ok) await onDelete!(t);
+      },
       child: row,
     );
-  }
-
-  /// Compact, iOS-style delete affordance revealed while swiping a row from
-  /// right to left: a soft rounded pill (light red wash) holding a dark red
-  /// trash icon — a small hint pinned to the right edge, not a full-bleed band.
-  Widget _deleteBackground(BuildContext context) {
-    return Container(
-      alignment: Alignment.centerRight,
-      child: Container(
-        width: 56,
-        margin: const EdgeInsets.symmetric(vertical: 7),
-        decoration: BoxDecoration(
-          color: context.palette.dangerWash,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Center(
-          child: Icon(
-            AppIcons.trash2,
-            size: 20,
-            color: context.palette.dangerFg,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<bool> _confirmDelete(BuildContext context, TransactionRow t) async {
-    final l10n = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        content: Text(l10n.addtxnConfirmDelete),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(l10n.delete),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) await onDelete!(t);
-    return false;
   }
 }

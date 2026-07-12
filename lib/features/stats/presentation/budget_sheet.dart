@@ -351,39 +351,8 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
                   ],
                 ),
               ),
-              if (widget.budget != null) ...[
-                const SizedBox(height: 18),
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: _delete,
-                  child: Container(
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: context.palette.dangerWash,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          AppIcons.trash2,
-                          size: 19,
-                          color: context.palette.dangerFg,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          l10n.statsDeleteBudget,
-                          style: AppTypography.heading(
-                            size: 16,
-                            weight: FontWeight.w500,
-                            color: context.palette.dangerFg,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              // Deleting a budget now lives on the budget list rows (swipe
+              // left) — no duplicate delete button inside the edit form.
             ],
           ],
         ),
@@ -441,22 +410,6 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
               ),
             ),
           );
-    } catch (_) {
-      if (mounted) setState(() => _busy = false);
-      return;
-    }
-    if (mounted) Navigator.of(context).pop(true);
-  }
-
-  Future<void> _delete() async {
-    if (_busy) return;
-    final id = widget.budget?.id;
-    if (id == null) return;
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(databaseProvider)
-          .softDeleteBudget(id, DateTime.now().millisecondsSinceEpoch);
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       return;

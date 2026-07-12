@@ -44,6 +44,8 @@ class AppIcons {
   static const IconData rotateCw = LucideIcons.rotateCw;
   static const IconData loader = LucideIcons.loader;
   static const IconData scanLine = LucideIcons.scanLine;
+  static const IconData cloud = LucideIcons.cloud;
+  static const IconData image = LucideIcons.image;
   static const IconData store = LucideIcons.store;
   static const IconData repeat = LucideIcons.repeat;
   static const IconData calendar = LucideIcons.calendar;

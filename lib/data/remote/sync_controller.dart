@@ -163,7 +163,8 @@ class SyncController with WidgetsBindingObserver {
       // (the real sync keeps running; only the loading state is time-boxed).
       await attempt.timeout(_firstSyncTimeout);
     } catch (_) {
-      // Best-effort; a failed / timed-out sync is retried on the next trigger.
+      // Best-effort; a failed sync is retried on the next trigger (resume /
+      // sign-in), which will also unlock the scanner when it succeeds.
     } finally {
       if (ownsFirst) onSyncingChanged?.call(false);
     }
