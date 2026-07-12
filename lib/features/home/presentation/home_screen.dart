@@ -188,7 +188,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // Let the tab switch from Settings finish so every anchor (FAB, nav,
         // header) is measured in its settled position before spotlighting.
         await Future.delayed(const Duration(milliseconds: 350));
-        if (!mounted || ref.read(openSheetsProvider) > 0) return;
+        if (!context.mounted || ref.read(openSheetsProvider) > 0) return;
         await HomeTour.start(context);
         await ref.read(settingsRepositoryProvider).setHomeTourSeen(true);
       });

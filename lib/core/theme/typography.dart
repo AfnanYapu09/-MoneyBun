@@ -75,7 +75,7 @@ class AppTypography {
           // WONK 1 = the slanted down-right stem terminals on m/n/u that the
           // logo was designed with (Fraunces's signature quirk).
           const FontVariation('WONK', 1),
-          FontVariation('wght', (weight.index + 1) * 100.0),
+          FontVariation('wght', weight.value.toDouble()),
         ],
         color: color,
         height: height,

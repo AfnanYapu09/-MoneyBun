@@ -288,7 +288,7 @@ enum _Pose { ground, air, blink }
 
 /// left -> right wipe used to reveal the wordmark. Clips ONLY horizontally —
 /// the rect extends far above and below the text box so the y's descender
-/// (which overflows the tight 0.9 line height) isn't chopped into a "v".
+/// (which overflows the tight 0.9 line height) isn't chopped into a 'v'.
 class _RevealClipper extends CustomClipper<Rect> {
   _RevealClipper(this.t);
   final double t; // 0..1
@@ -309,32 +309,32 @@ class _BunPainter extends CustomPainter {
   final double cell;
 
   static const List<String> ground = [
-    "...XX....XX...",
-    "...XX....XX...",
-    "...XX....XX...",
-    "...XX....XX...",
-    "..XXXX..XXXX..",
-    "..XXXXXXXXXX..",
-    ".XXXXXXXXXXXX.",
-    "XXXKKXXXXKKXXX",
-    "XXXKKXXXXKKXXX",
-    "XXXXXXXXXXXXXX",
-    "XXXXXXDDXXXXXX",
-    "XXXXXXXXXXXXXX",
-    ".XXXXXXXXXXXX.",
-    ".XXXXXXXXXXXX.",
-    ".XX.XX..XX.XX.",
-    ".XX.XX..XX.XX.",
+    '...XX....XX...',
+    '...XX....XX...',
+    '...XX....XX...',
+    '...XX....XX...',
+    '..XXXX..XXXX..',
+    '..XXXXXXXXXX..',
+    '.XXXXXXXXXXXX.',
+    'XXXKKXXXXKKXXX',
+    'XXXKKXXXXKKXXX',
+    'XXXXXXXXXXXXXX',
+    'XXXXXXDDXXXXXX',
+    'XXXXXXXXXXXXXX',
+    '.XXXXXXXXXXXX.',
+    '.XXXXXXXXXXXX.',
+    '.XX.XX..XX.XX.',
+    '.XX.XX..XX.XX.',
   ];
 
   List<String> get _map {
     switch (pose) {
       case _Pose.air: // feet tucked up (single leg row)
-        return [...ground.sublist(0, 14), ".XX.XX..XX.XX.", ".............."];
+        return [...ground.sublist(0, 14), '.XX.XX..XX.XX.', '..............'];
       case _Pose.blink: // eyes closed
         return [
           for (int i = 0; i < ground.length; i++)
-            (i == 7 || i == 8) ? "XXXXXXXXXXXXXX" : ground[i],
+            (i == 7 || i == 8) ? 'XXXXXXXXXXXXXX' : ground[i],
         ];
       case _Pose.ground:
         return ground;

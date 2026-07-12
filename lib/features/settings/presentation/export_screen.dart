@@ -294,15 +294,17 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
       // Hand the file to the system share sheet so the user can save it to
       // Files, send it over Line, attach it to email, ...
-      await Share.shareXFiles(
-        [
-          XFile(
-            file.path,
-            mimeType: 'application/vnd.openxmlformats-officedocument.'
-                'spreadsheetml.sheet',
-          ),
-        ],
-        subject: 'MoneyBun export',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile(
+              file.path,
+              mimeType: 'application/vnd.openxmlformats-officedocument.'
+                  'spreadsheetml.sheet',
+            ),
+          ],
+          subject: 'MoneyBun export',
+        ),
       );
 
       if (!mounted) return;
