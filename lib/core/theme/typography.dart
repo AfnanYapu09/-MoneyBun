@@ -53,7 +53,10 @@ class AppTypography {
         letterSpacing: letterSpacing,
       );
 
-  /// Wordmark font (Fraunces). Latin only — used for the `moneyBun` logo.
+  /// Wordmark font — the Fraunces VARIABLE font with its optical-size axis
+  /// pushed to the display maximum (opsz 144), exactly how the `moneyBun`
+  /// logo was designed: razor-thin hairlines, no softness, no wonk. Latin
+  /// only.
   ///
   /// [color] defaults to `null` (inherits the ambient text colour) — see [body].
   static TextStyle display({
@@ -62,9 +65,18 @@ class AppTypography {
     Color? color,
     double? height,
   }) =>
-      GoogleFonts.fraunces(
+      TextStyle(
+        fontFamily: 'FrauncesVar',
         fontSize: size,
         fontWeight: weight,
+        fontVariations: [
+          const FontVariation('opsz', 144),
+          const FontVariation('SOFT', 0),
+          // WONK 1 = the slanted down-right stem terminals on m/n/u that the
+          // logo was designed with (Fraunces's signature quirk).
+          const FontVariation('WONK', 1),
+          FontVariation('wght', (weight.index + 1) * 100.0),
+        ],
         color: color,
         height: height,
       );

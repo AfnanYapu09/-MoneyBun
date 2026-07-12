@@ -64,39 +64,37 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
       children: [
         // Tag chips (hidden while reordering categories, to keep focus).
         if (!editing)
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: context.palette.terraWash,
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(
-                  AppIcons.hash,
-                  size: 17,
-                  color: context.palette.terraFg,
-                ),
-              ),
-              for (final t in tags)
-                _TagChip(
-                  label: t.name,
-                  selected: !widget.manage && _tags.contains(t.id),
-                  onTap: () => widget.manage
-                      ? _editTag(t)
-                      : setState(
+          widget.manage
+              // Manage mode: long-press a chip for the same wiggle edit mode
+              // as categories — drag to reorder, − badge to delete.
+              ? _ManagedTagWrap(
+                  tags: tags,
+                  showHint: !widget.showCategories,
+                  onRename: _editTag,
+                  onDelete: _confirmDeleteTag,
+                  onReorder: (ids) =>
+                      ref.read(tagRepositoryProvider).reorder(ids),
+                  onAdd: _addTag,
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const _TagHashBadge(),
+                    for (final t in tags)
+                      _TagChip(
+                        label: t.name,
+                        selected: _tags.contains(t.id),
+                        onTap: () => setState(
                           () => _tags.contains(t.id)
                               ? _tags.remove(t.id)
                               : _tags.add(t.id),
                         ),
+                      ),
+                    _AddTagChip(onAdd: _addTag),
+                  ],
                 ),
-              _AddTagChip(onAdd: _addTag),
-            ],
-          ),
         if (widget.showCategories) ...[
           const SizedBox(height: 18),
           if (!widget.manage)
@@ -260,22 +258,26 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
     }
   }
 
+  Future<void> _confirmDeleteTag(TagRow t) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await confirmDeleteTxn(
+      context,
+      title: l10n.tagEditTitle,
+      body: l10n.tagConfirmDelete(t.name),
+    );
+    if (ok) await ref.read(tagRepositoryProvider).delete(t.id);
+  }
+
   Future<void> _editTag(TagRow t) async {
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: t.name);
+    // Rename only — deleting a tag lives in the wiggle edit mode's − badge.
     final action = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.tagEditTitle),
         content: TextField(controller: controller, autofocus: true),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, '__delete__'),
-            child: Text(
-              l10n.delete,
-              style: TextStyle(color: context.palette.dangerFg),
-            ),
-          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(l10n.cancel),
@@ -287,18 +289,203 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         ],
       ),
     );
-    if (action == null) return;
-    final repo = ref.read(tagRepositoryProvider);
-    if (action == '__delete__') {
-      await repo.delete(t.id);
-    } else if (action.isNotEmpty) {
-      await repo.save(
-        id: t.id,
-        name: action,
-        colorHex: t.colorHex,
-        sortOrder: t.sortOrder,
-      );
-    }
+    if (action == null || action.isEmpty) return;
+    await ref.read(tagRepositoryProvider).save(
+          id: t.id,
+          name: action,
+          colorHex: t.colorHex,
+          sortOrder: t.sortOrder,
+        );
+  }
+}
+
+/// The leading "#" tile in front of the tag chips.
+class _TagHashBadge extends StatelessWidget {
+  const _TagHashBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: context.palette.terraWash,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Icon(AppIcons.hash, size: 17, color: context.palette.terraFg),
+    );
+  }
+}
+
+/// Manage-mode tag chips: the same iOS-style wiggle edit mode as the category
+/// grid — long-press a chip to pick it up (entering edit mode), drop it on
+/// another chip to reorder, tap the − badge to delete, tap a chip to rename.
+class _ManagedTagWrap extends StatefulWidget {
+  const _ManagedTagWrap({
+    required this.tags,
+    required this.showHint,
+    required this.onRename,
+    required this.onDelete,
+    required this.onReorder,
+    required this.onAdd,
+  });
+
+  final List<TagRow> tags;
+
+  /// Show the long-press hint (manage-tags screen only, where the chips are
+  /// the whole page).
+  final bool showHint;
+  final void Function(TagRow tag) onRename;
+  final Future<void> Function(TagRow tag) onDelete;
+  final void Function(List<String> idsInOrder) onReorder;
+  final VoidCallback onAdd;
+
+  @override
+  State<_ManagedTagWrap> createState() => _ManagedTagWrapState();
+}
+
+class _ManagedTagWrapState extends State<_ManagedTagWrap>
+    with SingleTickerProviderStateMixin {
+  // Created in initState — a lazy `late final` would be touched for the first
+  // time inside dispose() when the widget never built a chip, and creating a
+  // ticker during unmount crashes.
+  late final AnimationController _wiggle;
+
+  bool _editing = false;
+
+  // Local working copy so a drop reorders instantly; refreshed from the
+  // provider while preserving the local order (renames flow through, adds
+  // append, deletes drop out).
+  late List<TagRow> _items = [...widget.tags];
+
+  @override
+  void initState() {
+    super.initState();
+    _wiggle = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    )..repeat();
+  }
+
+  @override
+  void didUpdateWidget(_ManagedTagWrap old) {
+    super.didUpdateWidget(old);
+    final byId = {for (final t in widget.tags) t.id: t};
+    final kept = [
+      for (final t in _items)
+        if (byId.containsKey(t.id)) byId.remove(t.id)!,
+    ];
+    _items = [...kept, ...byId.values];
+  }
+
+  @override
+  void dispose() {
+    _wiggle.dispose();
+    super.dispose();
+  }
+
+  void _move(int from, int to) {
+    if (from == to || from < 0 || to < 0) return;
+    setState(() {
+      final item = _items.removeAt(from);
+      _items.insert(to, item);
+    });
+    widget.onReorder(_items.map((t) => t.id).toList());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_editing)
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.catReorderHint,
+                  style: AppTypography.body(
+                    size: 13,
+                    color: context.palette.ink3,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _editing = false),
+                child: Text(
+                  l10n.catDone,
+                  style: AppTypography.heading(
+                    size: 15,
+                    weight: FontWeight.w600,
+                    color: AppColors.terra,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const _TagHashBadge(),
+            for (var i = 0; i < _items.length; i++) _cell(i, _items[i]),
+            if (!_editing) _AddTagChip(onAdd: widget.onAdd),
+          ],
+        ),
+        if (widget.showHint && !_editing) ...[
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              l10n.tagLongPressHint,
+              style: AppTypography.body(
+                size: 12.5,
+                color: context.palette.ink3,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _cell(int index, TagRow tag) {
+    final chip = _TagChip(
+      label: tag.name,
+      selected: false,
+      onTap: _editing ? null : () => widget.onRename(tag),
+      editing: _editing,
+      wiggle: _wiggle,
+      wiggleIndex: index,
+      onDelete: _editing ? () => widget.onDelete(tag) : null,
+    );
+
+    final draggable = LongPressDraggable<int>(
+      data: index,
+      onDragStarted: () {
+        if (!_editing) setState(() => _editing = true);
+      },
+      feedback: Material(
+        color: Colors.transparent,
+        child: Transform.scale(
+          scale: 1.1,
+          child: _TagChip(label: tag.name, selected: true, onTap: null),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: 0.25, child: chip),
+      child: chip,
+    );
+
+    return DragTarget<int>(
+      onWillAcceptWithDetails: (d) => d.data != index,
+      onAcceptWithDetails: (d) => _move(d.data, index),
+      builder: (context, candidate, rejected) => AnimatedScale(
+        scale: candidate.isNotEmpty ? 1.1 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        child: draggable,
+      ),
+    );
   }
 }
 
@@ -307,28 +494,39 @@ class _TagChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.editing = false,
+    this.wiggle,
+    this.wiggleIndex = 0,
+    this.onDelete,
   });
   final String label;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+
+  /// Wiggle (edit) mode: the chip shakes and shows a − delete badge.
+  final bool editing;
+  final Animation<double>? wiggle;
+  final int wiggleIndex;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(11),
-      onTap: onTap,
-      child: Container(
-        height: 34,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.terra : Colors.transparent,
-          borderRadius: BorderRadius.circular(11),
-          border: Border.all(
-            color: selected ? AppColors.terra : context.palette.line,
-            width: 1.5,
-          ),
+    Widget chip = Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: selected ? AppColors.terra : Colors.transparent,
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(
+          color: selected ? AppColors.terra : context.palette.line,
+          width: 1.5,
         ),
+      ),
+      // Center(widthFactor: 1) keeps the chip hugging its text — a plain
+      // `alignment:` on the Container would stretch it to the Wrap's full
+      // width, stacking one chip per line.
+      child: Center(
+        widthFactor: 1,
         child: Text(
           '#$label',
           style: AppTypography.heading(
@@ -338,6 +536,32 @@ class _TagChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (editing && wiggle != null) {
+      final anim = wiggle!;
+      chip = AnimatedBuilder(
+        animation: anim,
+        builder: (context, child) {
+          final angle =
+              math.sin(anim.value * 2 * math.pi + wiggleIndex * 0.9) * 0.03;
+          return Transform.rotate(angle: angle, child: child);
+        },
+        child: chip,
+      );
+    }
+    if (editing && onDelete != null) {
+      chip = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          chip,
+          Positioned(left: -6, top: -6, child: _DeleteBadge(onTap: onDelete!)),
+        ],
+      );
+    }
+    return InkWell(
+      borderRadius: BorderRadius.circular(11),
+      onTap: onTap,
+      child: chip,
     );
   }
 }
@@ -355,21 +579,23 @@ class _AddTagChip extends StatelessWidget {
       child: Container(
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 14),
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(11),
           border: Border.all(color: context.palette.line, width: 1.5),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(AppIcons.plus, size: 16, color: AppColors.terra),
-            const SizedBox(width: 6),
-            Text(
-              l10n.tagAddChip,
-              style: AppTypography.heading(size: 14, weight: FontWeight.w400),
-            ),
-          ],
+        child: Center(
+          widthFactor: 1,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(AppIcons.plus, size: 16, color: AppColors.terra),
+              const SizedBox(width: 6),
+              Text(
+                l10n.tagAddChip,
+                style: AppTypography.heading(size: 14, weight: FontWeight.w400),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -525,14 +751,22 @@ class _ManagedCategoryGrid extends StatefulWidget {
 
 class _ManagedCategoryGridState extends State<_ManagedCategoryGrid>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _wiggle = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 240),
-  )..repeat();
+  // Created in initState — see _ManagedTagWrapState._wiggle for why lazy
+  // initialization here is unsafe.
+  late final AnimationController _wiggle;
 
   // A local working copy so a drop reorders instantly; re-synced from the
   // provider only when the set of categories changes (an add/delete).
   late List<CategoryRow> _items = [...widget.categories];
+
+  @override
+  void initState() {
+    super.initState();
+    _wiggle = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    )..repeat();
+  }
 
   @override
   void didUpdateWidget(_ManagedCategoryGrid old) {

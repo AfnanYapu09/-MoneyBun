@@ -47,6 +47,8 @@ dependencies:
   lucide_icons_flutter: ^3.1.14+2
   sign_in_with_apple: ^8.1.0
   crypto: ^3.0.7
+  excel: ^4.0.6
+  share_plus: ^13.2.0
 
 dev_dependencies:
   flutter_test:
@@ -64,3 +66,11 @@ flutter:
   assets:
     - google_fonts/
     - assets/banks/
+
+  # The wordmark uses the Fraunces VARIABLE font (the file the logo was
+  # designed with) so the optical-size axis can be pushed to its display
+  # maximum via FontVariation — the static cuts can't reach that contrast.
+  fonts:
+    - family: FrauncesVar
+      fonts:
+        - asset: google_fonts/FrauncesVariable.ttf

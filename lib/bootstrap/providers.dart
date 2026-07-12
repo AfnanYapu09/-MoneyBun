@@ -158,6 +158,7 @@ class ScanState {
     this.result,
     this.limited = false,
     this.permissionDenied = false,
+    this.blockedBySync = false,
     this.error,
   });
 
@@ -165,6 +166,10 @@ class ScanState {
   final ScanResult? result;
   final bool limited;
   final bool permissionDenied;
+
+  /// A manual scan was refused because the first cloud pull hasn't finished —
+  /// scanning now would import duplicates of rows that are about to arrive.
+  final bool blockedBySync;
   final Object? error;
 }
 
@@ -180,23 +185,27 @@ class ScanController extends Notifier<ScanState> {
   Future<void> autoScanOnce() async {
     if (_autoScanned) return;
     _autoScanned = true;
-    // When signed in, wait for the first cloud sync to finish so the restored
-    // slips + watermark exist before scanning — otherwise the scan would
-    // re-read slips that are about to arrive from the cloud (creating dupes).
-    // Bounded so an offline/slow sync can't block the scan indefinitely.
+    // HARD LOCK: when signed in, the scanner waits until the first cloud pull
+    // has actually completed — no timeout escape. Scanning earlier imports
+    // gallery slips whose cloud twins are still in flight, creating duplicate
+    // entries on every fresh login. (A brand-new signup completes its first
+    // sync immediately, so this never delays new accounts.)
     final sync = ref.read(syncControllerProvider);
-    if (sync != null) {
-      await sync.awaitInitialSync().timeout(
-            const Duration(seconds: 25),
-            onTimeout: () {},
-          );
-    }
+    if (sync != null) await sync.awaitInitialSync();
     await scan();
   }
 
   /// Read every new slip image from the gallery automatically (no album pick).
   Future<void> scan() async {
     if (state.scanning) return;
+    // Manual scans (pull-to-refresh, permission banner) are refused — not
+    // queued — while the first pull is running, so the UI can explain instead
+    // of hanging.
+    final sync = ref.read(syncControllerProvider);
+    if (sync != null && !sync.initialSyncDone) {
+      state = const ScanState(blockedBySync: true);
+      return;
+    }
     state = const ScanState(scanning: true);
     final importer = ref.read(slipImporterProvider);
     final perm = await importer.requestPermission();
@@ -222,6 +231,53 @@ class ScanController extends Notifier<ScanState> {
 final scanControllerProvider = NotifierProvider<ScanController, ScanState>(
   ScanController.new,
 );
+
+/// Silent photo-permission status driving the Home permission banner. Refresh
+/// on Home entry and on every lifecycle resume; never prompts the user.
+enum PhotoPermStatus { unknown, granted, limited, denied }
+
+class PhotoPermission extends Notifier<PhotoPermStatus> {
+  @override
+  PhotoPermStatus build() => PhotoPermStatus.unknown;
+
+  Future<void> refresh() async {
+    final p = await ref.read(slipImporterProvider).checkPermission();
+    state = p.granted
+        ? (p.limited ? PhotoPermStatus.limited : PhotoPermStatus.granted)
+        : PhotoPermStatus.denied;
+  }
+
+  /// Called from the scan-denied edge so the banner appears immediately
+  /// without waiting for the next silent check.
+  void markDenied() => state = PhotoPermStatus.denied;
+}
+
+final photoPermissionProvider =
+    NotifierProvider<PhotoPermission, PhotoPermStatus>(PhotoPermission.new);
+
+/// Once-per-process guard so the styled photo-permission dialog nags on every
+/// app launch but not on every Home revisit within one session (the banner
+/// stays persistent instead). Mirrors ScanController._autoScanned.
+class PermDialogShown extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void mark() => state = true;
+}
+
+final permDialogShownProvider =
+    NotifierProvider<PermDialogShown, bool>(PermDialogShown.new);
+
+/// One-shot signal from Settings → Home asking to replay the walkthrough.
+class TourReplay extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void request() => state = true;
+  void clear() => state = false;
+}
+
+final tourReplayProvider = NotifierProvider<TourReplay, bool>(TourReplay.new);
 
 // ---- Reactive data ---------------------------------------------------------
 

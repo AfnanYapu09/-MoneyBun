@@ -17,6 +17,7 @@ import '../../../core/widgets/pill.dart';
 import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/segmented_control.dart';
+import '../../../core/widgets/swipe_action_row.dart';
 import '../../../core/widgets/week_strip.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
@@ -281,17 +282,28 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           for (var i = 0; i < ranked.length; i++)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 16),
-                              child: InkWell(
-                                onTap: () => context.push(
-                                  '/transactions?categoryId=${Uri.encodeComponent(ranked[i].key)}',
+                              child: _breakdownRow(
+                                // "อื่นๆ" is the system fallback — not
+                                // deletable.
+                                deletable: categories[ranked[i].key] != null &&
+                                    ranked[i].key != 'sys_other',
+                                rowKey: 'cat-${ranked[i].key}',
+                                onDelete: () => _deleteCategory(
+                                  categories[ranked[i].key]!,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                                child: _CategoryBar(
-                                  category: categories[ranked[i].key],
-                                  cents: ranked[i].value,
-                                  fraction:
-                                      total == 0 ? 0 : ranked[i].value / total,
-                                  color: chartColors[i % chartColors.length],
+                                child: InkWell(
+                                  onTap: () => context.push(
+                                    '/transactions?categoryId=${Uri.encodeComponent(ranked[i].key)}',
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: _CategoryBar(
+                                    category: categories[ranked[i].key],
+                                    cents: ranked[i].value,
+                                    fraction: total == 0
+                                        ? 0
+                                        : ranked[i].value / total,
+                                    color: chartColors[i % chartColors.length],
+                                  ),
                                 ),
                               ),
                             ),
@@ -305,18 +317,24 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                         for (var i = 0; i < rankedTags.length; i++)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: InkWell(
-                              onTap: () => context.push(
-                                '/transactions?tagId=${Uri.encodeComponent(rankedTags[i].key)}',
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              child: _TagBar(
-                                tag: tags[rankedTags[i].key],
-                                cents: rankedTags[i].value,
-                                fraction: tagTotal == 0
-                                    ? 0
-                                    : rankedTags[i].value / tagTotal,
-                                color: chartColors[i % chartColors.length],
+                            child: _breakdownRow(
+                              deletable: tags[rankedTags[i].key] != null,
+                              rowKey: 'tag-${rankedTags[i].key}',
+                              onDelete: () =>
+                                  _deleteTag(tags[rankedTags[i].key]!),
+                              child: InkWell(
+                                onTap: () => context.push(
+                                  '/transactions?tagId=${Uri.encodeComponent(rankedTags[i].key)}',
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                child: _TagBar(
+                                  tag: tags[rankedTags[i].key],
+                                  cents: rankedTags[i].value,
+                                  fraction: tagTotal == 0
+                                      ? 0
+                                      : rankedTags[i].value / tagTotal,
+                                  color: chartColors[i % chartColors.length],
+                                ),
                               ),
                             ),
                           ),
@@ -329,6 +347,44 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         ),
       ),
     );
+  }
+
+  /// Wraps a breakdown bar in the shared swipe-to-delete gesture; rows for
+  /// missing/system entries render unchanged.
+  Widget _breakdownRow({
+    required bool deletable,
+    required String rowKey,
+    required Future<void> Function() onDelete,
+    required Widget child,
+  }) {
+    if (!deletable) return child;
+    return SwipeActionRow(
+      key: ValueKey('stats-swipe-$rowKey'),
+      backgroundColor: context.palette.bg,
+      onDeleteTap: onDelete,
+      child: child,
+    );
+  }
+
+  Future<void> _deleteCategory(CategoryRow c) async {
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
+    final ok = await confirmDeleteTxn(
+      context,
+      title: l10n.manageCategories,
+      body: l10n.catConfirmDelete(c.displayName(locale)),
+    );
+    if (ok) await ref.read(categoryRepositoryProvider).delete(c.id);
+  }
+
+  Future<void> _deleteTag(TagRow t) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await confirmDeleteTxn(
+      context,
+      title: l10n.tagEditTitle,
+      body: l10n.tagConfirmDelete(t.name),
+    );
+    if (ok) await ref.read(tagRepositoryProvider).delete(t.id);
   }
 }
 

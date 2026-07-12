@@ -60,13 +60,19 @@ class SyncController with WidgetsBindingObserver {
   DateTime? _lastFullSyncAt;
   final Completer<void> _initialSync = Completer<void>();
 
-  /// Resolves once the first cloud sync has finished (success or failure), or
-  /// immediately when the user isn't signed in. The slip scanner awaits this so
-  /// it never reads slips that are about to be pulled from the cloud.
+  /// Resolves once the first cloud sync has actually COMPLETED (pull + push
+  /// ran to the end), or immediately when the user isn't signed in. The slip
+  /// scanner awaits this so it never imports slips that are about to arrive
+  /// from the cloud — a failed or slow sync keeps the scanner locked until a
+  /// later sync succeeds, because scanning early creates duplicates.
   Future<void> awaitInitialSync() {
     if (!_auth.isSignedIn) return Future<void>.value();
     return _initialSync.future;
   }
+
+  /// Synchronous view of [awaitInitialSync] so UI actions (pull-to-refresh)
+  /// can refuse to scan instead of hanging while the first pull is running.
+  bool get initialSyncDone => !_auth.isSignedIn || _initialSync.isCompleted;
 
   /// Push pending local changes after a (debounced) delay. Push-only does no
   /// reads, and markSynced leaves nothing pending, so repeated triggers
@@ -87,22 +93,34 @@ class SyncController with WidgetsBindingObserver {
     }
     _lastFullSyncAt = DateTime.now();
     var ran = false;
+    // Time-box only the VISUAL loading state: the skeleton/blur clears after
+    // [_firstSyncTimeout] even if a slow pull keeps running. The slip-scanner
+    // lock below is NOT time-boxed — scanning before the pull lands would
+    // import duplicates of the rows that are about to arrive.
+    Timer? loadingCap;
+    if (ownsFirst) {
+      loadingCap = Timer(
+        _firstSyncTimeout,
+        () => onSyncingChanged?.call(false),
+      );
+    }
     try {
-      // Bounded so a stalled Firestore call can't strand the loading skeleton
-      // (the real sync keeps running; only the loading state is time-boxed).
-      ran = await _engine.sync().timeout(_firstSyncTimeout);
+      ran = await _engine.sync();
     } catch (_) {
-      // Best-effort; a failed / timed-out sync is retried on the next trigger.
+      // Best-effort; a failed sync is retried on the next trigger (resume /
+      // sign-in), which will also unlock the scanner when it succeeds.
     } finally {
-      // Unblock the slip scanner after the first sync, even if it failed.
-      if (!_initialSync.isCompleted) _initialSync.complete();
+      loadingCap?.cancel();
       if (ownsFirst) onSyncingChanged?.call(false);
-      // Persist "this device has synced" once a sync actually ran, so a returning
-      // user never sees the first-load skeleton again. Fired by whichever call
-      // did the real work (ran == true), guarded to fire only once.
-      if (ran && !_firstSyncCompletedFired) {
-        _firstSyncCompletedFired = true;
-        onFirstSyncCompleted?.call();
+      if (ran) {
+        // Unblock the slip scanner ONLY after a sync that really completed.
+        if (!_initialSync.isCompleted) _initialSync.complete();
+        // Persist "this device has synced" once, so a returning user never
+        // sees the first-load skeleton again.
+        if (!_firstSyncCompletedFired) {
+          _firstSyncCompletedFired = true;
+          onFirstSyncCompleted?.call();
+        }
       }
     }
   }

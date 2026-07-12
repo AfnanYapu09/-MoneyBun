@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../bootstrap/providers.dart';
+import '../../features/home/presentation/home_tour.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/colors.dart';
@@ -27,6 +28,7 @@ class MainShell extends ConsumerWidget {
       floatingActionButton: sheetsOpen
           ? null
           : Container(
+              key: HomeTourKeys.fab,
               width: 58,
               height: 58,
               decoration: BoxDecoration(
@@ -67,12 +69,14 @@ class MainShell extends ConsumerWidget {
               onTap: () => _go(0),
             ),
             _NavItem(
+              key: HomeTourKeys.navStats,
               icon: AppIcons.chartPie,
               label: l10n.navStats,
               selected: shell.currentIndex == 1,
               onTap: () => _go(1),
             ),
             _NavItem(
+              key: HomeTourKeys.navSettings,
               icon: AppIcons.settings,
               label: l10n.navSettings,
               selected: shell.currentIndex == 2,
@@ -90,6 +94,7 @@ class MainShell extends ConsumerWidget {
 
 class _NavItem extends StatelessWidget {
   const _NavItem({
+    super.key,
     required this.icon,
     required this.label,
     required this.selected,

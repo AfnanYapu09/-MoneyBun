@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 
@@ -32,6 +33,21 @@ String authErrorMessage(
         return l10n.authErrNetwork;
       case 'operation-not-allowed':
         return l10n.authErrOperationNotAllowed;
+      case 'account-exists-with-different-credential':
+        return l10n.authErrAccountExists;
+      case 'provider-already-linked':
+        return l10n.authErrAlreadyLinked;
+      case 'credential-already-in-use':
+        return l10n.authErrCredentialInUse;
+    }
+  }
+  if (error is GoogleSignInException) {
+    switch (error.code) {
+      case GoogleSignInExceptionCode.clientConfigurationError:
+      case GoogleSignInExceptionCode.providerConfigurationError:
+        return l10n.authErrGoogleConfig;
+      default:
+        return l10n.authErrGoogleFailed;
     }
   }
   return fallback;

@@ -16,6 +16,7 @@ import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/pixel_icon.dart';
 import '../../../core/widgets/progress.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
+import '../../../core/widgets/swipe_action_row.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -74,7 +75,11 @@ class BudgetScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
             decoration: BoxDecoration(
-              color: AppColors.terra,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.terra, AppColors.terra700],
+              ),
               borderRadius: BorderRadius.circular(24),
             ),
             child: Column(
@@ -169,18 +174,37 @@ class BudgetScreen extends ConsumerWidget {
                 children: [
                   for (var i = 0; i < budgets.length; i++) ...[
                     if (i > 0) const SizedBox(height: 18),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => showBudgetSheet(context, budget: budgets[i]),
-                      child: _BudgetBar(
-                        category: categories[budgets[i].categoryId],
-                        spent: spentByCat[budgets[i].categoryId] ?? 0,
-                        limit: target(budgets[i]),
-                        periodLabel: budgetPeriodLabel(
-                          budgets[i].period,
-                          locale,
+                    // Swipe left to delete this category budget (same gesture
+                    // as the transaction lists).
+                    SwipeActionRow(
+                      key: ValueKey('budget-swipe-${budgets[i].id}'),
+                      onDeleteTap: () async {
+                        final ok = await confirmDeleteTxn(
+                          context,
+                          title: l10n.statsDeleteBudget,
+                          body: l10n.txnDeleteBody,
+                        );
+                        if (ok) {
+                          await ref.read(databaseProvider).softDeleteBudget(
+                                budgets[i].id,
+                                DateTime.now().millisecondsSinceEpoch,
+                              );
+                        }
+                      },
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () =>
+                            showBudgetSheet(context, budget: budgets[i]),
+                        child: _BudgetBar(
+                          category: categories[budgets[i].categoryId],
+                          spent: spentByCat[budgets[i].categoryId] ?? 0,
+                          limit: target(budgets[i]),
+                          periodLabel: budgetPeriodLabel(
+                            budgets[i].period,
+                            locale,
+                          ),
+                          alert: budgets[i].alertEnabled,
                         ),
-                        alert: budgets[i].alertEnabled,
                       ),
                     ),
                   ],

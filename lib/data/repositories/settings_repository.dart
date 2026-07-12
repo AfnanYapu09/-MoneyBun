@@ -15,6 +15,7 @@ class AppSettings {
     this.phone = '',
     this.avatarPath,
     this.firstSyncDone = false,
+    this.homeTourSeen = false,
   });
 
   final bool onboardingSeen;
@@ -38,6 +39,11 @@ class AppSettings {
   /// DB), never again for a returning user.
   final bool firstSyncDone;
 
+  /// Whether the first-run Home walkthrough has been shown on this device.
+  /// Device-level like [onboardingSeen] — a second account on the same phone
+  /// doesn't need the tour again.
+  final bool homeTourSeen;
+
   factory AppSettings.fromMap(Map<String, String> m) {
     bool b(String k, [bool d = false]) => m[k] == null ? d : m[k] == 'true';
     int i(String k, [int d = 0]) => int.tryParse(m[k] ?? '') ?? d;
@@ -59,6 +65,7 @@ class AppSettings {
       phone: m[SettingsKeys.phone] ?? '',
       avatarPath: m[SettingsKeys.avatarPath],
       firstSyncDone: b(SettingsKeys.firstSyncDone),
+      homeTourSeen: b(SettingsKeys.homeTourSeen),
     );
   }
 }
@@ -78,6 +85,7 @@ class SettingsKeys {
   static const avatarPath = 'avatarPath';
   static const recentSearches = 'recentSearches';
   static const firstSyncDone = 'firstSyncDone';
+  static const homeTourSeen = 'homeTourSeen';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -121,6 +129,8 @@ class SettingsRepository {
   Future<void> setPhone(String v) => set(SettingsKeys.phone, v);
   Future<void> setFirstSyncDone(bool v) =>
       setBool(SettingsKeys.firstSyncDone, v);
+  Future<void> setHomeTourSeen(bool v) =>
+      setBool(SettingsKeys.homeTourSeen, v);
 
   /// Clear the signed-in user's local settings on sign-out. Device preferences
   /// (theme, language, currency, onboarding-seen) are intentionally kept; only

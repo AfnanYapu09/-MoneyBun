@@ -46,11 +46,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(28, 36, 28, 30),
           children: [
-            const SizedBox(height: 14),
-            const Center(child: BunAvatar(size: 84)),
-            const SizedBox(height: 14),
-            const Center(child: Wordmark(size: 30)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 30),
+            // Brand lockup: mascot beside the wordmark, like the logo image.
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                BunAvatar(size: 64),
+                SizedBox(width: 14),
+                Wordmark(size: 40),
+              ],
+            ),
+            const SizedBox(height: 10),
             Center(
               child: Text(
                 l10n.authLoginSubtitle,
@@ -186,11 +192,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _login() => _run(() async {
         final auth = ref.read(authServiceProvider)!;
         await auth.signInWithEmail(_email.text, _password.text);
+        // An email login is by definition a returning user — never replay the
+        // first-run walkthrough for them on this device.
+        await ref.read(settingsRepositoryProvider).setHomeTourSeen(true);
       });
 
-  Future<void> _google() => _run(() async {
-        await ref.read(authServiceProvider)!.signInWithGoogle();
-      });
+  Future<void> _google() async {
+    final auth = ref.read(authServiceProvider);
+    if (auth == null) {
+      _snack(AppLocalizations.of(context).authFirebaseNotConfigured);
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final result = await auth.signInWithGoogle();
+      // null = user dismissed the account chooser; stay on the login screen.
+      if (result != null) {
+        // Show the walkthrough only when this Google sign-in just created the
+        // account; a returning user goes straight in without it.
+        await ref
+            .read(settingsRepositoryProvider)
+            .setHomeTourSeen(!result.isNew);
+        if (mounted) context.go('/home');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      _snack(authErrorMessage(e, l10n, fallback: l10n.authLoginFailed));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   Future<void> _apple() => _run(() async {
         await ref.read(authServiceProvider)!.signInWithApple();

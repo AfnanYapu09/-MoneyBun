@@ -19,11 +19,14 @@ import '../../../core/widgets/bun_scanning_block.dart';
 import '../../../core/widgets/period_chip.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/stat_chip.dart';
+import '../../../core/widgets/sync_blur.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../transactions/presentation/widgets/account_flow.dart';
 import '../../transactions/presentation/widgets/txn_day_group.dart';
+import 'home_tour.dart';
+import 'widgets/permission_banner.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -32,32 +35,98 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _bootFlow());
+  }
+
+  /// First-entry orchestration, in a fixed order so prompts never stack:
+  /// walkthrough (first run only) → auto slip scan (which triggers the OS
+  /// photo prompt) → recurring materialisation → silent permission check.
+  Future<void> _bootFlow() async {
+    final repo = ref.read(settingsRepositoryProvider);
+    final settings = await repo.read();
+    if (!mounted) return;
+    if (!settings.homeTourSeen) {
+      // Decide AFTER the cloud pull has landed: the walkthrough is only for
+      // people who have never recorded anything. Anyone whose account already
+      // holds entries knows the app — skip and never ask again.
+      final sync = ref.read(syncControllerProvider);
+      if (sync != null) await sync.awaitInitialSync();
+      if (!mounted) return;
+      await _waitForSkeletonGone();
+      if (!mounted) return;
+      final hasData =
+          (ref.read(allTransactionsProvider).value ?? const []).isNotEmpty;
+      if (hasData) {
+        await repo.setHomeTourSeen(true);
+      } else if (ref.read(openSheetsProvider) == 0) {
+        // A sheet on top (deep link / quick FAB tap) — don't fight it; the
+        // tour will run on the next launch instead.
+        final shown = await HomeTour.start(context);
+        if (shown) await repo.setHomeTourSeen(true);
+        if (!mounted) return;
+      }
+    }
     // Auto-read slips once per app open (the guard lives on the controller so
     // it fires once per launch even if Home is rebuilt by bottom-nav).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(scanControllerProvider.notifier).autoScanOnce();
-      _materialiseRecurring();
+    ref.read(scanControllerProvider.notifier).autoScanOnce();
+    _materialiseRecurring();
+    ref.read(photoPermissionProvider.notifier).refresh();
+  }
+
+  /// Wait for the first-login skeleton to clear (bounded) so the tour spot-
+  /// lights real content, not shimmer placeholders.
+  Future<void> _waitForSkeletonGone() async {
+    for (var waited = 0; waited < 8000; waited += 250) {
+      final settings = ref.read(appSettingsProvider).value;
+      final hasData =
+          (ref.read(allTransactionsProvider).value ?? const []).isNotEmpty;
+      final loading = ref.read(initialSyncingProvider) &&
+          !(settings?.firstSyncDone ?? false) &&
+          !hasData;
+      if (!loading) return;
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (!mounted) return;
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    // Coming back from Settings (or anywhere): re-check photo access silently.
+    // If the user just granted it, drop the banner and start reading slips.
+    final wasDenied =
+        ref.read(photoPermissionProvider) != PhotoPermStatus.granted;
+    ref.read(photoPermissionProvider.notifier).refresh().then((_) {
+      if (!mounted) return;
+      final now = ref.read(photoPermissionProvider);
+      if (wasDenied && now == PhotoPermStatus.granted) {
+        ref.read(scanControllerProvider.notifier).scan();
+      }
     });
   }
 
-  /// Create any recurring entries that have come due — but only after the first
-  /// cloud pull (bounded), so we don't re-materialise occurrences another device
-  /// already created and synced (which would duplicate them). Mirrors the slip
-  /// scanner's ordering. Providers are captured before the await so this never
-  /// touches `ref` after the widget might be disposed.
+  /// Create any recurring entries that have come due — but only after the
+  /// first cloud pull has truly finished (no timeout escape), so we don't
+  /// re-materialise occurrences another device already created and synced
+  /// (which would duplicate them). Mirrors the slip scanner's hard lock.
+  /// Providers are captured before the await so this never touches `ref`
+  /// after the widget might be disposed.
   Future<void> _materialiseRecurring() async {
     final sync = ref.read(syncControllerProvider);
     final recurring = ref.read(recurringServiceProvider);
-    if (sync != null) {
-      await sync.awaitInitialSync().timeout(
-            const Duration(seconds: 25),
-            onTimeout: () {},
-          );
-    }
+    if (sync != null) await sync.awaitInitialSync();
     await recurring.runDue();
   }
 
@@ -95,15 +164,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             .isNotEmpty;
     final showLoading =
         ref.watch(initialSyncingProvider) && !firstSyncDone && !hasLocalData;
+    // While the first cloud pull is streaming rows in, the visible amounts are
+    // partial — blur them so they read as "loading", not as real totals.
+    final blurNumbers = ref.watch(initialSyncingProvider) && !firstSyncDone;
 
-    final periodChip = PeriodChip(
-      label: period.label(locale),
-      onTapLabel: () => showPeriodPickerSheet(context),
-      onPrev: () => ref.read(selectedPeriodProvider.notifier).previous(),
-      onNext: () => ref.read(selectedPeriodProvider.notifier).next(),
+    final periodChip = KeyedSubtree(
+      key: HomeTourKeys.periodChip,
+      child: PeriodChip(
+        label: period.label(locale),
+        onTapLabel: () => showPeriodPickerSheet(context),
+        onPrev: () => ref.read(selectedPeriodProvider.notifier).previous(),
+        onNext: () => ref.read(selectedPeriodProvider.notifier).next(),
+      ),
     );
 
     _listenScan();
+    // Settings → "แนะนำการใช้งาน" lands here: replay the walkthrough once the
+    // Home frame is up.
+    ref.listen<bool>(tourReplayProvider, (prev, next) {
+      if (!next) return;
+      ref.read(tourReplayProvider.notifier).clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        // Let the tab switch from Settings finish so every anchor (FAB, nav,
+        // header) is measured in its settled position before spotlighting.
+        await Future.delayed(const Duration(milliseconds: 350));
+        if (!mounted || ref.read(openSheetsProvider) > 0) return;
+        await HomeTour.start(context);
+        await ref.read(settingsRepositoryProvider).setHomeTourSeen(true);
+      });
+    });
 
     final expense = txns
         .where((t) => t.type == TxnType.expense)
@@ -154,20 +243,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: showLoading
                       ? [
                           const _Header(),
+                          const PermissionBanner(),
                           periodChip,
                           const _HomeSkeleton(),
                         ]
                       : [
                           const _Header(),
+                          const PermissionBanner(),
                           if (scan.scanning) const BunScanningBlock(),
                           periodChip,
-                          _SpendingCard(
-                            spentCents: expense,
-                            budgetCents: totalBudget,
-                            subtitleNoun: period.periodNoun(locale),
-                            scanning: scan.scanning,
-                            lastReadAt: settings?.lastSlipReadAt,
-                            onRefresh: _scan,
+                          KeyedSubtree(
+                            key: HomeTourKeys.spendingCard,
+                            child: _SpendingCard(
+                              spentCents: expense,
+                              budgetCents: totalBudget,
+                              subtitleNoun: period.periodNoun(locale),
+                              scanning: scan.scanning,
+                              lastReadAt: settings?.lastSlipReadAt,
+                              onRefresh: _scan,
+                              blurNumbers: blurNumbers,
+                            ),
                           ),
                           Row(
                             children: [
@@ -178,6 +273,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   amount: Money.compact(income),
                                   accent: context.palette.greenFg,
                                   amountColor: context.palette.greenFg,
+                                  blurAmount: blurNumbers,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -187,12 +283,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   label: l10n.expense,
                                   amount: Money.compact(expense),
                                   accent: AppColors.terra,
+                                  blurAmount: blurNumbers,
                                 ),
                               ),
                             ],
                           ),
-                          _RecentHeader(
-                            onSeeAll: () => context.push('/transactions'),
+                          KeyedSubtree(
+                            key: HomeTourKeys.recent,
+                            child: _RecentHeader(
+                              onSeeAll: () => context.push('/transactions'),
+                            ),
                           ),
                           _RecentList(
                             uncategorized: recentUncategorized,
@@ -203,6 +303,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 showAddTransactionSheet(context, editId: id),
                             onCategorize: _categorize,
                             onShowSlip: _showSlip,
+                            onDelete: _deleteTxn,
                           ),
                         ],
                 ),
@@ -237,7 +338,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _listenScan() {
     final l10n = AppLocalizations.of(context);
     ref.listen<ScanState>(scanControllerProvider, (prev, next) {
-      if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
+      if (next.blockedBySync && !(prev?.blockedBySync ?? false)) {
+        // Manual scan while the first cloud pull is still running.
+        _snack(l10n.homeScanWaitSync);
+      } else if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
+        // Surface the banner immediately; the styled dialog nags once per
+        // app session (every cold launch) until access is granted.
+        ref.read(photoPermissionProvider.notifier).markDenied();
         _permissionDialog();
       } else if ((prev?.scanning ?? false) &&
           !next.scanning &&
@@ -316,6 +423,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _deleteTxn(TransactionRow txn) async {
+    await ref.read(transactionRepositoryProvider).delete(txn.id);
+    if (mounted) _snack(AppLocalizations.of(context).txnDeleted);
+  }
+
   void _snack(String m) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -324,25 +436,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _permissionDialog() async {
-    final l10n = AppLocalizations.of(context);
-    final open = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Text(l10n.homePhotoPermissionTitle),
-        content: Text(l10n.homePhotoPermissionBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(l10n.homeOpenSettings),
-          ),
-        ],
-      ),
-    );
-    if (open == true) await ref.read(slipImporterProvider).openSettings();
+    // Once per process: the dialog fires on every cold launch while access is
+    // denied, but revisiting Home in the same session only keeps the banner.
+    if (ref.read(permDialogShownProvider)) return;
+    ref.read(permDialogShownProvider.notifier).mark();
+    final grant = await showPhotoPermissionDialog(context);
+    if (!mounted) return;
+    final importer = ref.read(slipImporterProvider);
+    if (grant) {
+      // Re-request first — on a fresh deny the OS prompt can still appear.
+      // After "don't ask again" it resolves denied instantly → settings page.
+      final perm = await importer.requestPermission();
+      if (!perm.granted) await importer.openSettings();
+    }
+    if (!mounted) return;
+    final notifier = ref.read(photoPermissionProvider.notifier);
+    await notifier.refresh();
+    if (!mounted) return;
+    if (ref.read(photoPermissionProvider) == PhotoPermStatus.granted) {
+      ref.read(scanControllerProvider.notifier).scan();
+    }
   }
 }
 
@@ -453,7 +566,10 @@ class _Header extends ConsumerWidget {
             ],
           ),
         ),
-        _WalletButton(onTap: () => showAccountsSheet(context)),
+        KeyedSubtree(
+          key: HomeTourKeys.wallet,
+          child: _WalletButton(onTap: () => showAccountsSheet(context)),
+        ),
       ],
     );
   }
@@ -490,6 +606,7 @@ class _SpendingCard extends StatelessWidget {
     required this.scanning,
     required this.lastReadAt,
     required this.onRefresh,
+    this.blurNumbers = false,
   });
 
   final int spentCents;
@@ -498,6 +615,9 @@ class _SpendingCard extends StatelessWidget {
   final bool scanning;
   final int? lastReadAt;
   final Future<void> Function() onRefresh;
+
+  /// Blur the money figures while the first cloud pull is loading them.
+  final bool blurNumbers;
 
   @override
   Widget build(BuildContext context) {
@@ -509,7 +629,12 @@ class _SpendingCard extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.terra,
+        // Same brand gradient as the profile banner, for a cohesive look.
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.terra, AppColors.terra700],
+        ),
         borderRadius: BorderRadius.circular(24),
       ),
       padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
@@ -535,25 +660,31 @@ class _SpendingCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                Money.compact(spentCents),
-                style: AppTypography.heading(
-                  size: 38,
-                  weight: FontWeight.w600,
-                  color: AppColors.reverse,
+              SyncBlur(
+                active: blurNumbers,
+                child: Text(
+                  Money.compact(spentCents),
+                  style: AppTypography.heading(
+                    size: 38,
+                    weight: FontWeight.w600,
+                    color: AppColors.reverse,
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                hasBudget
-                    ? l10n.homeBudgetRemaining(
-                        Money.compact(remaining),
-                        Money.compact(budgetCents),
-                      )
-                    : l10n.homeNoBudget,
-                style: AppTypography.body(
-                  size: 13,
-                  color: AppColors.reverse.withValues(alpha: 0.82),
+              SyncBlur(
+                active: blurNumbers,
+                child: Text(
+                  hasBudget
+                      ? l10n.homeBudgetRemaining(
+                          Money.compact(remaining),
+                          Money.compact(budgetCents),
+                        )
+                      : l10n.homeNoBudget,
+                  style: AppTypography.body(
+                    size: 13,
+                    color: AppColors.reverse.withValues(alpha: 0.82),
+                  ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -659,6 +790,7 @@ class _RecentList extends StatelessWidget {
     required this.onTapTxn,
     required this.onCategorize,
     required this.onShowSlip,
+    required this.onDelete,
   });
 
   final List<TransactionRow> uncategorized;
@@ -668,6 +800,7 @@ class _RecentList extends StatelessWidget {
   final void Function(String id) onTapTxn;
   final void Function(TransactionRow) onCategorize;
   final void Function(TransactionRow) onShowSlip;
+  final void Function(TransactionRow) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -699,16 +832,19 @@ class _RecentList extends StatelessWidget {
     final days = byDay.keys.toList()..sort((a, b) => b.compareTo(a));
     return Column(
       children: [
-        for (final day in days)
+        for (var i = 0; i < days.length; i++)
           TxnDayGroup(
-            day: day,
-            rows: byDay[day]!,
+            day: days[i],
+            rows: byDay[days[i]]!,
             categories: categories,
             accounts: accounts,
             locale: locale,
             onTapTxn: onTapTxn,
             onCategorize: onCategorize,
             onShowSlip: onShowSlip,
+            onDelete: onDelete,
+            // Walkthrough anchor on the very first slip row.
+            firstRowKey: i == 0 ? HomeTourKeys.slipRow : null,
           ),
       ],
     );

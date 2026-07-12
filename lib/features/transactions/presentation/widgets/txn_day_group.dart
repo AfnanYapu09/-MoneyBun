@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/router/sheets.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/app_date.dart';
 import '../../../../core/utils/money.dart';
+import '../../../../core/widgets/swipe_action_row.dart';
 import '../../../../data/local/database.dart';
 import '../../../../domain/enums/enums.dart';
 import '../txn_display.dart';
@@ -25,6 +27,8 @@ class TxnDayGroup extends StatelessWidget {
     required this.onTapTxn,
     required this.onCategorize,
     this.onShowSlip,
+    this.onDelete,
+    this.firstRowKey,
   });
 
   final DateTime day;
@@ -37,6 +41,13 @@ class TxnDayGroup extends StatelessWidget {
 
   /// View the source slip of a row (used by the zero-amount warning).
   final void Function(TransactionRow txn)? onShowSlip;
+
+  /// Delete a row. When set, rows can be swiped left to reveal a trash action
+  /// (confirmed with a dialog before anything is removed).
+  final void Function(TransactionRow txn)? onDelete;
+
+  /// Anchor for the Home walkthrough — attached to this group's first row.
+  final GlobalKey? firstRowKey;
 
   static bool isUncategorized(TransactionRow t) =>
       t.type == TxnType.expense && t.categoryId == null;
@@ -97,7 +108,13 @@ class TxnDayGroup extends StatelessWidget {
             children: [
               for (var i = 0; i < rows.length; i++) ...[
                 if (i > 0) const Divider(height: 1),
-                _buildRow(context, rows[i]),
+                if (i == 0 && firstRowKey != null)
+                  KeyedSubtree(
+                    key: firstRowKey,
+                    child: _buildRow(context, rows[i]),
+                  )
+                else
+                  _buildRow(context, rows[i]),
               ],
             ],
           ),
@@ -107,8 +124,9 @@ class TxnDayGroup extends StatelessWidget {
   }
 
   Widget _buildRow(BuildContext context, TransactionRow t) {
+    Widget row;
     if (isUncategorized(t)) {
-      return ScannedTxnRow(
+      row = ScannedTxnRow(
         txn: t,
         time: AppDate.formatTime(
           AppDate.fromMillis(t.occurredAt),
@@ -118,23 +136,35 @@ class TxnDayGroup extends StatelessWidget {
         onCategorize: () => onCategorize(t),
         onShowSlip: onShowSlip == null ? null : () => onShowSlip!(t),
       );
+    } else {
+      final d = txnDisplay(
+        t,
+        categories: categories,
+        accounts: accounts,
+        locale: locale,
+        context: context,
+      );
+      row = TxnRow(
+        icon: d.icon,
+        title: d.title,
+        sub: d.sub,
+        iconColor: d.color,
+        iconKey: d.iconKey,
+        amountCents: t.amountCents,
+        type: t.type,
+        onTap: () => onTapTxn(t.id),
+      );
     }
-    final d = txnDisplay(
-      t,
-      categories: categories,
-      accounts: accounts,
-      locale: locale,
-      context: context,
-    );
-    return TxnRow(
-      icon: d.icon,
-      title: d.title,
-      sub: d.sub,
-      iconColor: d.color,
-      iconKey: d.iconKey,
-      amountCents: t.amountCents,
-      type: t.type,
-      onTap: () => onTapTxn(t.id),
+    if (onDelete == null) return row;
+    // iOS-style: a small left swipe pins a trash button open; only TAPPING it
+    // (then confirming) deletes.
+    return SwipeActionRow(
+      key: ValueKey('txn-swipe-${t.id}'),
+      onDeleteTap: () async {
+        final ok = await confirmDeleteTxn(context);
+        if (ok) onDelete!(t);
+      },
+      child: row,
     );
   }
 }
