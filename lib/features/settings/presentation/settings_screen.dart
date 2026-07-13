@@ -10,6 +10,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/profile_avatar.dart';
 import '../../../core/widgets/setting_row.dart';
 import '../../../data/repositories/settings_repository.dart';
+import '../../plan/domain/plan.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -31,6 +32,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final repo = ref.read(settingsRepositoryProvider);
     final currencyLabel = settings.currencyCode;
     final l10n = AppLocalizations.of(context);
+    final packageInfo = ref.watch(packageInfoProvider).value;
 
     return Scaffold(
       body: SafeArea(
@@ -51,7 +53,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               name: settings.displayName,
               username: settings.username,
               avatarPath: settings.avatarPath,
+              tier: ref.watch(planProvider).tier,
               onTap: () => context.push('/settings/profile'),
+            ),
+            const SizedBox(height: 10),
+            // This month's scan quota at a glance — taps through to the plans.
+            _QuotaBar(
+              used: ref.watch(slipsUsedThisMonthProvider).value ?? 0,
+              limit: ref.watch(planProvider).scanLimit,
+              onTap: () => context.push('/settings/plan'),
             ),
             const SizedBox(height: 18),
             SettingSectionLabel(l10n.settingsAccountSection),
@@ -62,6 +72,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   label: l10n.settingsMyProfile,
                   onTap: () => context.push('/settings/profile'),
                 ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            SettingSectionLabel(l10n.settingsMoneySection),
+            SettingGroup(
+              children: [
                 SettingRow(
                   icon: AppIcons.banknote,
                   label: l10n.settingsCurrency,
@@ -73,12 +89,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   label: l10n.settingsSavingsGoal,
                   onTap: () => context.push('/settings/savings'),
                 ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            SettingSectionLabel(l10n.settingsDataSection),
-            SettingGroup(
-              children: [
                 SettingRow(
                   icon: AppIcons.layoutGrid,
                   label: l10n.manageCategories,
@@ -116,10 +126,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       repo.setLocale(settings.locale == 'th' ? 'en' : 'th'),
                 ),
                 SettingRow(
+                  icon: AppIcons.bellRing,
+                  label: l10n.settingsReminder,
+                  value: settings.reminderEnabled
+                      ? settings.reminderTime
+                      : l10n.reminderOff,
+                  onTap: () => context.push('/settings/reminder'),
+                ),
+                SettingRow(
                   icon: AppIcons.download,
                   label: l10n.settingsExportData,
                   onTap: () => context.push('/settings/export'),
                 ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            SettingSectionLabel(l10n.settingsSupportSection),
+            SettingGroup(
+              children: [
                 SettingRow(
                   icon: AppIcons.sparkles,
                   label: l10n.settingsShowTour,
@@ -150,12 +174,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 20),
             Center(
-              child: Text(
-                'moneyBun v1.0.0',
-                style: AppTypography.body(
-                  size: 12,
-                  color: context.palette.ink3,
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    packageInfo == null
+                        ? 'moneyBun'
+                        : 'moneyBun v${packageInfo.version}'
+                            ' (${packageInfo.buildNumber})',
+                    style: AppTypography.body(
+                      size: 12,
+                      color: context.palette.ink3,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'พัฒนาโดย Afnan_YP',
+                    style: AppTypography.body(
+                      size: 12,
+                      color: context.palette.ink3,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -219,16 +258,106 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 }
 
+/// Compact scan-quota meter under the profile card: "สแกนสลิปเดือนนี้ X/30"
+/// with a progress bar that warms up as the month's quota fills. Taps through
+/// to the plan screen.
+class _QuotaBar extends StatelessWidget {
+  const _QuotaBar({
+    required this.used,
+    required this.limit,
+    required this.onTap,
+  });
+
+  final int used;
+
+  /// Monthly cap, or null = unlimited (Ultra).
+  final int? limit;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final cap = limit;
+    final ratio =
+        cap == null ? 0.0 : (cap == 0 ? 1.0 : (used / cap).clamp(0.0, 1.0));
+    final barColor = ratio >= 1
+        ? context.palette.dangerFg
+        : (ratio >= 0.8 ? AppColors.amber : AppColors.terra);
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        decoration: BoxDecoration(
+          color: context.palette.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.palette.line),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(
+                  AppIcons.receipt,
+                  size: 15,
+                  color: context.palette.terraFg,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.settingsQuotaTitle,
+                    style: AppTypography.body(
+                      size: 13,
+                      color: context.palette.ink2,
+                    ),
+                  ),
+                ),
+                Text(
+                  cap == null
+                      ? '$used · ${l10n.settingsQuotaUnlimited}'
+                      : '$used/$cap',
+                  style: AppTypography.heading(
+                    size: 13.5,
+                    weight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  AppIcons.chevronRight,
+                  size: 15,
+                  color: context.palette.ink3,
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: ratio,
+                minHeight: 6,
+                backgroundColor: context.palette.surfaceAlt,
+                valueColor: AlwaysStoppedAnimation(barColor),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({
     required this.name,
     required this.username,
     required this.avatarPath,
+    required this.tier,
     required this.onTap,
   });
   final String name;
   final String username;
   final String? avatarPath;
+  final PlanTier tier;
   final VoidCallback onTap;
 
   @override
@@ -270,7 +399,12 @@ class _ProfileCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    l10n.settingsHandleFreeMember(username),
+                    switch (tier) {
+                      PlanTier.ultra =>
+                        l10n.settingsHandleUltraMember(username),
+                      PlanTier.pro => l10n.settingsHandleProMember(username),
+                      PlanTier.free => l10n.settingsHandleFreeMember(username),
+                    },
                     style: AppTypography.body(
                       size: 13,
                       color: AppColors.reverse.withValues(alpha: 0.85),

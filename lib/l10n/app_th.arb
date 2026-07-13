@@ -59,7 +59,7 @@
   "notSignedIn": "ยังไม่ได้เข้าสู่ระบบ",
   "manageCategories": "จัดการหมวดหมู่",
   "about": "เกี่ยวกับ",
-  "aboutBun": "MoneyBun • น้องบันตัวสีส้มพิกเซล 🐰",
+  "aboutBun": "MoneyBun • น้องบันตัวสีส้มพิกเซล",
   "emptyDayTitle": "ยังไม่มีรายการวันนี้",
   "emptyDaySubtitle": "แตะปุ่ม + เพื่อเพิ่มรายการแรก",
   "month": "เดือน",
@@ -69,7 +69,6 @@
   "settingsMyProfile": "โปรไฟล์ของฉัน",
   "settingsCurrency": "สกุลเงิน",
   "settingsSavingsGoal": "เป้าหมายการออม",
-  "settingsDataSection": "จัดการข้อมูล",
   "settingsManageTags": "จัดการแท็ก",
   "settingsGeneralSection": "ทั่วไป",
   "settingsTheme": "ธีม",
@@ -89,6 +88,90 @@
       }
     }
   },
+  "settingsHandleUltraMember": "@{username} · สมาชิก Ultra",
+  "@settingsHandleUltraMember": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsReminder": "แจ้งเตือนให้จด",
+  "reminderEnable": "เปิดแจ้งเตือนทุกวัน",
+  "reminderTimeLabel": "เวลาแจ้งเตือน",
+  "reminderOff": "ปิด",
+  "reminderDescription": "น้องบันจะมาเตือนให้จดรายรับรายจ่ายทุกวันตามเวลาที่ตั้งไว้",
+  "reminderNotifTitle": "น้องบันมาเตือนแล้ว",
+  "reminderNotifBody": "อย่าลืมจดรายรับรายจ่ายวันนี้นะ",
+  "reminderPermissionDenied": "ต้องอนุญาตการแจ้งเตือนในตั้งค่าเครื่องก่อน",
+  "settingsPlan": "แพลนสมาชิก",
+  "planFree": "Free",
+  "planPro": "Pro",
+  "planUltra": "Ultra",
+  "planCurrentBadge": "แพลนปัจจุบัน",
+  "planFreeDetail1": "จดรายรับรายจ่ายไม่จำกัด",
+  "planFreeDetail2": "สแกนสลิปอัตโนมัติ 30 ใบ/เดือน",
+  "planFreeDetail3": "ซิงค์คลาวด์ ข้อมูลไม่หายแม้เปลี่ยนเครื่อง",
+  "planFreeDetail4": "สถิติ งบประมาณ และเป้าหมายการออม",
+  "planFreeDetail5": "ส่งออกข้อมูลเป็นไฟล์ CSV",
+  "planUltraDetail1": "ทุกอย่างในแพลน Free",
+  "planUltraDetail2": "สแกนสลิป 300 ใบ/เดือน — มากกว่า 10 เท่า",
+  "planUltraDetail5": "ป้ายสมาชิก Ultra บนโปรไฟล์",
+  "planMyCode": "โค้ดชวนเพื่อนของฉัน",
+  "planCodeCopied": "คัดลอกโค้ดแล้ว",
+  "planShareMessage": "มาจดรายรับรายจ่ายด้วยกันใน moneyBun! กรอกโค้ด {code} ในแอปแล้วได้ Pro ฟรีทั้งคู่เลย",
+  "@planShareMessage": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "planEnterCode": "กรอกโค้ดเพื่อน",
+  "planEnterCodeHint": "เช่น ABC123",
+  "planRedeem": "ใช้โค้ด",
+  "planRedeemSuccess": "ปลดล็อก Pro เดือนนี้แล้ว! 🎉",
+  "planRedeemOwnCode": "ใช้โค้ดของตัวเองไม่ได้นะ",
+  "planRedeemInvalid": "ไม่พบโค้ดนี้ ลองตรวจอีกครั้ง",
+  "planRedeemFailed": "ใช้โค้ดไม่สำเร็จ ลองใหม่อีกครั้ง",
+  "planUltraHint": "Pro ใช้ได้ถึงสิ้นเดือน — ชวนเพื่อนใหม่ได้ทุกเดือน",
+  "planUltraActiveHint": "Ultra ใช้งานอยู่ — ขอบคุณที่สนับสนุนน้องบัน",
+  "planHowTo": "ให้เพื่อนกรอกโค้ดของเรา หรือเรากรอกโค้ดเพื่อน แล้วได้ Pro ทั้งคู่ทันทีถึงสิ้นเดือน",
+  "settingsMoneySection": "การเงิน",
+  "settingsSupportSection": "ความช่วยเหลือ",
+  "settingsReferral": "ชวนเพื่อน",
+  "settingsQuotaTitle": "สแกนสลิปเดือนนี้",
+  "planSlipsUnit": "สลิป/เดือน",
+  "planIncludesLabel": "สิ่งที่ได้รับ",
+  "planUnlimitedNumber": "∞",
+  "planUltraPriceLine": "เพียง 29 บาท/เดือน",
+  "planUltraContactCta": "สมัคร Ultra — ติดต่อผู้พัฒนา",
+  "planRecurringFeature": "รายการจดซ้ำอัตโนมัติ",
+  "planUltraAll": "ทุกอย่างในแพลน Pro",
+  "planUltraScanUnlimited": "สแกนสลิปไม่จำกัด",
+  "planUltraSupport": "ซัพพอร์ตตรงจากผู้พัฒนา",
+  "featureNeedsPro": "ฟีเจอร์นี้ปลดล็อกในแพลน Pro ขึ้นไป",
+  "viewPlans": "ดูแพลนสมาชิก",
+  "settingsQuotaUnlimited": "ไม่จำกัด",
+  "planUnlockCta": "ชวนเพื่อนปลดล็อก Pro",
+  "planUltraDetail3": "ปลดล็อกฟรีด้วยการชวนเพื่อน",
+  "settingsHandleProMember": "@{username} · สมาชิก Pro",
+  "@settingsHandleProMember": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "scanQuotaReached": "สแกนครบโควต้าเดือนนี้แล้ว ({limit} ใบ)",
+  "@scanQuotaReached": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuotaUpgrade": "ปลดล็อกเพิ่ม",
   "settingsDisplayName": "ชื่อที่แสดง",
   "settingsDisplayNameHint": "คุณบัน",
   "settingsUsername": "ชื่อผู้ใช้",

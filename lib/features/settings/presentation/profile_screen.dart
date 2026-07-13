@@ -1,10 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
@@ -252,8 +248,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   /// first (`PlatformException(already_active)`).
   bool _picking = false;
 
-  /// Pick a photo from the gallery, copy it into the app's documents dir, and
-  /// store its path — so the avatar is actually changed and persists.
+  /// Pick a photo from the gallery and hand it to the repository, which
+  /// stores it locally (uid-named, survives sign-out) and uploads it to the
+  /// cloud via the synced `avatarImage` setting (survives reinstall / appears
+  /// on other devices).
   Future<void> _pickAvatar() async {
     if (_picking) return;
     _picking = true;
@@ -261,8 +259,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Captured before the awaits: the picker is a separate activity, so the
     // user can easily back out of this screen while it's open — after which
     // ref.read throws and the chosen photo would be lost.
-    final old = ref.read(appSettingsProvider).value?.avatarPath;
     final repo = ref.read(settingsRepositoryProvider);
+    final uid = ref.read(authServiceProvider)?.currentUser?.uid;
     try {
       final picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
@@ -270,18 +268,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         imageQuality: 85,
       );
       if (picked == null) return;
-      final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}'
-          '${p.extension(picked.path)}';
-      final dir = await getApplicationDocumentsDirectory();
-      final dest = p.join(dir.path, name);
-      await File(picked.path).copy(dest);
-      await repo.setAvatarPath(dest);
-      // Best-effort cleanup of the previous photo.
-      if (old != null && old.isNotEmpty && old != dest) {
-        try {
-          File(old).deleteSync();
-        } catch (_) {}
-      }
+      await repo.saveAvatarPhoto(uid: uid ?? 'local', sourcePath: picked.path);
       if (mounted) _snack(l10n.profileAvatarUpdated);
     } catch (_) {
       // Picker unavailable / already open / copy failed — tell the user

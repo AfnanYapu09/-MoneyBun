@@ -105,6 +105,9 @@ class AppIcons {
   static const IconData wrench = LucideIcons.wrench;
   static const IconData scissors = LucideIcons.scissors;
   static const IconData sparkles = LucideIcons.sparkles;
+  static const IconData copy = LucideIcons.copy;
+  static const IconData share = LucideIcons.share2;
+  static const IconData crown = LucideIcons.crown;
   static const IconData leaf = LucideIcons.leaf;
   static const IconData ticket = LucideIcons.ticket;
   static const IconData heart = LucideIcons.heart;

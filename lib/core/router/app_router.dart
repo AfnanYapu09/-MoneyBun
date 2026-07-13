@@ -12,10 +12,13 @@ import '../../features/categories/presentation/manage_categories_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/recurring/presentation/manage_recurring_screen.dart';
+import '../../features/plan/presentation/plan_screen.dart';
+import '../../features/plan/presentation/referral_screen.dart';
 import '../../features/settings/presentation/currency_screen.dart';
 import '../../features/settings/presentation/help_screen.dart';
 import '../../features/settings/presentation/profile_screen.dart';
 import '../../features/settings/presentation/export_screen.dart';
+import '../../features/settings/presentation/reminder_screen.dart';
 import '../../features/settings/presentation/savings_goal_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/settings/presentation/theme_screen.dart';
@@ -164,6 +167,18 @@ GoRouter buildRouter(Ref ref) {
       GoRoute(
         path: '/settings/help',
         pageBuilder: (c, s) => slidePage(const HelpScreen()),
+      ),
+      GoRoute(
+        path: '/settings/reminder',
+        pageBuilder: (c, s) => slidePage(const ReminderScreen()),
+      ),
+      GoRoute(
+        path: '/settings/plan',
+        pageBuilder: (c, s) => slidePage(const PlanScreen()),
+      ),
+      GoRoute(
+        path: '/settings/referral',
+        pageBuilder: (c, s) => slidePage(const ReferralScreen()),
       ),
     ],
   );

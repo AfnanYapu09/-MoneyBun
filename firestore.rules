@@ -6,8 +6,48 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    match /users/{userId} {
+      // Every per-user collection (transactions, accounts, categories,
+      // slips, budgets, tags, recurringRules, settings, ...) is fully
+      // owner-read/write — EXCEPT settings/ultraUntil, carved out below.
+      match /{collection}/{docId} {
+        allow read, write: if request.auth != null
+          && request.auth.uid == userId
+          && !(collection == 'settings' && docId == 'ultraUntil');
+      }
+
+      // ultraUntil (paid Ultra expiry) is granted manually via the Firebase
+      // console — privileged access that bypasses these rules entirely — and
+      // is never written by the app itself (no client call site exists).
+      // Deny client writes outright so no one can self-grant Ultra by
+      // pushing this doc directly through the SDK/REST API.
+      match /settings/ultraUntil {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+
+    // Referral codes (Pro unlock): the owner publishes their code; any
+    // signed-in user can look a code up to redeem it. A redemption doc id is
+    // "<redeemerUid>_<YYYY-MM>", written only by that redeemer and never by
+    // the code's owner (no self-referral). The owner reads redemptions to
+    // activate their own side of the reward. Nothing here is updatable or
+    // deletable from clients.
+    match /referralCodes/{code} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      match /redemptions/{redemptionId} {
+        allow read: if request.auth != null
+          && get(/databases/$(database)/documents/referralCodes/$(code))
+              .data.ownerUid == request.auth.uid;
+        allow create: if request.auth != null
+          && redemptionId == request.auth.uid + '_' + request.resource.data.month
+          && request.resource.data.redeemerUid == request.auth.uid
+          && get(/databases/$(database)/documents/referralCodes/$(code))
+              .data.ownerUid != request.auth.uid;
+      }
     }
 
     // Everything else is denied by default.

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Generate MoneyBun launcher-icon and native-splash assets from the pixel "Bun".
 
-The Bun mascot is the 14-col x 15-row grid mirrored from lib/core/widgets/bun_avatar.dart
-(design_files/bun.jsx BUN_MAP). 'X'=body, 'K'=eye, 'N'=nose/cheek shadow, '.'=empty.
+The Bun mascot is the 14-col x 16-row grid mirrored from the Splash Screen's
+_BunPainter (lib/features/splash/presentation/splash_screen.dart), the same grid
+lib/core/widgets/bun_avatar.dart uses for every other mascot instance in the app.
+'X'=body, 'K'=eye, 'D'=nose/shadow, '.'=empty.
 
 We render directly to PNG (this environment has no Flutter toolchain, so
 flutter_launcher_icons / flutter_native_splash can't run). Re-run after changing the grid
@@ -16,14 +18,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUN_MAP = [
     "...XX....XX...",
     "...XX....XX...",
-    "...XX.XX.XX...",
+    "...XX....XX...",
+    "...XX....XX...",
+    "..XXXX..XXXX..",
     "..XXXXXXXXXX..",
     ".XXXXXXXXXXXX.",
-    "XXXXXXXXXXXXXX",
     "XXXKKXXXXKKXXX",
     "XXXKKXXXXKKXXX",
     "XXXXXXXXXXXXXX",
-    "XXXXXXNNXXXXXX",
+    "XXXXXXDDXXXXXX",
     "XXXXXXXXXXXXXX",
     ".XXXXXXXXXXXX.",
     ".XXXXXXXXXXXX.",
@@ -31,7 +34,7 @@ BUN_MAP = [
     ".XX.XX..XX.XX.",
 ]
 COLS = 14
-ROWS = len(BUN_MAP)  # 15
+ROWS = len(BUN_MAP)  # 16
 
 TERRA = (0xC4, 0x69, 0x4A, 255)
 TERRA_DEEP = (0xA9, 0x54, 0x3A, 255)
@@ -50,7 +53,7 @@ def draw_bun(img, box, body, eye, nose):
         for c, ch_ in enumerate(row):
             if ch_ == ".":
                 continue
-            color = eye if ch_ == "K" else (nose if ch_ == "N" else body)
+            color = eye if ch_ == "K" else (nose if ch_ == "D" else body)
             px0 = x0 + round(c * cw)
             py0 = y0 + round(r * ch)
             px1 = max(px0 + 1, x0 + round((c + 1) * cw))
@@ -59,7 +62,7 @@ def draw_bun(img, box, body, eye, nose):
 
 
 def bun_box(size, frac):
-    """Centered box for a Bun that is `frac` of `size` wide (grid is 14x15)."""
+    """Centered box for a Bun that is `frac` of `size` wide (grid is 14x16)."""
     bw = size * frac
     bh = bw * ROWS / COLS
     return (round((size - bw) / 2), round((size - bh) / 2), round(bw), round(bh))

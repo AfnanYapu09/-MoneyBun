@@ -13,8 +13,8 @@ enum BunVariant {
 }
 
 /// "น้องบัน" (Bun) — the pixel mascot, drawn with a [CustomPainter] from the
-/// design's 14×16 grid so it stays crisp at any size. `X`=body, `K`=eye,
-/// `N`=nose/cheek shadow. See `design_files/bun.jsx` (`BUN_MAP`).
+/// same 14×16 grid as the Splash Screen's bun so every instance in the app
+/// matches it exactly. `X`=body, `K`=eye, `D`=nose/shadow.
 class BunAvatar extends StatelessWidget {
   const BunAvatar({
     super.key,
@@ -41,18 +41,19 @@ class _BunPainter extends CustomPainter {
 
   final BunVariant variant;
 
-  // 14 columns. Rabbit ears on top, square eyes, four stub legs.
+  // 14 columns, 16 rows — identical to the Splash Screen's _BunPainter grid.
   static const List<String> _grid = [
     '...XX....XX...',
     '...XX....XX...',
-    '...XX.XX.XX...',
+    '...XX....XX...',
+    '...XX....XX...',
+    '..XXXX..XXXX..',
     '..XXXXXXXXXX..',
     '.XXXXXXXXXXXX.',
-    'XXXXXXXXXXXXXX',
     'XXXKKXXXXKKXXX',
     'XXXKKXXXXKKXXX',
     'XXXXXXXXXXXXXX',
-    'XXXXXXNNXXXXXX',
+    'XXXXXXDDXXXXXX',
     'XXXXXXXXXXXXXX',
     '.XXXXXXXXXXXX.',
     '.XXXXXXXXXXXX.',
@@ -75,7 +76,7 @@ class _BunPainter extends CustomPainter {
       for (var x = 0; x < row.length; x++) {
         final ch = row[x];
         if (ch == '.') continue;
-        paint.color = ch == 'K' ? _eye : (ch == 'N' ? _nose : _body);
+        paint.color = ch == 'K' ? _eye : (ch == 'D' ? _nose : _body);
         // +0.5 overlap avoids hairline seams between cells.
         canvas.drawRect(
           Rect.fromLTWH(x * cell, y * cell, cell + 0.5, cell + 0.5),
@@ -125,7 +126,7 @@ class _BunCalcPainter extends CustomPainter {
         if (ch == '.') continue;
         px.color = ch == 'K'
             ? AppColors.ink
-            : (ch == 'N' ? AppColors.terraDeep : AppColors.terra);
+            : (ch == 'D' ? AppColors.terraDeep : AppColors.terra);
         canvas.drawRect(
           Rect.fromLTWH(
             (ox * s) + x * cell,

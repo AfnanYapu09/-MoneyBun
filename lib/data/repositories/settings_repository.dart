@@ -1,3 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
 import '../local/database.dart';
 
 /// Immutable snapshot of app settings (stored in the key/value Settings table).
@@ -16,6 +22,10 @@ class AppSettings {
     this.avatarPath,
     this.firstSyncDone = false,
     this.homeTourSeen = false,
+    this.reminderEnabled = false,
+    this.reminderTime = '20:00',
+    this.proMonth = '',
+    this.ultraUntil = '',
   });
 
   final bool onboardingSeen;
@@ -44,6 +54,22 @@ class AppSettings {
   /// doesn't need the tour again.
   final bool homeTourSeen;
 
+  /// Daily "อย่าลืมจด" reminder notification. Device-level (like theme): it
+  /// belongs to this phone, so it survives sign-out and never syncs.
+  final bool reminderEnabled;
+
+  /// Reminder time as 'HH:mm' (24h).
+  final String reminderTime;
+
+  /// The 'YYYY-MM' month this account has Pro for (referral reward), or ''
+  /// when never unlocked. Synced; Pro is active iff it equals the current
+  /// month — which makes the monthly reset automatic.
+  final String proMonth;
+
+  /// Paid Ultra expiry as 'YYYY-MM-DD' (inclusive), or '' when never bought.
+  /// Synced; granted by the developer (Firebase console) after payment.
+  final String ultraUntil;
+
   factory AppSettings.fromMap(Map<String, String> m) {
     bool b(String k, [bool d = false]) => m[k] == null ? d : m[k] == 'true';
     int i(String k, [int d = 0]) => int.tryParse(m[k] ?? '') ?? d;
@@ -66,6 +92,10 @@ class AppSettings {
       avatarPath: m[SettingsKeys.avatarPath],
       firstSyncDone: b(SettingsKeys.firstSyncDone),
       homeTourSeen: b(SettingsKeys.homeTourSeen),
+      reminderEnabled: b(SettingsKeys.reminderEnabled),
+      reminderTime: m[SettingsKeys.reminderTime] ?? '20:00',
+      proMonth: m[SettingsKeys.proMonth] ?? '',
+      ultraUntil: m[SettingsKeys.ultraUntil] ?? '',
     );
   }
 }
@@ -83,10 +113,15 @@ class SettingsKeys {
   static const username = 'username';
   static const phone = 'phone';
   static const avatarPath = 'avatarPath';
+  static const avatarImage = 'avatarImage';
   static const recentSearches = 'recentSearches';
   static const firstSyncDone = 'firstSyncDone';
   static const homeTourSeen = 'homeTourSeen';
   static const slipScanUpTo = 'slipScanUpTo';
+  static const reminderEnabled = 'reminderEnabled';
+  static const reminderTime = 'reminderTime';
+  static const proMonth = 'proMonth';
+  static const ultraUntil = 'ultraUntil';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -131,6 +166,11 @@ class SettingsRepository {
   Future<void> setFirstSyncDone(bool v) =>
       setBool(SettingsKeys.firstSyncDone, v);
   Future<void> setHomeTourSeen(bool v) => setBool(SettingsKeys.homeTourSeen, v);
+  Future<void> setReminderEnabled(bool v) =>
+      setBool(SettingsKeys.reminderEnabled, v);
+  Future<void> setReminderTime(String hhmm) =>
+      set(SettingsKeys.reminderTime, hhmm);
+  Future<void> setProMonth(String yyyymm) => set(SettingsKeys.proMonth, yyyymm);
 
   /// Photo time (epoch ms) the slip scanner has read up to on this device, or
   /// null when never recorded. An extra guard against re-reading photos it has
@@ -153,15 +193,124 @@ class SettingsRepository {
       SettingsKeys.username,
       SettingsKeys.phone,
       SettingsKeys.avatarPath,
+      SettingsKeys.avatarImage,
       SettingsKeys.savingsGoalCents,
       SettingsKeys.lastSlipReadAt,
       SettingsKeys.disabledScanIds,
       SettingsKeys.recentSearches,
       SettingsKeys.slipScanUpTo,
+      SettingsKeys.proMonth,
+      SettingsKeys.ultraUntil,
     ];
     for (final key in userKeys) {
       await _db.deleteSetting(key);
     }
+  }
+
+  /// Save a newly picked profile photo: copy it into the documents dir as
+  /// `avatar_<uid>_<updatedAt>` (the uid lets [restoreAvatarPath] re-find it
+  /// after a sign-out; the updatedAt matches the synced `avatarImage` row so
+  /// [syncAvatarFromCloud] recognises the file as current), point avatarPath
+  /// at it, and store the bytes base64 in the synced `avatarImage` setting so
+  /// every other device (and a reinstall) gets the photo from the cloud.
+  Future<void> saveAvatarPhoto({
+    required String uid,
+    required String sourcePath,
+  }) async {
+    final old = (await read()).avatarPath;
+    final bytes = await File(sourcePath).readAsBytes();
+    // A Firestore doc caps at 1 MiB; the picker's 800px/q85 output is far
+    // smaller, but guard anyway — an oversized photo stays local-only.
+    final synced = bytes.length <= 700 * 1024;
+    int updatedAt;
+    if (synced) {
+      await set(SettingsKeys.avatarImage, base64Encode(bytes));
+      updatedAt = await _settingUpdatedAt(SettingsKeys.avatarImage) ??
+          DateTime.now().millisecondsSinceEpoch;
+    } else {
+      // Never reuse the previous (stale) avatarImage timestamp here: since we
+      // didn't push to the cloud, that would name this file identically to
+      // whatever smaller photo IS synced, silently overwriting its bytes and
+      // making syncAvatarFromCloud believe it's already up to date forever.
+      // A fresh timestamp keeps this local-only photo on its own filename.
+      updatedAt = DateTime.now().millisecondsSinceEpoch;
+    }
+    final dir = await getApplicationDocumentsDirectory();
+    // Always .jpg so [syncAvatarFromCloud] recognises the file as current
+    // regardless of the picked file's extension (Flutter decodes by content).
+    final dest = p.join(dir.path, 'avatar_${uid}_$updatedAt.jpg');
+    await File(sourcePath).copy(dest);
+    await setAvatarPath(dest);
+    // Best-effort cleanup of the previous photo.
+    if (old != null && old.isNotEmpty && old != dest) {
+      try {
+        File(old).deleteSync();
+      } catch (_) {}
+    }
+  }
+
+  /// Re-point avatarPath at the signed-in account's photo after a login on
+  /// this device. Sign-out only wipes the avatarPath *setting*, not the
+  /// `avatar_<uid>_<ms>` file — so the same account logging back in gets its
+  /// photo back instantly, before the cloud pull even starts.
+  Future<void> restoreAvatarPath(String uid) async {
+    try {
+      final current = (await read()).avatarPath;
+      if (current != null && current.isNotEmpty && File(current).existsSync()) {
+        return; // already pointing at a real photo — don't override
+      }
+      final dir = await getApplicationDocumentsDirectory();
+      final prefix = 'avatar_${uid}_';
+      final photos = dir
+          .listSync()
+          .whereType<File>()
+          .where((f) => p.basename(f.path).startsWith(prefix))
+          .toList()
+        // Filenames embed epoch ms, so a name sort is a time sort.
+        ..sort((a, b) => p.basename(a.path).compareTo(p.basename(b.path)));
+      if (photos.isEmpty) return;
+      await setAvatarPath(photos.last.path);
+    } catch (_) {
+      // Best-effort: a failed restore just leaves the mascot fallback.
+    }
+  }
+
+  /// Materialise the cloud profile photo after a sync: if the synced
+  /// `avatarImage` row is newer than what avatarPath points at, decode it to
+  /// `avatar_<uid>_<updatedAt>` and re-point. Runs after every successful full
+  /// sync, which covers a new device's first login, a reinstall, and a photo
+  /// changed on another device. No-ops when the pointer already matches the
+  /// row's updatedAt (the common case, including right after a local pick).
+  Future<void> syncAvatarFromCloud(String uid) async {
+    try {
+      final rows = await _db.getAllSettings();
+      final img = rows.where((r) => r.key == SettingsKeys.avatarImage).toList();
+      if (img.isEmpty || img.first.value.isEmpty) return;
+      final updatedAt = img.first.updatedAt;
+      final dir = await getApplicationDocumentsDirectory();
+      final dest = p.join(dir.path, 'avatar_${uid}_$updatedAt.jpg');
+      final current = (await read()).avatarPath;
+      if (current == dest && File(dest).existsSync()) return; // up to date
+      if (!File(dest).existsSync()) {
+        await File(dest).writeAsBytes(base64Decode(img.first.value));
+      }
+      await setAvatarPath(dest);
+      if (current != null && current.isNotEmpty && current != dest) {
+        try {
+          File(current).deleteSync();
+        } catch (_) {}
+      }
+    } catch (_) {
+      // Best-effort: a corrupt/missing cloud image just leaves the mascot.
+    }
+  }
+
+  Future<int?> _settingUpdatedAt(String key) async {
+    final rows = await _db.getAllSettings();
+    for (final r in rows) {
+      if (r.key == key) return r.updatedAt;
+    }
+    return null;
   }
 
   /// Recently submitted search terms (most-recent first), persisted so the
