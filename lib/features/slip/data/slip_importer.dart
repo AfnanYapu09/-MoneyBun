@@ -134,20 +134,27 @@ class SlipImporter {
 
   /// Where a scan starts reading. Never before the current calendar month —
   /// slips are only ever read from the month the scan runs in ("July shows
-  /// July") — and never before what was already read: the newest imported
-  /// slip's photo time ([watermarkMs], rebuilt from synced data after a
-  /// restore) and the previous scan's own high-water mark ([scannedUpToMs],
-  /// recorded per device so a photo that was read but yielded no import isn't
-  /// re-read). Inclusive at the boundary; the asset-id / transRef dedup
-  /// catches a photo saved the same instant. Pure + static for unit tests.
+  /// July") — and never before what was already read.
+  ///
+  /// The device's own cursor ([scannedUpToMs]) is authoritative when present:
+  /// it already encodes the deliberate holdbacks (quota-blocked and errored
+  /// photos are kept AHEAD of it so a later scan re-reads them). The newest
+  /// imported slip's photo time ([watermarkMs], rebuilt from synced data) is
+  /// only the fallback for a device with no cursor yet (fresh install /
+  /// restore). Taking the max of both here used to jump the cutoff past every
+  /// held-back photo — a quota top-up / Ultra upgrade could never import the
+  /// blocked backlog, and failed photos were never retried.
+  ///
+  /// Inclusive at the boundary; the asset-id / transRef dedup catches a photo
+  /// saved the same instant. Pure + static for unit tests.
   static DateTime effectiveCutoff(
     DateTime now, {
     int? watermarkMs,
     int? scannedUpToMs,
   }) {
     var cutoff = DateTime(now.year, now.month);
-    for (final ms in [watermarkMs, scannedUpToMs]) {
-      if (ms == null) continue;
+    final ms = scannedUpToMs ?? watermarkMs;
+    if (ms != null) {
       final t = DateTime.fromMillisecondsSinceEpoch(ms);
       if (t.isAfter(cutoff)) cutoff = t;
     }

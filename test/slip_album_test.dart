@@ -43,7 +43,7 @@ void main() {
       );
     });
 
-    test('continues after the newest of watermark and read-up-to record', () {
+    test('continues after the device cursor when one exists', () {
       final now = DateTime(2026, 7, 20);
       final imported = DateTime(2026, 7, 10, 9).millisecondsSinceEpoch;
       final readUpTo = DateTime(2026, 7, 15, 18).millisecondsSinceEpoch;
@@ -54,6 +54,37 @@ void main() {
           scannedUpToMs: readUpTo,
         ),
         DateTime(2026, 7, 15, 18),
+      );
+    });
+
+    test(
+        'the device cursor wins over a NEWER watermark — a quota/error '
+        'holdback must be re-read after a top-up, not skipped', () {
+      // Newest-first import: when quota ran out mid-batch the newest photos
+      // were already imported (watermark = their time) while older ones were
+      // blocked and the cursor deliberately held BEFORE them. The next scan
+      // must start from the cursor, not jump to the watermark.
+      final now = DateTime(2026, 7, 20);
+      final newestImported = DateTime(2026, 7, 15, 18).millisecondsSinceEpoch;
+      final heldBackCursor = DateTime(2026, 7, 10, 9).millisecondsSinceEpoch;
+      expect(
+        SlipImporter.effectiveCutoff(
+          now,
+          watermarkMs: newestImported,
+          scannedUpToMs: heldBackCursor,
+        ),
+        DateTime(2026, 7, 10, 9),
+      );
+    });
+
+    test('watermark is the fallback when the device has no cursor yet', () {
+      // Fresh install / post-restore: no per-device cursor, so the synced
+      // newest-imported-slip time keeps the scan from re-reading the month.
+      final now = DateTime(2026, 7, 20);
+      final imported = DateTime(2026, 7, 10, 9).millisecondsSinceEpoch;
+      expect(
+        SlipImporter.effectiveCutoff(now, watermarkMs: imported),
+        DateTime(2026, 7, 10, 9),
       );
     });
   });
