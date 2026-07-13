@@ -33,21 +33,21 @@ service cloud.firestore {
     match /users/{userId} {
       // Every per-user collection (transactions, accounts, categories,
       // slips, budgets, tags, recurringRules, settings, ...) is fully
-      // owner-read/write — EXCEPT settings/ultraUntil, carved out below.
+      // owner-readable — including LIST queries over a whole collection
+      // (the sync engine pulls `settings` as one query, and a doc-id
+      // exclusion inside the read rule would deny that entire query:
+      // rules are not filters).
+      //
+      // Writes are owner-only too, EXCEPT settings/ultraUntil: the paid
+      // Ultra expiry is granted manually via the Firebase console
+      // (privileged access that bypasses these rules) and is never written
+      // by the app itself. Denying the client write means no one can
+      // self-grant Ultra by pushing this doc through the SDK/REST API.
       match /{collection}/{docId} {
-        allow read, write: if request.auth != null
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null
           && request.auth.uid == userId
           && !(collection == 'settings' && docId == 'ultraUntil');
-      }
-
-      // ultraUntil (paid Ultra expiry) is granted manually via the Firebase
-      // console — privileged access that bypasses these rules entirely — and
-      // is never written by the app itself (no client call site exists).
-      // Deny client writes outright so no one can self-grant Ultra by
-      // pushing this doc directly through the SDK/REST API.
-      match /settings/ultraUntil {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if false;
       }
     }
 
