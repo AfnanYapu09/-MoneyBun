@@ -41,9 +41,9 @@ class CreditsService {
       await _settings.setCreditsGranted(granted);
       await _settings.setHasRedeemed(redeemed);
       await _settings.setHasReferred(referred || referrals > 0);
-    } on FirebaseException {
-      // Offline or a transient rules hiccup: keep the previous cache rather
-      // than zeroing a real balance.
+    } catch (_) {
+      // Best-effort cache refresh: offline or a transient failure keeps the
+      // previous cache rather than zeroing a real balance.
     }
   }
 }

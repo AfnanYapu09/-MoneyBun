@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart' show PlatformException;
 
 /// Outcome of redeeming a friend's code.
 enum RedeemResult {
@@ -83,6 +84,22 @@ class ReferralService {
     return codeForUid(uid);
   }
 
+  /// Whether [e] is a Firestore permission denial. Aggregate (count) queries
+  /// in cloud_firestore surface rules denials as a raw [PlatformException]
+  /// (code 'firebase_firestore', details {code: permission-denied}) instead
+  /// of a [FirebaseException] — both shapes must be recognised.
+  static bool isPermissionDenied(Object e) {
+    if (e is FirebaseException) return e.code == 'permission-denied';
+    if (e is PlatformException) {
+      final details = e.details;
+      if (details is Map && details['code'] == 'permission-denied') {
+        return true;
+      }
+      return (e.message ?? '').contains('PERMISSION_DENIED');
+    }
+    return false;
+  }
+
   /// Pure precheck → error mapping, split out for unit tests. Returns null
   /// when the redemption may proceed. Encodes the owner's 4-way matrix:
   /// the REDEEMER must be new (never redeemed, never been redeemed-from);
@@ -122,7 +139,8 @@ class ReferralService {
     }
     try {
       return await _attempt(code, uid, deviceHash, retriesLeft: 1);
-    } on FirebaseException {
+    } catch (_) {
+      // Network / rules denial that the prechecks couldn't classify.
       return RedeemResult.failed;
     }
   }
@@ -179,11 +197,11 @@ class ReferralService {
     try {
       await batch.commit();
       return RedeemResult.success;
-    } on FirebaseException catch (e) {
+    } catch (e) {
       // A denial here after clean prechecks is a race (someone else's write
       // landed in between). One re-run re-reads everything and either returns
       // the real reason or commits with the fresh state.
-      if (e.code == 'permission-denied' && retriesLeft > 0) {
+      if (isPermissionDenied(e) && retriesLeft > 0) {
         return _attempt(code, uid, deviceHash, retriesLeft: retriesLeft - 1);
       }
       rethrow;
@@ -203,8 +221,10 @@ class ReferralService {
           .count()
           .get();
       return agg.count ?? 0;
-    } on FirebaseException catch (e) {
-      if (e.code == 'permission-denied') return 0;
+    } catch (e) {
+      // Not my code / unpublished candidate → rules deny the count. That is
+      // a normal "no referrals on this candidate" answer, not an error.
+      if (isPermissionDenied(e)) return 0;
       rethrow;
     }
   }
