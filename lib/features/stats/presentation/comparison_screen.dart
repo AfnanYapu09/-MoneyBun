@@ -264,11 +264,16 @@ class _TappedSummary extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(
-            label,
-            style: AppTypography.heading(size: 13, weight: FontWeight.w600),
+          // Expanded + ellipsis: three million-baht stats plus the label used
+          // to overflow this row (Money.compact does not abbreviate).
+          Expanded(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.heading(size: 13, weight: FontWeight.w600),
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           _Stat(
             label: l10n.income,
             value: income,

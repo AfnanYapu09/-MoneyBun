@@ -133,12 +133,18 @@ class StatusBadge extends StatelessWidget {
             Icon(icon, size: 15, color: fg),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: AppTypography.heading(
-              size: 12.5,
-              weight: FontWeight.w500,
-              color: fg,
+          // Flexible + ellipsis so a constrained parent shrinks the badge
+          // gracefully instead of the label overflowing the pill.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.heading(
+                size: 12.5,
+                weight: FontWeight.w500,
+                color: fg,
+              ),
             ),
           ),
         ],
