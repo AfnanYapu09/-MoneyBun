@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../../data/remote/auth_service.dart';
 import '../../../data/repositories/settings_repository.dart';
 import '../domain/quota_period.dart';
