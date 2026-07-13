@@ -49,6 +49,12 @@ dependencies:
   crypto: ^3.0.7
   excel: ^4.0.6
   share_plus: ^13.2.0
+  package_info_plus: ^10.2.0 # reads the real version/build shown in Settings
+
+  # Daily "จดบันทึก" reminder notification (scheduled locally, no server).
+  flutter_local_notifications: ^19.0.0
+  timezone: ^0.10.0
+  flutter_timezone: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -56,6 +62,9 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   build_runner: ^2.4.0
   drift_dev: ^2.20.0
+  # Used by avatar_restore_test.dart to fake the documents directory.
+  path_provider_platform_interface: ^2.1.0
+  plugin_platform_interface: ^2.1.0
 
 flutter:
   uses-material-design: true

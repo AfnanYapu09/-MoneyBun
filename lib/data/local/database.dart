@@ -178,10 +178,13 @@ class AppDatabase extends _$AppDatabase {
   /// Settings keys that sync to the cloud (one Firestore doc per key under
   /// `users/{uid}/settings/{key}`). These are the user-scoped values that a
   /// sign-out wipes and a sign-in must restore: the profile fields, the savings
-  /// goal, and the per-bank scan toggles. Keys not listed here never leave the
-  /// device (theme/locale/currency are device preferences; scan cursors, pull
+  /// goal, the per-bank scan toggles, and the profile photo itself
+  /// (`avatarImage`, base64 — small enough for a Firestore doc since the picker
+  /// caps it at 800px/q85). Keys not listed here never leave the device
+  /// (theme/locale/currency are device preferences; scan cursors, pull
   /// watermarks, and push markers are per-device bookkeeping; avatarPath is a
-  /// local file path that would be meaningless on another device).
+  /// local file path that would be meaningless on another device — the photo
+  /// travels as `avatarImage` and each device re-materialises its own file).
   ///
   /// Values mirror the key constants in `SettingsKeys` (settings_repository) —
   /// duplicated as literals here because the repository layer imports this file.
@@ -191,6 +194,9 @@ class AppDatabase extends _$AppDatabase {
     'phone',
     'savingsGoalCents',
     'disabledScanIds',
+    'avatarImage',
+    'proMonth',
+    'ultraUntil',
   };
 
   /// Prefix for the per-key push markers. A marker row's VALUE holds the
@@ -510,6 +516,33 @@ class AppDatabase extends _$AppDatabase {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row?.photoTakenAt;
+  }
+
+  /// How many slips were imported (createdAt) inside [startMs, endMs) — the
+  /// monthly scan-quota counter. Deleted slips give their quota back, which is
+  /// friendlier for a mistaken import; the dedup keys still prevent the same
+  /// slip from being re-imported to game the count.
+  Future<int> countSlipsCreatedBetween(int startMs, int endMs) async {
+    final countExp = slips.id.count();
+    final q = selectOnly(slips)
+      ..addColumns([countExp])
+      ..where(slips.deleted.equals(false) &
+          slips.createdAt.isBiggerOrEqualValue(startMs) &
+          slips.createdAt.isSmallerThanValue(endMs));
+    final row = await q.getSingle();
+    return row.read(countExp) ?? 0;
+  }
+
+  /// Reactive version of [countSlipsCreatedBetween] for the plan screen's
+  /// usage meter.
+  Stream<int> watchSlipsCreatedBetween(int startMs, int endMs) {
+    final countExp = slips.id.count();
+    final q = selectOnly(slips)
+      ..addColumns([countExp])
+      ..where(slips.deleted.equals(false) &
+          slips.createdAt.isBiggerOrEqualValue(startMs) &
+          slips.createdAt.isSmallerThanValue(endMs));
+    return q.watchSingle().map((row) => row.read(countExp) ?? 0);
   }
 
   /// Whether a slip with this gallery asset id already exists — a targeted

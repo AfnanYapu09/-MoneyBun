@@ -20,6 +20,7 @@ class SyncController with WidgetsBindingObserver {
     this._auth, {
     this.onSyncingChanged,
     this.onFirstSyncCompleted,
+    this.onSyncCompleted,
   }) {
     WidgetsBinding.instance.addObserver(this);
     _authSub = _auth.authStateChanges().listen((user) {
@@ -53,6 +54,11 @@ class SyncController with WidgetsBindingObserver {
   /// ran), so callers can persist a "this device has synced" flag and never show
   /// the first-load skeleton again.
   final void Function()? onFirstSyncCompleted;
+
+  /// Called after EVERY full sync that actually completes (not just the first),
+  /// with the uid it ran for — for post-pull work that must track ongoing cloud
+  /// changes, like materialising a profile photo edited on another device.
+  final void Function(String uid)? onSyncCompleted;
 
   /// Upper bound on the first sync's contribution to the loading state: even if a
   /// Firestore call stalls, the skeleton is guaranteed to clear within this.
@@ -148,6 +154,7 @@ class SyncController with WidgetsBindingObserver {
       if (uid == null || _auth.currentUser?.uid != uid) return;
       if (ran) {
         if (!_initialSync.isCompleted) _initialSync.complete();
+        onSyncCompleted?.call(uid);
         // Persist "this device has synced" so a returning user never sees the
         // first-load skeleton again. Guarded to fire only once.
         if (!_firstSyncCompletedFired) {

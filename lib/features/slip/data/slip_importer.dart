@@ -17,6 +17,7 @@ class ScanResult {
     this.imported = 0,
     this.errors = 0,
     this.newestImportedAt,
+    this.quotaReached = false,
   });
 
   /// Total candidate images considered (bank albums + recent fallback).
@@ -38,6 +39,12 @@ class ScanResult {
   /// null when nothing was imported. The Home screen uses it to snap the
   /// visible month onto the imports so they never land off-screen.
   final int? newestImportedAt;
+
+  /// The scan hit the plan's monthly slip quota (Free 30 / Ultra 300) and
+  /// stopped importing — it still visits every matched album to keep the
+  /// read-up-to cursor accurate. Unread photos stay ahead of that cursor, so
+  /// an upgrade (or next month's window) picks them up automatically.
+  final bool quotaReached;
 }
 
 /// Reads slip images straight from the phone gallery and turns each genuine
@@ -63,6 +70,7 @@ class SlipImporter {
     required Future<Set<String>> Function() disabledScanIds,
     required Future<int?> Function() scannedUpTo,
     required Future<void> Function(int ms) saveScannedUpTo,
+    required Future<int> Function() remainingScanQuota,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
@@ -73,7 +81,8 @@ class SlipImporter {
         _latestSlipPhotoTime = latestSlipPhotoTime,
         _disabledScanIds = disabledScanIds,
         _scannedUpTo = scannedUpTo,
-        _saveScannedUpTo = saveScannedUpTo;
+        _saveScannedUpTo = saveScannedUpTo,
+        _remainingScanQuota = remainingScanQuota;
 
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
@@ -106,6 +115,10 @@ class SlipImporter {
 
   /// Persist the read-up-to record after a scan.
   final Future<void> Function(int ms) _saveScannedUpTo;
+
+  /// How many more slips the plan allows this month (Free 30 / Ultra 300,
+  /// minus what was already imported). The scan stops importing at zero.
+  final Future<int> Function() _remainingScanQuota;
 
   /// Cap on images read per bank album. A backstop only — the month window
   /// below bounds real scans; the cap just keeps a pathological album (tens of
@@ -292,12 +305,17 @@ class SlipImporter {
       // Banks the user turned off in the accounts sheet — skip their albums.
       final disabled = await _disabledScanIds();
 
-      final acc = _ScanAcc();
+      final acc = _ScanAcc()..quotaRemaining = await _remainingScanQuota();
 
       // Import slips from recognised bank/e-wallet albums (every image in such
       // an album is a slip). Already-imported ones are skipped via [already]
       // and the transRef dedup inside _ingest.
       for (final album in paths) {
+        // Keep visiting every matched album even after the quota is spent:
+        // an album we never visit never gets its assets folded into
+        // newestSeenAt/quotaBlockedAt below, so the persisted cursor would
+        // wrongly advance past its unread backlog and lose it forever. Only
+        // cancellation should stop the album walk early.
         if (cancelled()) break;
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
         final scanId = albumScanId(album.name);
@@ -325,6 +343,10 @@ class SlipImporter {
         if (upTo > startMs) upTo = startMs;
         final failedAt = acc.oldestErrorAt;
         if (failedAt != null && failedAt - 1 < upTo) upTo = failedAt - 1;
+        // Photos the quota blocked were never read — keep the cursor before
+        // them so an Ultra upgrade (or a freed-up quota) re-reads them.
+        final blockedAt = acc.quotaBlockedAt;
+        if (blockedAt != null && blockedAt - 1 < upTo) upTo = blockedAt - 1;
         await _saveScannedUpTo(upTo);
       }
 
@@ -335,6 +357,7 @@ class SlipImporter {
         imported: acc.imported,
         errors: acc.errors,
         newestImportedAt: acc.newestImportedAt,
+        quotaReached: acc.quotaReached,
       );
     } finally {
       // Release the reusable QR controller + ML Kit recognizer once per scan.
@@ -352,6 +375,20 @@ class SlipImporter {
     for (final asset in assets) {
       if (cancelled()) return;
       final seenMs = asset.createDateTime.millisecondsSinceEpoch;
+      // Quota check BEFORE the seen-cursor advances and before the expensive
+      // OCR: a blocked photo must stay unread (and ahead of the cursor) so a
+      // mid-month upgrade can still import it. Keep walking the rest of this
+      // album's (and later albums') assets instead of returning: the cursor
+      // must reflect the OLDEST blocked photo across every matched album, not
+      // just the first one hit, or older backlog elsewhere looks "already
+      // read" and is skipped forever.
+      if (!already.contains(asset.id) && acc.imported >= acc.quotaRemaining) {
+        acc.quotaReached = true;
+        if (acc.quotaBlockedAt == null || seenMs < acc.quotaBlockedAt!) {
+          acc.quotaBlockedAt = seenMs;
+        }
+        continue;
+      }
       if (acc.newestSeenAt == null || seenMs > acc.newestSeenAt!) {
         acc.newestSeenAt = seenMs;
       }
@@ -433,6 +470,17 @@ class _ScanAcc {
   int imported = 0;
   int errors = 0;
   int? newestImportedAt;
+
+  /// Imports the plan still allows this scan (fetched once at scan start).
+  int quotaRemaining = 0;
+
+  /// The scan hit the plan's monthly limit and stopped early.
+  bool quotaReached = false;
+
+  /// Photo time (epoch ms) of the first asset the quota blocked — the
+  /// read-up-to record stays just before it so the photo is re-read once the
+  /// quota allows (upgrade or a freed slot).
+  int? quotaBlockedAt;
 
   /// Photo time (epoch ms) of the newest in-window asset this scan considered
   /// (imported or deduped) — persisted as the read-up-to record afterwards.

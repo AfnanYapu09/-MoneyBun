@@ -11,11 +11,12 @@ import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/icon_chip.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/swipe_action_row.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
+import '../../../core/widgets/swipe_action_row.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../plan/presentation/pro_gate.dart';
 
 /// Settings → recurring entries. Lists the user's recurring rules and lets them
 /// add new ones or delete existing ones (created transactions are untouched).
@@ -25,6 +26,12 @@ class ManageRecurringScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    if (!ref.watch(planProvider).canUseRecurring) {
+      return SubScreenScaffold(
+        title: l10n.settingsRecurring,
+        body: const ProFeatureGate(),
+      );
+    }
     final locale = Localizations.localeOf(context).languageCode;
     final rules =
         ref.watch(recurringRulesProvider).value ?? const <RecurringRuleRow>[];

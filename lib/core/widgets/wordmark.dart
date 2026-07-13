@@ -4,7 +4,8 @@ import '../theme/palette.dart';
 import '../theme/typography.dart';
 
 /// The `moneyBun` wordmark in Fraunces 72pt (the brand's design cut):
-/// `money` in regular weight at a softer ink, `Bun` in heavy black.
+/// `money` medium weight at a softer ink, `Bun` semibold — same weights,
+/// line-height and tracking as the Splash Screen's wordmark.
 ///
 /// [color] defaults to the theme's primary ink so the logo stays legible in
 /// both light and dark mode; pass an explicit colour on tinted backgrounds.
@@ -24,17 +25,22 @@ class Wordmark extends StatelessWidget {
             text: 'money',
             style: AppTypography.display(
               size: size,
-              weight: FontWeight.w400,
+              weight: FontWeight.w500,
               color: c,
-            ).copyWith(color: c.withValues(alpha: 0.72)),
+              height: 0.9,
+            ).copyWith(
+              color: c.withValues(alpha: 0.72),
+              letterSpacing: -size * 0.01,
+            ),
           ),
           TextSpan(
             text: 'Bun',
             style: AppTypography.display(
               size: size,
-              weight: FontWeight.w900,
+              weight: FontWeight.w600,
               color: c,
-            ),
+              height: 0.9,
+            ).copyWith(letterSpacing: -size * 0.01),
           ),
         ],
       ),

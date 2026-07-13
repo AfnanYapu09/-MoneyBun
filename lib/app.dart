@@ -25,6 +25,8 @@ class MoneyBunApp extends ConsumerWidget {
     // syncs on sign-in, launch, resume, and after edits). Null until Firebase
     // is configured + the user is signed in.
     ref.watch(syncControllerProvider);
+    // Re-assert the daily reminder schedule once per launch.
+    ref.watch(reminderBootstrapProvider);
 
     final themeMode = switch (settings?.themeMode) {
       'light' => ThemeMode.light,

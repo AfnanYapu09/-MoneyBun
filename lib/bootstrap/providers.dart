@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/utils/date_period.dart';
 import '../data/local/database.dart';
+import '../data/notifications/reminder_service.dart';
 import '../data/recurring/recurring_service.dart';
 import '../data/remote/auth_service.dart';
 import '../data/remote/sync_controller.dart';
@@ -17,10 +19,13 @@ import '../data/repositories/settings_repository.dart';
 import '../data/repositories/slip_repository.dart';
 import '../data/repositories/tag_repository.dart';
 import '../data/repositories/transaction_repository.dart';
+import '../features/plan/data/referral_service.dart';
+import '../features/plan/domain/plan.dart';
 import '../features/slip/data/slip_importer.dart';
 import '../features/slip/data/slip_ocr_service.dart';
 import '../features/slip/data/slip_pipeline.dart';
 import '../features/slip/data/slip_qr_scanner.dart';
+import '../l10n/generated/app_localizations.dart';
 
 // ---- Infrastructure --------------------------------------------------------
 
@@ -33,6 +38,26 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 /// Overridden in `main()` to `true` only when real Firebase config initialised.
 final firebaseReadyProvider = Provider<bool>((ref) => false);
+
+/// The installed build's real version/build number (from pubspec.yaml via the
+/// platform, not a hand-typed string) — shown at the bottom of Settings.
+final packageInfoProvider =
+    FutureProvider<PackageInfo>((ref) => PackageInfo.fromPlatform());
+
+/// Re-asserts the daily reminder schedule once per app launch (cheap and
+/// idempotent — same id replaces itself). The boot receiver covers reboots;
+/// this covers everything else (e.g. the OS clearing alarms on a force stop).
+/// Watched once from [MoneyBunApp] alongside [syncControllerProvider].
+final reminderBootstrapProvider = FutureProvider<void>((ref) async {
+  final settings = await ref.read(settingsRepositoryProvider).read();
+  if (!settings.reminderEnabled) return;
+  final l10n = lookupAppLocalizations(Locale(settings.locale));
+  await ReminderService.instance.scheduleDaily(
+    parseReminderTime(settings.reminderTime),
+    title: l10n.reminderNotifTitle,
+    body: l10n.reminderNotifBody,
+  );
+});
 
 // ---- Repositories ----------------------------------------------------------
 
@@ -109,6 +134,27 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
         ref.read(initialSyncingProvider.notifier).setSyncing(syncing),
     onFirstSyncCompleted: () =>
         ref.read(settingsRepositoryProvider).setFirstSyncDone(true),
+    // After every completed sync: turn a pulled `avatarImage` into the local
+    // photo file (new device, reinstall, or a photo changed on another device),
+    // and pick up the owner-side referral reward (a friend redeemed my code).
+    onSyncCompleted: (uid) => unawaited(() async {
+      final repo = ref.read(settingsRepositoryProvider);
+      await repo.syncAvatarFromCloud(uid);
+      final referral = ref.read(referralServiceProvider);
+      if (referral == null) return;
+      final month = Plan.monthKey(DateTime.now());
+      if ((await repo.read()).proMonth == month) return; // already Pro
+      // Walk every candidate code, not just attempt 0: publishMyCode can have
+      // landed on a later attempt (hash collision with another user's code),
+      // and checking only attempt 0 would silently miss a real reward.
+      for (var attempt = 0; attempt < 4; attempt++) {
+        final code = ReferralService.codeForUid(uid, attempt: attempt);
+        if (await referral.hasRedemptionForMonth(code, month)) {
+          await repo.setProMonth(month);
+          return;
+        }
+      }
+    }()),
   );
   // Upload pending changes shortly after any local data change.
   ref.listen(allTransactionsProvider, (_, __) => controller.nudgePush());
@@ -160,7 +206,55 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     scannedUpTo: () => ref.read(settingsRepositoryProvider).getSlipScanUpTo(),
     saveScannedUpTo: (ms) =>
         ref.read(settingsRepositoryProvider).setSlipScanUpTo(ms),
+    // Plan quota: Free 30 / Pro 300 slips per calendar month; Ultra unlimited.
+    remainingScanQuota: () async {
+      final now = DateTime.now();
+      final settings = await ref.read(settingsRepositoryProvider).read();
+      final plan = Plan.resolve(
+        uid: ref.read(authServiceProvider)?.currentUser?.uid ?? '',
+        proMonth: settings.proMonth,
+        ultraUntil: settings.ultraUntil,
+        now: now,
+      );
+      final limit = plan.scanLimit;
+      if (limit == null) return 1 << 30; // Ultra: effectively unlimited
+      final used = await db.countSlipsCreatedBetween(
+        DateTime(now.year, now.month).millisecondsSinceEpoch,
+        DateTime(now.year, now.month + 1).millisecondsSinceEpoch,
+      );
+      final left = limit - used;
+      return left > 0 ? left : 0;
+    },
   );
+});
+
+// ---- Membership plan (Free / Pro via referral / paid Ultra) ----------------
+
+/// The active plan, derived from the synced `proMonth` (referral Pro) and
+/// `ultraUntil` (paid Ultra) settings vs today — resets need no job.
+final planProvider = Provider<Plan>((ref) {
+  final settings = ref.watch(appSettingsProvider).value;
+  final uid = ref.watch(authServiceProvider)?.currentUser?.uid ?? '';
+  return Plan.resolve(
+    uid: uid,
+    proMonth: settings?.proMonth ?? '',
+    ultraUntil: settings?.ultraUntil ?? '',
+    now: DateTime.now(),
+  );
+});
+
+/// Slips imported this calendar month — the plan screen's usage meter.
+final slipsUsedThisMonthProvider = StreamProvider<int>((ref) {
+  final now = DateTime.now();
+  return ref.watch(databaseProvider).watchSlipsCreatedBetween(
+        DateTime(now.year, now.month).millisecondsSinceEpoch,
+        DateTime(now.year, now.month + 1).millisecondsSinceEpoch,
+      );
+});
+
+final referralServiceProvider = Provider<ReferralService?>((ref) {
+  if (!ref.watch(firebaseReadyProvider)) return null;
+  return ReferralService(FirebaseFirestore.instance);
 });
 
 /// Drives the automatic, one-gesture slip scan (pull-to-refresh on Home / FAB).

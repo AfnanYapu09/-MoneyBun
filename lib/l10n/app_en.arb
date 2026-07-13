@@ -59,7 +59,7 @@
   "notSignedIn": "Not signed in",
   "manageCategories": "Manage categories",
   "about": "About",
-  "aboutBun": "MoneyBun • Bun, the orange pixel buddy 🐰",
+  "aboutBun": "MoneyBun • Bun, the orange pixel buddy",
   "emptyDayTitle": "No transactions yet",
   "emptyDaySubtitle": "Tap + to add your first one",
   "month": "Month",
@@ -69,7 +69,6 @@
   "settingsMyProfile": "My Profile",
   "settingsCurrency": "Currency",
   "settingsSavingsGoal": "Savings Goal",
-  "settingsDataSection": "Manage Data",
   "settingsManageTags": "Manage Tags",
   "settingsGeneralSection": "General",
   "settingsTheme": "Theme",
@@ -89,6 +88,90 @@
       }
     }
   },
+  "settingsHandleUltraMember": "@{username} · Ultra member",
+  "@settingsHandleUltraMember": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsReminder": "Daily reminder",
+  "reminderEnable": "Remind me every day",
+  "reminderTimeLabel": "Reminder time",
+  "reminderOff": "Off",
+  "reminderDescription": "Bun will remind you to record your income and expenses every day at the time you choose",
+  "reminderNotifTitle": "Bun is here!",
+  "reminderNotifBody": "Don't forget to record today's income and expenses",
+  "reminderPermissionDenied": "Please allow notifications in system settings first",
+  "settingsPlan": "Membership plan",
+  "planFree": "Free",
+  "planPro": "Pro",
+  "planUltra": "Ultra",
+  "planCurrentBadge": "Current plan",
+  "planFreeDetail1": "Unlimited manual entries",
+  "planFreeDetail2": "Auto slip scan, 30 slips/month",
+  "planFreeDetail3": "Cloud sync — safe across devices",
+  "planFreeDetail4": "Stats, budgets, and savings goals",
+  "planFreeDetail5": "Export your data as CSV",
+  "planUltraDetail1": "Everything in Free",
+  "planUltraDetail2": "300 slips/month — over 10× more",
+  "planUltraDetail5": "Ultra badge on your profile",
+  "planMyCode": "My referral code",
+  "planCodeCopied": "Code copied",
+  "planShareMessage": "Track your money with me on moneyBun! Enter code {code} in the app and we both get Pro free",
+  "@planShareMessage": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "planEnterCode": "Enter a friend's code",
+  "planEnterCodeHint": "e.g. ABC123",
+  "planRedeem": "Redeem",
+  "planRedeemSuccess": "Pro unlocked for this month! 🎉",
+  "planRedeemOwnCode": "You can't use your own code",
+  "planRedeemInvalid": "Code not found — check and try again",
+  "planRedeemFailed": "Couldn't redeem the code, please try again",
+  "planUltraHint": "Pro lasts until the end of the month — invite again each month",
+  "planUltraActiveHint": "Ultra is active — thank you for supporting Bun",
+  "planHowTo": "Have a friend enter your code (or enter theirs) and you both get Pro until the end of the month",
+  "settingsMoneySection": "Money",
+  "settingsSupportSection": "Support",
+  "settingsReferral": "Invite friends",
+  "settingsQuotaTitle": "Slip scans this month",
+  "planSlipsUnit": "slips/month",
+  "planIncludesLabel": "What's included",
+  "planUnlimitedNumber": "∞",
+  "planUltraPriceLine": "Just 29 THB/month",
+  "planUltraContactCta": "Get Ultra — contact developer",
+  "planRecurringFeature": "Automatic recurring entries",
+  "planUltraAll": "Everything in Pro",
+  "planUltraScanUnlimited": "Unlimited slip scans",
+  "planUltraSupport": "Direct support from the developer",
+  "featureNeedsPro": "This feature unlocks with Pro and above",
+  "viewPlans": "View plans",
+  "settingsQuotaUnlimited": "Unlimited",
+  "planUnlockCta": "Invite a friend to unlock Pro",
+  "planUltraDetail3": "Free to unlock — no payment",
+  "settingsHandleProMember": "@{username} · Pro member",
+  "@settingsHandleProMember": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "scanQuotaReached": "Monthly scan quota reached ({limit} slips)",
+  "@scanQuotaReached": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "scanQuotaUpgrade": "Unlock more",
   "settingsDisplayName": "Display name",
   "settingsDisplayNameHint": "Khun Bun",
   "settingsUsername": "Username",

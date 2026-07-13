@@ -18,6 +18,7 @@ import '../../../core/widgets/segmented_control.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../data/local/database.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../plan/presentation/pro_gate.dart';
 
 enum _ExportRange { all, day, month, year }
 
@@ -84,9 +85,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (!ref.watch(planProvider).canExport) {
+      return SubScreenScaffold(
+        title: l10n.settingsExportData,
+        body: const ProFeatureGate(),
+      );
+    }
     final txns =
         ref.watch(allTransactionsProvider).value ?? const <TransactionRow>[];
-    final l10n = AppLocalizations.of(context);
     final locale = ref.watch(localeProvider).languageCode;
     final selected = _filtered(txns);
 

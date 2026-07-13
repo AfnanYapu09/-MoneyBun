@@ -120,13 +120,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Create any recurring entries that have come due — but only after the
   /// first cloud pull has truly finished (no timeout escape), so we don't
   /// re-materialise occurrences another device already created and synced
-  /// (which would duplicate them). Mirrors the slip scanner's hard lock.
-  /// Providers are captured before the await so this never touches `ref`
-  /// after the widget might be disposed.
+  /// (which would duplicate them), and only while the plan still allows
+  /// recurring rules: a downgrade to Free must stop new occurrences from
+  /// appearing in the background even though existing rules are untouched.
+  /// The plan is read only after the sync wait (so a just-synced upgrade on
+  /// this device is seen), guarded by `mounted` since it's a `ref` read after
+  /// an await.
   Future<void> _materialiseRecurring() async {
     final sync = ref.read(syncControllerProvider);
     final recurring = ref.read(recurringServiceProvider);
     if (sync != null) await sync.awaitInitialSync();
+    if (!mounted) return;
+    if (!ref.read(planProvider).canUseRecurring) return;
     await recurring.runDue();
   }
 
@@ -359,7 +364,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // Always give feedback when a scan finishes — a silent "nothing
         // happened" looks like a bug. Distinguish "no bank album on this
         // device" from "album(s) found but no new slips".
-        if (r.imported > 0) {
+        if (r.quotaReached) {
+          // The plan's monthly limit stopped the scan (possibly mid-way) —
+          // offer the referral unlock instead of a plain "imported N".
+          final limit = ref.read(planProvider).scanLimit ?? 0;
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(l10n.scanQuotaReached(limit)),
+                action: SnackBarAction(
+                  label: l10n.scanQuotaUpgrade,
+                  onPressed: () => context.push('/settings/plan'),
+                ),
+              ),
+            );
+        } else if (r.imported > 0) {
           _snack(l10n.homeScanImported(r.imported));
           // If the newest import lands outside the month currently shown
           // (an older slip, or a date read from the slip itself), snap the

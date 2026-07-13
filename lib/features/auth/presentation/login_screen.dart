@@ -181,6 +181,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // screen the moment Firebase emits the signed-in user, after which
     // ref.read throws and the seeding below would be silently skipped.
     final db = ref.read(databaseProvider);
+    final settingsRepo = ref.read(settingsRepositoryProvider);
     setState(() => _busy = true);
     try {
       await action();
@@ -191,6 +192,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // seeds carry updatedAt 0, so their real cloud rows win the pull's
       // last-write-wins and overwrite the defaults.
       await db.seedDefaults();
+      // Re-attach this account's profile photo (kept on disk across the
+      // sign-out wipe; only the pointer was cleared).
+      final uid = auth.currentUser?.uid;
+      if (uid != null) await settingsRepo.restoreAvatarPath(uid);
       // Enter the app immediately; SyncController kicks off the first sync in
       // the background on the auth-state change, so login no longer blocks on a
       // full push+pull.
@@ -221,6 +226,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _snack(AppLocalizations.of(context).authFirebaseNotConfigured);
       return;
     }
+    // Captured before the await for the same reason as in _run.
+    final settingsRepo = ref.read(settingsRepositoryProvider);
     setState(() => _busy = true);
     try {
       final result = await auth.signInWithGoogle();
@@ -228,9 +235,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (result != null) {
         // Show the walkthrough only when this Google sign-in just created the
         // account; a returning user goes straight in without it.
-        await ref
-            .read(settingsRepositoryProvider)
-            .setHomeTourSeen(!result.isNew);
+        await settingsRepo.setHomeTourSeen(!result.isNew);
+        // Re-attach this account's profile photo (kept on disk across the
+        // sign-out wipe; only the pointer was cleared).
+        final uid = auth.currentUser?.uid;
+        if (uid != null) await settingsRepo.restoreAvatarPath(uid);
         if (mounted) context.go('/home');
       }
     } catch (e) {
