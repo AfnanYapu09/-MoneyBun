@@ -78,7 +78,10 @@ class AppDatabase extends _$AppDatabase {
           }
           // v9: keep the day-of-month a monthly rule is anchored to, so
           // advancing past a short month clamps instead of drifting.
-          if (from < 9) {
+          // Only for DBs that already had the table: createTable above builds
+          // it from the CURRENT schema (anchorDay included), so adding the
+          // column again would throw "duplicate column" and brick the upgrade.
+          if (from >= 7 && from < 9) {
             await m.addColumn(recurringRules, recurringRules.anchorDay);
           }
         },
