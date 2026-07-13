@@ -27,6 +27,13 @@ class MoneyBunApp extends ConsumerWidget {
     ref.watch(syncControllerProvider);
     // Re-assert the daily reminder schedule once per launch.
     ref.watch(reminderBootstrapProvider);
+    // Keep the membership chain (membership → settings/slips) actively
+    // listened for the app's lifetime. Without a permanent listener Riverpod 3
+    // leaves the chain inactive: invalidations pile up unflushed and are then
+    // replayed synchronously inside the first screen that watches planProvider
+    // (Settings), which throws "setState() called during build" on the root
+    // scope every time that screen opens.
+    ref.watch(membershipProvider);
 
     final themeMode = switch (settings?.themeMode) {
       'light' => ThemeMode.light,
