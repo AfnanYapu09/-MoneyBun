@@ -227,12 +227,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     // Captured before the await for the same reason as in _run.
+    final db = ref.read(databaseProvider);
     final settingsRepo = ref.read(settingsRepositoryProvider);
     setState(() => _busy = true);
     try {
       final result = await auth.signInWithGoogle();
       // null = user dismissed the account chooser; stay on the login screen.
       if (result != null) {
+        // Ensure the starter categories/accounts exist — same as _run: a
+        // previous sign-out wiped the local DB, and a brand-new Google account
+        // has no cloud rows to restore them from. Safe for returning users
+        // (seeds carry updatedAt 0 and lose last-write-wins to real rows).
+        await db.seedDefaults();
         // Show the walkthrough only when this Google sign-in just created the
         // account; a returning user goes straight in without it.
         await settingsRepo.setHomeTourSeen(!result.isNew);
@@ -244,6 +250,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      // The user closing the account sheet themselves is not a failure —
+      // stay silent, matching _run.
+      if (isAuthCancelled(e)) return;
       final l10n = AppLocalizations.of(context);
       _snack(authErrorMessage(e, l10n, fallback: l10n.authLoginFailed));
     } finally {
