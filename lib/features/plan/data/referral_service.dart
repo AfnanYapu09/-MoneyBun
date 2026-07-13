@@ -4,13 +4,40 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 
 /// Outcome of redeeming a friend's code.
-enum RedeemResult { success, ownCode, notFound, failed }
+enum RedeemResult {
+  success,
 
-/// Referral codes that unlock Pro: `referralCodes/{code}` is published by
-/// its owner and readable by any signed-in user; a friend redeems by writing
-/// `referralCodes/{code}/redemptions/{redeemerUid}_{month}`. Both sides then
-/// hold Pro for that month — the redeemer immediately, the owner the next
-/// time their app checks for redemptions (every completed sync).
+  /// The entered code is one of the caller's own candidate codes.
+  ownCode,
+  notFound,
+
+  /// This account already redeemed a code (once ever).
+  alreadyRedeemed,
+
+  /// This account's own code has been redeemed by someone — it is "old" and
+  /// can only invite, never redeem.
+  alreadyReferrer,
+
+  /// This physical device already performed a redemption (any account).
+  deviceUsed,
+  failed,
+}
+
+/// Referral codes that grant permanent Pro credits (+300 each side).
+///
+/// `referralCodes/{code}` is published by its owner and readable by any
+/// signed-in user. A redemption is ONE atomic batch, written by the redeemer:
+///
+///   referralCodes/{code}/redemptions/{redeemerUid}   (v: 2 — the credit unit)
+///   redeemers/{redeemerUid}     one-ever lock + the redeemer's own +300 proof
+///   redeemedDevices/{hash}      one-per-physical-device lock
+///   referrers/{ownerUid}        the owner's "old" marker (only when absent)
+///
+/// Security rules verify the whole shape with getAfter/existsAfter, so none
+/// of the docs can be created alone and the new/old matrix (redeemer must be
+/// new; either side's first match makes them old) is enforced server-side.
+/// The owner's +300-per-friend is derived by counting v2 redemption docs —
+/// there is no mutable credit counter anywhere.
 class ReferralService {
   ReferralService(this._fs);
 
@@ -56,10 +83,35 @@ class ReferralService {
     return codeForUid(uid);
   }
 
-  /// Redeem [rawCode] for [month] ('YYYY-MM') as [uid]. On success the caller
-  /// grants Pro locally (setProMonth) — the code owner's side is picked up
-  /// by their own [hasRedemptionForMonth] poll.
-  Future<RedeemResult> redeem(String rawCode, String uid, String month) async {
+  /// Pure precheck → error mapping, split out for unit tests. Returns null
+  /// when the redemption may proceed. Encodes the owner's 4-way matrix:
+  /// the REDEEMER must be new (never redeemed, never been redeemed-from);
+  /// the code owner may be new or old.
+  static RedeemResult? classifyPrecheck({
+    required bool codeExists,
+    required bool isOwnCode,
+    required bool iHaveRedeemed,
+    required bool iWasReferred,
+    required bool deviceTaken,
+  }) {
+    if (!codeExists) return RedeemResult.notFound;
+    if (isOwnCode) return RedeemResult.ownCode;
+    if (iHaveRedeemed) return RedeemResult.alreadyRedeemed;
+    if (iWasReferred) return RedeemResult.alreadyReferrer;
+    if (deviceTaken) return RedeemResult.deviceUsed;
+    return null;
+  }
+
+  /// Redeem [rawCode] as [uid] from this [deviceHash]. Prechecks give real
+  /// error reasons up front (a rules denial is an opaque PERMISSION_DENIED);
+  /// the batch itself is still fully verified server-side. One retry after a
+  /// denied commit re-runs the prechecks to classify races (e.g. the owner
+  /// became old between read and write → retry without their marker).
+  Future<RedeemResult> redeem(
+    String rawCode,
+    String uid,
+    String deviceHash,
+  ) async {
     final code = rawCode.trim().toUpperCase();
     if (code.isEmpty) return RedeemResult.notFound;
     // Any of my own candidate codes is self-referral.
@@ -69,35 +121,99 @@ class ReferralService {
       }
     }
     try {
-      final doc = _fs.collection('referralCodes').doc(code);
-      final snap = await doc.get();
-      if (!snap.exists) return RedeemResult.notFound;
-      if (snap.data()?['ownerUid'] == uid) return RedeemResult.ownCode;
-      await doc.collection('redemptions').doc('${uid}_$month').set({
-        'redeemerUid': uid,
-        'month': month,
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      });
-      return RedeemResult.success;
+      return await _attempt(code, uid, deviceHash, retriesLeft: 1);
     } on FirebaseException {
       return RedeemResult.failed;
     }
   }
 
-  /// Whether anyone redeemed my code for [month] — the owner's side of the
-  /// reward. One tiny query (limit 1) per check.
-  Future<bool> hasRedemptionForMonth(String myCode, String month) async {
+  Future<RedeemResult> _attempt(
+    String code,
+    String uid,
+    String deviceHash, {
+    required int retriesLeft,
+  }) async {
+    final codeDoc = _fs.collection('referralCodes').doc(code);
+    final codeSnap = await codeDoc.get();
+    final ownerUid = codeSnap.data()?['ownerUid'] as String?;
+    final precheck = classifyPrecheck(
+      codeExists: codeSnap.exists && ownerUid != null,
+      isOwnCode: ownerUid == uid,
+      iHaveRedeemed: (await _fs.collection('redeemers').doc(uid).get()).exists,
+      iWasReferred: (await _fs.collection('referrers').doc(uid).get()).exists,
+      deviceTaken:
+          (await _fs.collection('redeemedDevices').doc(deviceHash).get())
+              .exists,
+    );
+    if (precheck != null) return precheck;
+
+    // The owner's old-marker goes in the batch only when they don't have one
+    // yet (a create on an existing doc counts as an update and is denied).
+    final ownerMarked =
+        (await _fs.collection('referrers').doc(ownerUid!).get()).exists;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final batch = _fs.batch();
+    batch.set(codeDoc.collection('redemptions').doc(uid), {
+      'redeemerUid': uid,
+      'deviceHash': deviceHash,
+      'v': 2,
+      'createdAt': now,
+    });
+    batch.set(_fs.collection('redeemers').doc(uid), {
+      'code': code,
+      'deviceHash': deviceHash,
+      'createdAt': now,
+    });
+    batch.set(_fs.collection('redeemedDevices').doc(deviceHash), {
+      'redeemerUid': uid,
+      'createdAt': now,
+    });
+    if (!ownerMarked) {
+      batch.set(_fs.collection('referrers').doc(ownerUid), {
+        'code': code,
+        'byUid': uid,
+        'createdAt': now,
+      });
+    }
     try {
-      final snap = await _fs
-          .collection('referralCodes')
-          .doc(myCode)
-          .collection('redemptions')
-          .where('month', isEqualTo: month)
-          .limit(1)
-          .get();
-      return snap.docs.isNotEmpty;
-    } on FirebaseException {
-      return false;
+      await batch.commit();
+      return RedeemResult.success;
+    } on FirebaseException catch (e) {
+      // A denial here after clean prechecks is a race (someone else's write
+      // landed in between). One re-run re-reads everything and either returns
+      // the real reason or commits with the fresh state.
+      if (e.code == 'permission-denied' && retriesLeft > 0) {
+        return _attempt(code, uid, deviceHash, retriesLeft: retriesLeft - 1);
+      }
+      rethrow;
     }
   }
+
+  /// Number of new-scheme (v2) redemptions of [code] — the owner's referral
+  /// credit units. Only readable for codes I own; a permission denial (not my
+  /// code / unpublished candidate) counts as 0.
+  Future<int> countNewRedemptions(String code) async {
+    try {
+      final agg = await _fs
+          .collection('referralCodes')
+          .doc(code)
+          .collection('redemptions')
+          .where('v', isEqualTo: 2)
+          .count()
+          .get();
+      return agg.count ?? 0;
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') return 0;
+      rethrow;
+    }
+  }
+
+  /// Whether this account has redeemed a code (its own +300 proof).
+  Future<bool> hasRedeemed(String uid) async =>
+      (await _fs.collection('redeemers').doc(uid).get()).exists;
+
+  /// Whether this account's code has ever been redeemed (old via inviting).
+  Future<bool> hasReferred(String uid) async =>
+      (await _fs.collection('referrers').doc(uid).get()).exists;
 }

@@ -110,16 +110,16 @@
   "planUltra": "Ultra",
   "planCurrentBadge": "Current plan",
   "planFreeDetail1": "Unlimited manual entries",
-  "planFreeDetail2": "Auto slip scan, 30 slips/month",
+  "planFreeDetail2": "Free auto slip scan, 30 slips per cycle",
   "planFreeDetail3": "Cloud sync — safe across devices",
   "planFreeDetail4": "Stats, budgets, and savings goals",
   "planFreeDetail5": "Export your data as CSV",
   "planUltraDetail1": "Everything in Free",
-  "planUltraDetail2": "300 slips/month — over 10× more",
+  "planUltraDetail2": "+300 credits per friend, no limit on friends",
   "planUltraDetail5": "Ultra badge on your profile",
   "planMyCode": "My referral code",
   "planCodeCopied": "Code copied",
-  "planShareMessage": "Track your money with me on moneyBun! Enter code {code} in the app and we both get Pro free",
+  "planShareMessage": "Track your money with me on moneyBun! Enter code {code} in the app for 300 free slip-scan credits",
   "@planShareMessage": {
     "placeholders": {
       "code": {
@@ -130,18 +130,49 @@
   "planEnterCode": "Enter a friend's code",
   "planEnterCodeHint": "e.g. ABC123",
   "planRedeem": "Redeem",
-  "planRedeemSuccess": "Pro unlocked for this month! 🎉",
+  "planRedeemSuccess": "You got 300 credits! Ready to scan slips 🎉",
+  "planRedeemAlreadyRedeemed": "This account has already redeemed a code — one redemption per account",
+  "planRedeemAlreadyReferrer": "You're an existing member (a friend used your code) — keep inviting for +300 each",
+  "planRedeemDeviceUsed": "This device has already redeemed a code — one redemption per device",
+  "planOldStatus": "You're an existing member — share your code with new friends for +300 credits each, no limit",
+  "planCreditsBalance": "{count} credits left",
+  "@planCreditsBalance": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planCreditsPerFriendUnit": "credits per friend",
+  "planCreditsFooter": "30 free each cycle — credits kick in when free runs out",
+  "planBackfillNote": "Slips from before your signup day (first month) are read free",
   "planRedeemOwnCode": "You can't use your own code",
   "planRedeemInvalid": "Code not found — check and try again",
   "planRedeemFailed": "Couldn't redeem the code, please try again",
-  "planUltraHint": "Pro lasts until the end of the month — invite again each month",
+  "planUltraHint": "Credits never expire — invite as many friends as you like",
   "planUltraActiveHint": "Ultra is active — thank you for supporting Bun",
-  "planHowTo": "Have a friend enter your code (or enter theirs) and you both get Pro until the end of the month",
+  "planHowTo": "Redeem a friend's code once for 300 credits — then share your own code and earn 300 more per friend",
   "settingsMoneySection": "Money",
   "settingsSupportSection": "Support",
   "settingsReferral": "Invite friends",
-  "settingsQuotaTitle": "Slip scans this month",
-  "planSlipsUnit": "slips/month",
+  "settingsQuotaTitle": "Slip scans this cycle",
+  "planSlipsUnit": "slips per cycle",
+  "settingsQuotaCredits": "{count} credits",
+  "@settingsQuotaCredits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsQuotaResetOn": "Free resets {date}",
+  "@settingsQuotaResetOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "planIncludesLabel": "What's included",
   "planUnlimitedNumber": "∞",
   "planUltraPriceLine": "Just 29 THB/month",
@@ -154,7 +185,7 @@
   "viewPlans": "View plans",
   "settingsQuotaUnlimited": "Unlimited",
   "planUnlockCta": "Invite a friend to unlock Pro",
-  "planUltraDetail3": "Free to unlock — no payment",
+  "planUltraDetail3": "Credits accumulate and never expire",
   "settingsHandleProMember": "@{username} · Pro member",
   "@settingsHandleProMember": {
     "placeholders": {
@@ -163,14 +194,7 @@
       }
     }
   },
-  "scanQuotaReached": "Monthly scan quota reached ({limit} slips)",
-  "@scanQuotaReached": {
-    "placeholders": {
-      "limit": {
-        "type": "int"
-      }
-    }
-  },
+  "scanQuotaReached": "Scan quota used up — invite a friend for 300 credits",
   "scanQuotaUpgrade": "Unlock more",
   "settingsDisplayName": "Display name",
   "settingsDisplayNameHint": "Khun Bun",

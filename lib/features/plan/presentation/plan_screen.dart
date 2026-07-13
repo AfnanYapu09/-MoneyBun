@@ -11,11 +11,12 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/plan.dart';
+import '../domain/quota_period.dart';
 
 /// ตั้งค่า → (แถบโควต้า) → แพลนสมาชิก: swipeable ticket cards for the three
-/// tiers. Free (espresso) limits some features, Pro (terracotta, referral)
-/// has every feature with a 300-scan cap, Ultra (black & gold, paid) has no
-/// limits. The bottom button follows the visible card.
+/// tiers. Free (espresso) limits some features, Pro (terracotta) is unlocked
+/// by referral credits (+300 per friend, permanent), Ultra (black & gold,
+/// paid) has no limits. The bottom button follows the visible card.
 class PlanScreen extends ConsumerStatefulWidget {
   const PlanScreen({super.key});
 
@@ -80,6 +81,7 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
                         details: [
                           l10n.planFreeDetail1,
                           l10n.planFreeDetail2,
+                          l10n.planBackfillNote,
                           l10n.planFreeDetail3,
                           l10n.planFreeDetail4,
                         ],
@@ -96,8 +98,8 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
                         tier: PlanTier.pro,
                         title: l10n.planPro,
                         active: plan.isPro,
-                        numberText: '${Plan.proScanLimit}',
-                        unitText: l10n.planSlipsUnit,
+                        numberText: '+${QuotaPeriod.referralCredit}',
+                        unitText: l10n.planCreditsPerFriendUnit,
                         details: [
                           l10n.planUltraDetail1,
                           l10n.planUltraDetail2,
@@ -157,8 +159,11 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
       );
     }
     if (plan.isPro) {
+      final credits = ref.watch(membershipProvider).value?.creditBalance ?? 0;
       return Text(
-        l10n.planUltraHint,
+        credits > 0
+            ? '${l10n.planCreditsBalance(credits)} — ${l10n.planCreditsFooter}'
+            : l10n.planCreditsFooter,
         textAlign: TextAlign.center,
         style: AppTypography.body(size: 12.5, color: context.palette.ink3),
       );

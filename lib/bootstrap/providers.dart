@@ -19,8 +19,11 @@ import '../data/repositories/settings_repository.dart';
 import '../data/repositories/slip_repository.dart';
 import '../data/repositories/tag_repository.dart';
 import '../data/repositories/transaction_repository.dart';
+import '../features/plan/data/credits_service.dart';
+import '../features/plan/data/device_id_service.dart';
 import '../features/plan/data/referral_service.dart';
 import '../features/plan/domain/plan.dart';
+import '../features/plan/domain/quota_period.dart';
 import '../features/slip/data/slip_importer.dart';
 import '../features/slip/data/slip_ocr_service.dart';
 import '../features/slip/data/slip_pipeline.dart';
@@ -136,24 +139,11 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
         ref.read(settingsRepositoryProvider).setFirstSyncDone(true),
     // After every completed sync: turn a pulled `avatarImage` into the local
     // photo file (new device, reinstall, or a photo changed on another device),
-    // and pick up the owner-side referral reward (a friend redeemed my code).
+    // and refresh the membership caches (credit grants, old/new markers, the
+    // signup date) from Firestore — the referrer's +300s land here.
     onSyncCompleted: (uid) => unawaited(() async {
-      final repo = ref.read(settingsRepositoryProvider);
-      await repo.syncAvatarFromCloud(uid);
-      final referral = ref.read(referralServiceProvider);
-      if (referral == null) return;
-      final month = Plan.monthKey(DateTime.now());
-      if ((await repo.read()).proMonth == month) return; // already Pro
-      // Walk every candidate code, not just attempt 0: publishMyCode can have
-      // landed on a later attempt (hash collision with another user's code),
-      // and checking only attempt 0 would silently miss a real reward.
-      for (var attempt = 0; attempt < 4; attempt++) {
-        final code = ReferralService.codeForUid(uid, attempt: attempt);
-        if (await referral.hasRedemptionForMonth(code, month)) {
-          await repo.setProMonth(month);
-          return;
-        }
-      }
+      await ref.read(settingsRepositoryProvider).syncAvatarFromCloud(uid);
+      await ref.read(creditsServiceProvider)?.refresh(uid);
     }()),
   );
   // Upload pending changes shortly after any local data change.
@@ -206,56 +196,117 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     scannedUpTo: () => ref.read(settingsRepositoryProvider).getSlipScanUpTo(),
     saveScannedUpTo: (ms) =>
         ref.read(settingsRepositoryProvider).setSlipScanUpTo(ms),
-    // Plan quota: Free 30 / Pro 300 slips per calendar month; Ultra unlimited.
-    remainingScanQuota: () async {
-      final now = DateTime.now();
-      final settings = await ref.read(settingsRepositoryProvider).read();
-      final plan = Plan.resolve(
-        uid: ref.read(authServiceProvider)?.currentUser?.uid ?? '',
-        proMonth: settings.proMonth,
-        ultraUntil: settings.ultraUntil,
-        now: now,
-      );
-      final limit = plan.scanLimit;
-      if (limit == null) return 1 << 30; // Ultra: effectively unlimited
-      final used = await db.countSlipsCreatedBetween(
-        DateTime(now.year, now.month).millisecondsSinceEpoch,
-        DateTime(now.year, now.month + 1).millisecondsSinceEpoch,
-      );
-      final left = limit - used;
-      return left > 0 ? left : 0;
-    },
+    // Membership quota: period free allowance + permanent credits (computed
+    // fresh at scan start — the provider cache could be mid-rebuild).
+    remainingScanQuota: () async =>
+        (await computeMembership(ref)).remainingScans,
+    // Photos taken before local midnight after the signup day import free.
+    backfillCutoffMs: () async =>
+        (await computeMembership(ref)).backfillCutoffMs,
   );
 });
 
-// ---- Membership plan (Free / Pro via referral / paid Ultra) ----------------
+// ---- Membership (Free periods + permanent Pro credits / paid Ultra) --------
 
-/// The active plan, derived from the synced `proMonth` (referral Pro) and
-/// `ultraUntil` (paid Ultra) settings vs today — resets need no job.
-final planProvider = Provider<Plan>((ref) {
-  final settings = ref.watch(appSettingsProvider).value;
-  final uid = ref.watch(authServiceProvider)?.currentUser?.uid ?? '';
-  return Plan.resolve(
+/// One full membership snapshot, computed fresh: personal period anchored to
+/// the signup day (auth creation time, cached in settings for offline), free
+/// usage and all-time credit consumption derived from the local slips table,
+/// grants from the synced credit cache. Shared by [membershipProvider] and the
+/// slip importer's quota callbacks.
+Future<Membership> computeMembership(Ref ref) async {
+  final now = DateTime.now();
+  final settings = await ref.read(settingsRepositoryProvider).read();
+  final auth = ref.read(authServiceProvider);
+  final uid = auth?.currentUser?.uid ?? '';
+  final signupMs =
+      auth?.currentUser?.metadata.creationTime?.millisecondsSinceEpoch ??
+          settings.signupAtMs;
+  // Guests (no signup date) fall back to plain calendar months, no backfill —
+  // the pre-membership behaviour.
+  final anchor = signupMs != null
+      ? QuotaPeriod.anchorFor(DateTime.fromMillisecondsSinceEpoch(signupMs))
+      : DateTime(now.year, now.month);
+  final backfillCutoffMs = signupMs != null ? anchor.millisecondsSinceEpoch : 0;
+  final times = await ref.read(databaseProvider).countableSlipCreatedTimes(
+        sinceMs: QuotaPeriod.creditsEpoch.millisecondsSinceEpoch,
+        backfillCutoffMs: backfillCutoffMs,
+        ultraExemptEndMs: QuotaPeriod.ultraExemptEndMs(settings.ultraUntil),
+      );
+  final usage = QuotaPeriod.usage(
+    anchor: anchor,
+    createdAtsMs: times,
+    now: now,
+  );
+  final rawBalance = settings.creditsGranted - usage.creditsUsed;
+  final plan = Plan.resolve(
     uid: uid,
-    proMonth: settings?.proMonth ?? '',
+    ultraUntil: settings.ultraUntil,
+    creditBalance: rawBalance > 0 ? rawBalance : 0,
+    now: now,
+  );
+  final period = QuotaPeriod.currentPeriod(anchor, now);
+  return Membership(
+    plan: plan,
+    freeUsed: usage.freeUsedThisPeriod,
+    creditsGranted: settings.creditsGranted,
+    creditsUsed: usage.creditsUsed,
+    periodStart: period.start,
+    periodResetAt: period.end,
+    isOld: settings.hasRedeemed || settings.hasReferred,
+    backfillCutoffMs: backfillCutoffMs,
+  );
+}
+
+/// Reactive membership snapshot for the UI: recomputes on any slips-table
+/// change (the countable count is the trigger) and on any settings/auth
+/// change (which rebuild the provider itself).
+final membershipProvider = StreamProvider<Membership>((ref) {
+  ref.watch(appSettingsProvider);
+  ref.watch(authStateProvider);
+  final trigger = ref.watch(databaseProvider).watchCountableSlips(
+        sinceMs: QuotaPeriod.creditsEpoch.millisecondsSinceEpoch,
+        backfillCutoffMs: 0,
+        ultraExemptEndMs: 0,
+      );
+  return trigger.asyncMap((_) => computeMembership(ref));
+});
+
+/// The active plan. Before the first membership computation lands, resolve
+/// what's synchronously derivable (dev / Ultra) so gated screens don't
+/// flicker to Free.
+final planProvider = Provider<Plan>((ref) {
+  final membership = ref.watch(membershipProvider).value;
+  if (membership != null) return membership.plan;
+  final settings = ref.watch(appSettingsProvider).value;
+  return Plan.resolve(
+    uid: ref.watch(authServiceProvider)?.currentUser?.uid ?? '',
     ultraUntil: settings?.ultraUntil ?? '',
+    creditBalance: 0,
     now: DateTime.now(),
   );
-});
-
-/// Slips imported this calendar month — the plan screen's usage meter.
-final slipsUsedThisMonthProvider = StreamProvider<int>((ref) {
-  final now = DateTime.now();
-  return ref.watch(databaseProvider).watchSlipsCreatedBetween(
-        DateTime(now.year, now.month).millisecondsSinceEpoch,
-        DateTime(now.year, now.month + 1).millisecondsSinceEpoch,
-      );
 });
 
 final referralServiceProvider = Provider<ReferralService?>((ref) {
   if (!ref.watch(firebaseReadyProvider)) return null;
   return ReferralService(FirebaseFirestore.instance);
 });
+
+/// Refreshes the local credit/marker caches from Firestore after every sync.
+final creditsServiceProvider = Provider<CreditsService?>((ref) {
+  final referral = ref.watch(referralServiceProvider);
+  final auth = ref.watch(authServiceProvider);
+  if (referral == null || auth == null) return null;
+  return CreditsService(
+    referral,
+    ref.watch(settingsRepositoryProvider),
+    auth,
+  );
+});
+
+/// Stable hashed device id backing the one-redemption-per-device lock.
+final deviceIdServiceProvider = Provider<DeviceIdService>(
+  (ref) => DeviceIdService(ref.watch(settingsRepositoryProvider)),
+);
 
 /// Drives the automatic, one-gesture slip scan (pull-to-refresh on Home / FAB).
 class ScanState {

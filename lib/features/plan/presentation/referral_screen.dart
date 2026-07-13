@@ -11,10 +11,12 @@ import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/sub_screen_scaffold.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../data/referral_service.dart';
-import '../domain/plan.dart';
+import '../domain/quota_period.dart';
 
 /// แพลนสมาชิก → ชวนเพื่อน: my referral code (copy/share) and the redeem box
-/// for a friend's code. Both sides of a redemption get Ultra for the month.
+/// for a friend's code. A redemption grants BOTH sides +300 permanent credits
+/// and marks both accounts "old" — only a new account (never redeemed, never
+/// been redeemed-from) can redeem, once ever, one device each.
 class ReferralScreen extends ConsumerStatefulWidget {
   const ReferralScreen({super.key});
 
@@ -57,7 +59,9 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final plan = ref.watch(planProvider);
+    final membership = ref.watch(membershipProvider).value;
+    final isOld = membership?.isOld ?? true; // hide the box until known
+    final credits = membership?.creditBalance ?? 0;
 
     return SubScreenScaffold(
       title: l10n.settingsReferral,
@@ -85,12 +89,28 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
               );
             },
           ),
-          if (plan.isFree) ...[
+          if (!isOld) ...[
             const SizedBox(height: 12),
             _RedeemBox(
               controller: _codeField,
               redeeming: _redeeming,
               onRedeem: _redeem,
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            _StatusNote(text: l10n.planOldStatus),
+          ],
+          if (credits > 0) ...[
+            const SizedBox(height: 12),
+            Center(
+              child: Text(
+                l10n.planCreditsBalance(credits),
+                style: AppTypography.heading(
+                  size: 14.5,
+                  weight: FontWeight.w600,
+                  color: context.palette.terraFg,
+                ),
+              ),
             ),
           ],
           const SizedBox(height: 14),
@@ -116,11 +136,17 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
     final repo = ref.read(settingsRepositoryProvider);
     setState(() => _redeeming = true);
     try {
-      final month = Plan.monthKey(DateTime.now());
-      final result = await referral.redeem(_codeField.text, uid, month);
+      final deviceHash = await ref.read(deviceIdServiceProvider).deviceHash();
+      final result = await referral.redeem(_codeField.text, uid, deviceHash);
       switch (result) {
         case RedeemResult.success:
-          await repo.setProMonth(month);
+          // Reflect the grant immediately; the post-sync refresh reconciles
+          // the cache against the real Firestore docs.
+          final settings = await repo.read();
+          await repo.setHasRedeemed(true);
+          await repo.setCreditsGranted(
+            settings.creditsGranted + QuotaPeriod.referralCredit,
+          );
           if (!mounted) return;
           _codeField.clear();
           _snack(l10n.planRedeemSuccess);
@@ -128,6 +154,14 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
           _snack(l10n.planRedeemOwnCode);
         case RedeemResult.notFound:
           _snack(l10n.planRedeemInvalid);
+        case RedeemResult.alreadyRedeemed:
+          await repo.setHasRedeemed(true);
+          _snack(l10n.planRedeemAlreadyRedeemed);
+        case RedeemResult.alreadyReferrer:
+          await repo.setHasReferred(true);
+          _snack(l10n.planRedeemAlreadyReferrer);
+        case RedeemResult.deviceUsed:
+          _snack(l10n.planRedeemDeviceUsed);
         case RedeemResult.failed:
           _snack(l10n.planRedeemFailed);
       }
@@ -209,6 +243,29 @@ class _MyCodeCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Status line shown to "old" members in place of the redeem box.
+class _StatusNote extends StatelessWidget {
+  const _StatusNote({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.palette.line),
+      ),
+      child: Text(
+        text,
+        style: AppTypography.body(size: 13, color: context.palette.ink2),
       ),
     );
   }
