@@ -188,6 +188,9 @@ class AppDatabase extends _$AppDatabase {
   ///
   /// Values mirror the key constants in `SettingsKeys` (settings_repository) —
   /// duplicated as literals here because the repository layer imports this file.
+  // 'proMonth' (the retired calendar-month Pro grant) is deliberately absent:
+  // old app versions may still push it, but new clients neither read nor
+  // upload it (the pull pass skips keys not listed here).
   static const Set<String> syncedSettingsKeys = {
     'displayName',
     'username',
@@ -195,7 +198,6 @@ class AppDatabase extends _$AppDatabase {
     'savingsGoalCents',
     'disabledScanIds',
     'avatarImage',
-    'proMonth',
     'ultraUntil',
   };
 
@@ -531,6 +533,56 @@ class AppDatabase extends _$AppDatabase {
           slips.createdAt.isSmallerThanValue(endMs));
     final row = await q.getSingle();
     return row.read(countExp) ?? 0;
+  }
+
+  /// Import times (createdAt, ascending) of every *countable* slip — the
+  /// source for the membership credit accounting ([QuotaPeriod.usage]).
+  /// Countable = non-deleted, imported at/after [sinceMs] (the credits epoch),
+  /// NOT free backfill (photo taken before [backfillCutoffMs] — a null photo
+  /// time stays countable so unknown-time photos can't become an unlimited
+  /// free loophole), and NOT imported inside a paid-Ultra window
+  /// (createdAt < [ultraExemptEndMs]; pass 0 when never Ultra).
+  Future<List<int>> countableSlipCreatedTimes({
+    required int sinceMs,
+    required int backfillCutoffMs,
+    required int ultraExemptEndMs,
+  }) async {
+    final q = selectOnly(slips)
+      ..addColumns([slips.createdAt])
+      ..where(_countableSlip(sinceMs, backfillCutoffMs, ultraExemptEndMs))
+      ..orderBy([OrderingTerm.asc(slips.createdAt)]);
+    final rows = await q.get();
+    return rows.map((r) => r.read(slips.createdAt)).whereType<int>().toList();
+  }
+
+  /// Reactive count of countable slips — re-emits on any slips-table change so
+  /// the membership provider recomputes usage.
+  Stream<int> watchCountableSlips({
+    required int sinceMs,
+    required int backfillCutoffMs,
+    required int ultraExemptEndMs,
+  }) {
+    final countExp = slips.id.count();
+    final q = selectOnly(slips)
+      ..addColumns([countExp])
+      ..where(_countableSlip(sinceMs, backfillCutoffMs, ultraExemptEndMs));
+    return q.watchSingle().map((row) => row.read(countExp) ?? 0);
+  }
+
+  Expression<bool> _countableSlip(
+    int sinceMs,
+    int backfillCutoffMs,
+    int ultraExemptEndMs,
+  ) {
+    var predicate = slips.deleted.equals(false) &
+        slips.createdAt.isBiggerOrEqualValue(sinceMs) &
+        slips.createdAt.isBiggerOrEqualValue(ultraExemptEndMs);
+    if (backfillCutoffMs > 0) {
+      predicate = predicate &
+          (slips.photoTakenAt.isNull() |
+              slips.photoTakenAt.isBiggerOrEqualValue(backfillCutoffMs));
+    }
+    return predicate;
   }
 
   /// Reactive version of [countSlipsCreatedBetween] for the plan screen's

@@ -3,51 +3,142 @@ rules_version = '2';
 // MoneyBun Firestore security rules.
 // Each user can read/write ONLY their own data under users/{uid}/**.
 // Slip reading is fully on-device (QR + ML Kit) — there is no server component.
+//
+// Membership v2 referral model: a redemption is ONE atomic client batch that
+// creates
+//   referralCodes/{code}/redemptions/{redeemerUid}  (the +300 credit unit)
+//   redeemers/{redeemerUid}                         (one-ever account lock)
+//   redeemedDevices/{deviceHash}                    (one-ever device lock)
+//   referrers/{ownerUid}                            (owner's "old" marker,
+//                                                    only when absent)
+// getAfter()/existsAfter() see post-batch state, so each doc's create rule can
+// require its companions — none of the four can ever be created alone. All of
+// them are create-only: a set() on an existing doc is classified as an update
+// and denied, which is what makes redeemers/{uid} the once-per-account lock
+// and redeemedDevices/{hash} the once-per-device lock, atomically.
+//
+// New/old matrix (owner's spec): the REDEEMER must be "new" — never redeemed
+// (redeemers/{uid} create-only) and never been redeemed-from
+// (!exists(referrers/{uid})). The code owner may be new or old; a successful
+// match marks BOTH sides old. Credits are never stored as a counter anywhere —
+// clients derive them by counting v2 redemption docs, so a modified client
+// cannot fake a grant it doesn't have.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function codeOwner(code) {
+      return get(/databases/$(database)/documents/referralCodes/$(code)).data.ownerUid;
+    }
 
     match /users/{userId} {
       // Every per-user collection (transactions, accounts, categories,
       // slips, budgets, tags, recurringRules, settings, ...) is fully
-      // owner-read/write — EXCEPT settings/ultraUntil, carved out below.
+      // owner-readable — including LIST queries over a whole collection
+      // (the sync engine pulls `settings` as one query, and a doc-id
+      // exclusion inside the read rule would deny that entire query:
+      // rules are not filters).
+      //
+      // Writes are owner-only too, EXCEPT settings/ultraUntil: the paid
+      // Ultra expiry is granted manually via the Firebase console
+      // (privileged access that bypasses these rules) and is never written
+      // by the app itself. Denying the client write means no one can
+      // self-grant Ultra by pushing this doc through the SDK/REST API.
       match /{collection}/{docId} {
-        allow read, write: if request.auth != null
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if request.auth != null
           && request.auth.uid == userId
           && !(collection == 'settings' && docId == 'ultraUntil');
       }
-
-      // ultraUntil (paid Ultra expiry) is granted manually via the Firebase
-      // console — privileged access that bypasses these rules entirely — and
-      // is never written by the app itself (no client call site exists).
-      // Deny client writes outright so no one can self-grant Ultra by
-      // pushing this doc directly through the SDK/REST API.
-      match /settings/ultraUntil {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow write: if false;
-      }
     }
 
-    // Referral codes (Pro unlock): the owner publishes their code; any
-    // signed-in user can look a code up to redeem it. A redemption doc id is
-    // "<redeemerUid>_<YYYY-MM>", written only by that redeemer and never by
-    // the code's owner (no self-referral). The owner reads redemptions to
-    // activate their own side of the reward. Nothing here is updatable or
-    // deletable from clients.
     match /referralCodes/{code} {
+      // Anyone signed-in can look a code up to redeem it; publishing is open
+      // to everyone (new users can invite from day one) but only for a code
+      // that names them as owner. Codes are immutable once published.
       allow get: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.ownerUid == request.auth.uid;
 
       match /redemptions/{redemptionId} {
+        // The owner reads (get/list/count) redemptions to derive their
+        // +300-per-friend credits.
         allow read: if request.auth != null
-          && get(/databases/$(database)/documents/referralCodes/$(code))
-              .data.ownerUid == request.auth.uid;
+          && codeOwner(code) == request.auth.uid;
+
+        // New-scheme redemption, written by the redeemer. The bare-uid doc id
+        // distinguishes v2 docs from legacy '<uid>_<YYYY-MM>' ones, whose
+        // creation is no longer allowed (pre-v2 app versions get a denial).
         allow create: if request.auth != null
-          && redemptionId == request.auth.uid + '_' + request.resource.data.month
+          // shape
+          && redemptionId == request.auth.uid
           && request.resource.data.redeemerUid == request.auth.uid
-          && get(/databases/$(database)/documents/referralCodes/$(code))
-              .data.ownerUid != request.auth.uid;
+          && request.resource.data.v == 2
+          && request.resource.data.deviceHash is string
+          && request.resource.data.deviceHash.size() == 64
+          // no self-redemption
+          && codeOwner(code) != request.auth.uid
+          // the redeemer must be NEW: never been redeemed-from ("never
+          // redeemed" is enforced by the create-only redeemers doc below)
+          && !exists(/databases/$(database)/documents/referrers/$(request.auth.uid))
+          // the SAME batch must create my account lock pointing at THIS code
+          // and THIS device (a pre-existing redeemers doc carries the old
+          // values and fails these checks)
+          && getAfter(/databases/$(database)/documents/redeemers/$(request.auth.uid)).data.code == code
+          && getAfter(/databases/$(database)/documents/redeemers/$(request.auth.uid)).data.deviceHash
+              == request.resource.data.deviceHash
+          // ... and the device lock for this redeemer
+          && getAfter(/databases/$(database)/documents/redeemedDevices/$(request.resource.data.deviceHash)).data.redeemerUid
+              == request.auth.uid
+          // ... and the owner must be marked old post-batch (pre-existing
+          // marker, or created in this batch — the redeemer cannot skip it)
+          && existsAfter(/databases/$(database)/documents/referrers/$(codeOwner(code)));
+        // No update/delete — a redemption is permanent.
       }
+    }
+
+    // One-redemption-per-account lock + the redeemer's own +300 proof.
+    // Create-only and tied to the redemption doc of the same batch.
+    match /redeemers/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+        && uid == request.auth.uid
+        && request.resource.data.code is string
+        && request.resource.data.deviceHash is string
+        && getAfter(/databases/$(database)/documents/referralCodes/$(request.resource.data.code)/redemptions/$(request.auth.uid)).data.redeemerUid
+            == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // "This account's code has been redeemed" — the old-via-inviting marker,
+    // created by the REDEEMER (not the doc's owner) as part of their batch.
+    // Readable by any signed-in user so a redeemer can decide whether the
+    // owner still needs marking, and precheck their own eligibility.
+    match /referrers/{uid} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.code is string
+        && request.resource.data.byUid == request.auth.uid
+        // the doc id must be the owner of the code being redeemed
+        && codeOwner(request.resource.data.code) == uid
+        // ... and only as part of my own redemption of that code
+        && getAfter(/databases/$(database)/documents/referralCodes/$(request.resource.data.code)/redemptions/$(request.auth.uid)).data.redeemerUid
+            == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // One-redemption-per-physical-device lock. Readable by any signed-in user
+    // so a second account on the same phone gets a specific "device already
+    // used" error instead of an opaque PERMISSION_DENIED. Create is tied back
+    // to the same batch's redeemers doc — you can only register the hash your
+    // own redemption carries, so nobody can pre-register someone else's
+    // device to grief them.
+    match /redeemedDevices/{deviceHash} {
+      allow get: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.redeemerUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/redeemers/$(request.auth.uid)).data.deviceHash
+            == deviceHash;
+      allow update, delete: if false;
     }
 
     // Everything else is denied by default.

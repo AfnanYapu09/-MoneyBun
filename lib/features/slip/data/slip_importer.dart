@@ -71,6 +71,7 @@ class SlipImporter {
     required Future<int?> Function() scannedUpTo,
     required Future<void> Function(int ms) saveScannedUpTo,
     required Future<int> Function() remainingScanQuota,
+    required Future<int> Function() backfillCutoffMs,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
@@ -82,7 +83,8 @@ class SlipImporter {
         _disabledScanIds = disabledScanIds,
         _scannedUpTo = scannedUpTo,
         _saveScannedUpTo = saveScannedUpTo,
-        _remainingScanQuota = remainingScanQuota;
+        _remainingScanQuota = remainingScanQuota,
+        _backfillCutoffMs = backfillCutoffMs;
 
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
@@ -116,9 +118,14 @@ class SlipImporter {
   /// Persist the read-up-to record after a scan.
   final Future<void> Function(int ms) _saveScannedUpTo;
 
-  /// How many more slips the plan allows this month (Free 30 / Ultra 300,
-  /// minus what was already imported). The scan stops importing at zero.
+  /// How many more slips the membership allows right now (period free
+  /// allowance + credit balance; effectively unlimited on Ultra). The scan
+  /// stops importing non-backfill photos at zero.
   final Future<int> Function() _remainingScanQuota;
+
+  /// Photos taken before this local-midnight instant (epoch ms) import free —
+  /// the signup-month backfill. 0 = no backfill (guest / unknown signup).
+  final Future<int> Function() _backfillCutoffMs;
 
   /// Cap on images read per bank album. A backstop only — the month window
   /// below bounds real scans; the cap just keeps a pathological album (tens of
@@ -197,6 +204,15 @@ class SlipImporter {
       n.startsWith('make-') ||
       n.startsWith('makeby') ||
       n.contains('make by');
+
+  /// Whether a photo taken at [photoMs] is free signup-month backfill: the
+  /// cutoff is known (a signed-in account) and the photo predates it. A photo
+  /// whose time the gallery doesn't know (epoch 0) is NEVER backfill —
+  /// otherwise unknown-time photos would become an unlimited free loophole.
+  /// Mirrors the countable-slip predicate in the database layer. Public +
+  /// static so it can be unit-tested.
+  static bool isBackfillPhoto(int photoMs, int backfillCutoffMs) =>
+      backfillCutoffMs > 0 && photoMs != 0 && photoMs < backfillCutoffMs;
 
   /// Whether [name] is a bank/e-wallet slip album. Public + static so it can be
   /// unit-tested.
@@ -305,7 +321,9 @@ class SlipImporter {
       // Banks the user turned off in the accounts sheet — skip their albums.
       final disabled = await _disabledScanIds();
 
-      final acc = _ScanAcc()..quotaRemaining = await _remainingScanQuota();
+      final acc = _ScanAcc()
+        ..quotaRemaining = await _remainingScanQuota()
+        ..backfillCutoffMs = await _backfillCutoffMs();
 
       // Import slips from recognised bank/e-wallet albums (every image in such
       // an album is a slip). Already-imported ones are skipped via [already]
@@ -382,7 +400,10 @@ class SlipImporter {
       // must reflect the OLDEST blocked photo across every matched album, not
       // just the first one hit, or older backlog elsewhere looks "already
       // read" and is skipped forever.
-      if (!already.contains(asset.id) && acc.imported >= acc.quotaRemaining) {
+      final isBackfill = isBackfillPhoto(seenMs, acc.backfillCutoffMs);
+      if (!already.contains(asset.id) &&
+          !isBackfill &&
+          acc.quotaUsed >= acc.quotaRemaining) {
         acc.quotaReached = true;
         if (acc.quotaBlockedAt == null || seenMs < acc.quotaBlockedAt!) {
           acc.quotaBlockedAt = seenMs;
@@ -428,6 +449,7 @@ class SlipImporter {
         already.add(asset.id);
         if (ref != null && ref.isNotEmpty) knownRefs.add(ref);
         acc.imported++;
+        if (!isBackfill) acc.quotaUsed++;
         final ms = occurredAt.millisecondsSinceEpoch;
         if (acc.newestImportedAt == null || ms > acc.newestImportedAt!) {
           acc.newestImportedAt = ms;
@@ -471,10 +493,17 @@ class _ScanAcc {
   int errors = 0;
   int? newestImportedAt;
 
-  /// Imports the plan still allows this scan (fetched once at scan start).
+  /// Imports the membership still allows this scan (fetched once at scan
+  /// start).
   int quotaRemaining = 0;
 
-  /// The scan hit the plan's monthly limit and stopped early.
+  /// Quota actually consumed this scan — backfill imports don't count.
+  int quotaUsed = 0;
+
+  /// Free-backfill cutoff (photos older than this import free); 0 = none.
+  int backfillCutoffMs = 0;
+
+  /// The scan hit the membership limit and stopped early.
   bool quotaReached = false;
 
   /// Photo time (epoch ms) of the first asset the quota blocked — the

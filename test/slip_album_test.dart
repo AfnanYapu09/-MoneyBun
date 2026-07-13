@@ -58,6 +58,28 @@ void main() {
     });
   });
 
+  group('SlipImporter.isBackfillPhoto', () {
+    final cutoff = DateTime(2026, 7, 14).millisecondsSinceEpoch;
+
+    test('photos taken before the cutoff import free', () {
+      final signupNight = DateTime(2026, 7, 13, 23, 59).millisecondsSinceEpoch;
+      expect(SlipImporter.isBackfillPhoto(signupNight, cutoff), isTrue);
+    });
+
+    test('the cutoff instant itself is counted', () {
+      expect(SlipImporter.isBackfillPhoto(cutoff, cutoff), isFalse);
+    });
+
+    test('unknown photo time (epoch 0) is never backfill', () {
+      expect(SlipImporter.isBackfillPhoto(0, cutoff), isFalse);
+    });
+
+    test('no cutoff (guest) → nothing is backfill', () {
+      final t = DateTime(2026, 7, 1).millisecondsSinceEpoch;
+      expect(SlipImporter.isBackfillPhoto(t, 0), isFalse);
+    });
+  });
+
   group('SlipImporter.albumScanId', () {
     test('attributes a bank album to its catalog id', () {
       expect(SlipImporter.albumScanId('K PLUS'), 'kbank');

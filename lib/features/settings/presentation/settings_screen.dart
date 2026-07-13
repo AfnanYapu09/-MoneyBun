@@ -8,9 +8,11 @@ import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/profile_avatar.dart';
+import '../../../core/utils/app_date.dart';
 import '../../../core/widgets/setting_row.dart';
 import '../../../data/repositories/settings_repository.dart';
 import '../../plan/domain/plan.dart';
+import '../../plan/domain/quota_period.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -57,10 +59,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () => context.push('/settings/profile'),
             ),
             const SizedBox(height: 10),
-            // This month's scan quota at a glance — taps through to the plans.
+            // This cycle's scan quota at a glance — taps through to the plans.
             _QuotaBar(
-              used: ref.watch(slipsUsedThisMonthProvider).value ?? 0,
-              limit: ref.watch(planProvider).scanLimit,
+              membership: ref.watch(membershipProvider).value ??
+                  Membership.fallback(DateTime.now()),
+              locale: settings.locale,
               onTap: () => context.push('/settings/plan'),
             ),
             const SizedBox(height: 18),
@@ -258,31 +261,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 }
 
-/// Compact scan-quota meter under the profile card: "สแกนสลิปเดือนนี้ X/30"
-/// with a progress bar that warms up as the month's quota fills. Taps through
-/// to the plan screen.
+/// Compact scan-quota meter under the profile card: the current cycle's free
+/// usage "X/30" (plus a credits chip when the account holds any) with a
+/// progress bar that warms up as the free allowance fills, and the cycle's
+/// reset date. Taps through to the plan screen.
 class _QuotaBar extends StatelessWidget {
   const _QuotaBar({
-    required this.used,
-    required this.limit,
+    required this.membership,
+    required this.locale,
     required this.onTap,
   });
 
-  final int used;
-
-  /// Monthly cap, or null = unlimited (Ultra).
-  final int? limit;
+  final Membership membership;
+  final String locale;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final cap = limit;
-    final ratio =
-        cap == null ? 0.0 : (cap == 0 ? 1.0 : (used / cap).clamp(0.0, 1.0));
-    final barColor = ratio >= 1
+    final unlimited = membership.unlimited;
+    final used = membership.freeUsed;
+    const cap = QuotaPeriod.freePerPeriod;
+    final shownUsed = used > cap ? cap : used;
+    final credits = membership.creditBalance;
+    final ratio = unlimited ? 0.0 : (used / cap).clamp(0.0, 1.0).toDouble();
+    // With credits in reserve a filling bar isn't alarming — keep it
+    // terracotta; warn only when the free cycle is all that's left.
+    final barColor = ratio >= 1 && credits == 0
         ? context.palette.dangerFg
-        : (ratio >= 0.8 ? AppColors.amber : AppColors.terra);
+        : (ratio >= 0.8 && credits == 0 ? AppColors.amber : AppColors.terra);
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -312,10 +319,21 @@ class _QuotaBar extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (!unlimited && credits > 0) ...[
+                  Text(
+                    l10n.settingsQuotaCredits(credits),
+                    style: AppTypography.heading(
+                      size: 12.5,
+                      weight: FontWeight.w500,
+                      color: context.palette.terraFg,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 Text(
-                  cap == null
+                  unlimited
                       ? '$used · ${l10n.settingsQuotaUnlimited}'
-                      : '$used/$cap',
+                      : '$shownUsed/$cap',
                   style: AppTypography.heading(
                     size: 13.5,
                     weight: FontWeight.w500,
@@ -339,6 +357,24 @@ class _QuotaBar extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation(barColor),
               ),
             ),
+            if (!unlimited) ...[
+              const SizedBox(height: 7),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.settingsQuotaResetOn(
+                    AppDate.formatDayShort(
+                      membership.periodResetAt,
+                      locale: locale,
+                    ),
+                  ),
+                  style: AppTypography.body(
+                    size: 11.5,
+                    color: context.palette.ink3,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

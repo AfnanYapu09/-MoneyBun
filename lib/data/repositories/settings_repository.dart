@@ -24,8 +24,11 @@ class AppSettings {
     this.homeTourSeen = false,
     this.reminderEnabled = false,
     this.reminderTime = '20:00',
-    this.proMonth = '',
     this.ultraUntil = '',
+    this.signupAtMs,
+    this.creditsGranted = 0,
+    this.hasRedeemed = false,
+    this.hasReferred = false,
   });
 
   final bool onboardingSeen;
@@ -61,14 +64,24 @@ class AppSettings {
   /// Reminder time as 'HH:mm' (24h).
   final String reminderTime;
 
-  /// The 'YYYY-MM' month this account has Pro for (referral reward), or ''
-  /// when never unlocked. Synced; Pro is active iff it equals the current
-  /// month — which makes the monthly reset automatic.
-  final String proMonth;
-
   /// Paid Ultra expiry as 'YYYY-MM-DD' (inclusive), or '' when never bought.
   /// Synced; granted by the developer (Firebase console) after payment.
   final String ultraUntil;
+
+  /// Cached Firebase account creation time (epoch ms) — anchors the personal
+  /// free period and the signup-month backfill. Local-only (re-derivable from
+  /// auth metadata); null until the first seed.
+  final int? signupAtMs;
+
+  /// Cached referral-credit grant total, refreshed from Firestore after every
+  /// completed sync. Local-only — the truth lives in the redemption docs.
+  final int creditsGranted;
+
+  /// Cached referral status: this account redeemed a code ([hasRedeemed]) /
+  /// had its own code redeemed ([hasReferred]). Either one makes the account
+  /// "old" — it can keep inviting but can never redeem again.
+  final bool hasRedeemed;
+  final bool hasReferred;
 
   factory AppSettings.fromMap(Map<String, String> m) {
     bool b(String k, [bool d = false]) => m[k] == null ? d : m[k] == 'true';
@@ -94,8 +107,13 @@ class AppSettings {
       homeTourSeen: b(SettingsKeys.homeTourSeen),
       reminderEnabled: b(SettingsKeys.reminderEnabled),
       reminderTime: m[SettingsKeys.reminderTime] ?? '20:00',
-      proMonth: m[SettingsKeys.proMonth] ?? '',
       ultraUntil: m[SettingsKeys.ultraUntil] ?? '',
+      signupAtMs: m[SettingsKeys.signupAtMs] == null
+          ? null
+          : i(SettingsKeys.signupAtMs),
+      creditsGranted: i(SettingsKeys.creditsGranted),
+      hasRedeemed: b(SettingsKeys.hasRedeemed),
+      hasReferred: b(SettingsKeys.hasReferred),
     );
   }
 }
@@ -120,8 +138,20 @@ class SettingsKeys {
   static const slipScanUpTo = 'slipScanUpTo';
   static const reminderEnabled = 'reminderEnabled';
   static const reminderTime = 'reminderTime';
+
+  /// Retired (calendar-month Pro from the old referral scheme). Kept only so
+  /// [SettingsRepository.resetUserData] keeps deleting leftover rows.
   static const proMonth = 'proMonth';
   static const ultraUntil = 'ultraUntil';
+  static const signupAtMs = 'signupAtMs';
+  static const creditsGranted = 'creditsGranted';
+  static const hasRedeemed = 'hasRedeemed';
+  static const hasReferred = 'hasReferred';
+
+  /// Random device id used when the platform can't provide one. DEVICE-level:
+  /// it backs the one-redemption-per-device lock, so it must survive
+  /// sign-out/account switches (never cleared in [resetUserData]).
+  static const deviceIdFallback = 'deviceIdFallback';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -170,7 +200,18 @@ class SettingsRepository {
       setBool(SettingsKeys.reminderEnabled, v);
   Future<void> setReminderTime(String hhmm) =>
       set(SettingsKeys.reminderTime, hhmm);
-  Future<void> setProMonth(String yyyymm) => set(SettingsKeys.proMonth, yyyymm);
+  Future<void> setSignupAtMs(int ms) => setInt(SettingsKeys.signupAtMs, ms);
+  Future<void> setCreditsGranted(int credits) =>
+      setInt(SettingsKeys.creditsGranted, credits);
+  Future<void> setHasRedeemed(bool v) => setBool(SettingsKeys.hasRedeemed, v);
+  Future<void> setHasReferred(bool v) => setBool(SettingsKeys.hasReferred, v);
+
+  /// The stable device id fallback (created on first use). Device-level —
+  /// survives sign-out — because it backs the per-device redemption lock.
+  Future<String?> getDeviceIdFallback() =>
+      _db.getSetting(SettingsKeys.deviceIdFallback);
+  Future<void> setDeviceIdFallback(String id) =>
+      set(SettingsKeys.deviceIdFallback, id);
 
   /// Photo time (epoch ms) the slip scanner has read up to on this device, or
   /// null when never recorded. An extra guard against re-reading photos it has
@@ -201,6 +242,13 @@ class SettingsRepository {
       SettingsKeys.slipScanUpTo,
       SettingsKeys.proMonth,
       SettingsKeys.ultraUntil,
+      SettingsKeys.signupAtMs,
+      SettingsKeys.creditsGranted,
+      SettingsKeys.hasRedeemed,
+      SettingsKeys.hasReferred,
+      // SettingsKeys.deviceIdFallback is deliberately NOT here: the
+      // one-redemption-per-device lock must survive account switches —
+      // wiping it on sign-out would let a second account redeem again.
     ];
     for (final key in userKeys) {
       await _db.deleteSetting(key);

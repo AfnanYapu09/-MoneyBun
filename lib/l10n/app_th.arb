@@ -110,16 +110,16 @@
   "planUltra": "Ultra",
   "planCurrentBadge": "แพลนปัจจุบัน",
   "planFreeDetail1": "จดรายรับรายจ่ายไม่จำกัด",
-  "planFreeDetail2": "สแกนสลิปอัตโนมัติ 30 ใบ/เดือน",
+  "planFreeDetail2": "สแกนสลิปอัตโนมัติฟรี 30 ใบ/รอบเดือน",
   "planFreeDetail3": "ซิงค์คลาวด์ ข้อมูลไม่หายแม้เปลี่ยนเครื่อง",
   "planFreeDetail4": "สถิติ งบประมาณ และเป้าหมายการออม",
   "planFreeDetail5": "ส่งออกข้อมูลเป็นไฟล์ CSV",
   "planUltraDetail1": "ทุกอย่างในแพลน Free",
-  "planUltraDetail2": "สแกนสลิป 300 ใบ/เดือน — มากกว่า 10 เท่า",
+  "planUltraDetail2": "+300 เครดิตต่อเพื่อน 1 คน ไม่จำกัดจำนวนเพื่อน",
   "planUltraDetail5": "ป้ายสมาชิก Ultra บนโปรไฟล์",
   "planMyCode": "โค้ดชวนเพื่อนของฉัน",
   "planCodeCopied": "คัดลอกโค้ดแล้ว",
-  "planShareMessage": "มาจดรายรับรายจ่ายด้วยกันใน moneyBun! กรอกโค้ด {code} ในแอปแล้วได้ Pro ฟรีทั้งคู่เลย",
+  "planShareMessage": "มาจดรายรับรายจ่ายด้วยกันใน moneyBun! กรอกโค้ด {code} ในแอป รับ 300 เครดิตสแกนสลิปฟรี",
   "@planShareMessage": {
     "placeholders": {
       "code": {
@@ -130,18 +130,49 @@
   "planEnterCode": "กรอกโค้ดเพื่อน",
   "planEnterCodeHint": "เช่น ABC123",
   "planRedeem": "ใช้โค้ด",
-  "planRedeemSuccess": "ปลดล็อก Pro เดือนนี้แล้ว! 🎉",
+  "planRedeemSuccess": "รับ 300 เครดิตแล้ว! ใช้สแกนสลิปได้เลย 🎉",
   "planRedeemOwnCode": "ใช้โค้ดของตัวเองไม่ได้นะ",
   "planRedeemInvalid": "ไม่พบโค้ดนี้ ลองตรวจอีกครั้ง",
   "planRedeemFailed": "ใช้โค้ดไม่สำเร็จ ลองใหม่อีกครั้ง",
-  "planUltraHint": "Pro ใช้ได้ถึงสิ้นเดือน — ชวนเพื่อนใหม่ได้ทุกเดือน",
+  "planRedeemAlreadyRedeemed": "บัญชีนี้เคยใช้โค้ดไปแล้ว — ใช้ได้ครั้งเดียวต่อบัญชี",
+  "planRedeemAlreadyReferrer": "คุณเป็นสมาชิกเก่าแล้ว (มีเพื่อนใช้โค้ดของคุณ) — ชวนเพื่อนต่อรับ +300 ได้เรื่อยๆ",
+  "planRedeemDeviceUsed": "เครื่องนี้เคยใช้โค้ดไปแล้ว — ใช้ได้ครั้งเดียวต่อเครื่อง",
+  "planOldStatus": "คุณเป็นสมาชิกเก่าแล้ว — แชร์โค้ดให้เพื่อนใหม่ รับ +300 เครดิตต่อคน ไม่จำกัด",
+  "planCreditsBalance": "เครดิตคงเหลือ {count}",
+  "@planCreditsBalance": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "planCreditsPerFriendUnit": "เครดิต/เพื่อน 1 คน",
+  "planCreditsFooter": "ฟรี 30 ใบทุกรอบเดือน — เครดิตจะถูกใช้เมื่อฟรีหมด",
+  "planBackfillNote": "สลิปเก่าก่อนวันสมัคร (ในเดือนแรก) อ่านให้ฟรีไม่นับโควต้า",
+  "planUltraHint": "เครดิตไม่มีวันหมดอายุ — ชวนเพื่อนเพิ่มได้ไม่จำกัด",
   "planUltraActiveHint": "Ultra ใช้งานอยู่ — ขอบคุณที่สนับสนุนน้องบัน",
-  "planHowTo": "ให้เพื่อนกรอกโค้ดของเรา หรือเรากรอกโค้ดเพื่อน แล้วได้ Pro ทั้งคู่ทันทีถึงสิ้นเดือน",
+  "planHowTo": "กรอกโค้ดเพื่อนครั้งแรกรับ 300 เครดิต แล้วแชร์โค้ดของเราให้เพื่อนใหม่ รับอีก 300 เครดิตต่อเพื่อน 1 คน",
   "settingsMoneySection": "การเงิน",
   "settingsSupportSection": "ความช่วยเหลือ",
   "settingsReferral": "ชวนเพื่อน",
-  "settingsQuotaTitle": "สแกนสลิปเดือนนี้",
-  "planSlipsUnit": "สลิป/เดือน",
+  "settingsQuotaTitle": "สแกนสลิปรอบนี้",
+  "planSlipsUnit": "สลิป/รอบเดือน",
+  "settingsQuotaCredits": "เครดิต {count}",
+  "@settingsQuotaCredits": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsQuotaResetOn": "ฟรีรีเซ็ต {date}",
+  "@settingsQuotaResetOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "planIncludesLabel": "สิ่งที่ได้รับ",
   "planUnlimitedNumber": "∞",
   "planUltraPriceLine": "เพียง 29 บาท/เดือน",
@@ -154,7 +185,7 @@
   "viewPlans": "ดูแพลนสมาชิก",
   "settingsQuotaUnlimited": "ไม่จำกัด",
   "planUnlockCta": "ชวนเพื่อนปลดล็อก Pro",
-  "planUltraDetail3": "ปลดล็อกฟรีด้วยการชวนเพื่อน",
+  "planUltraDetail3": "เครดิตสะสมได้ ไม่มีวันหมดอายุ",
   "settingsHandleProMember": "@{username} · สมาชิก Pro",
   "@settingsHandleProMember": {
     "placeholders": {
@@ -163,14 +194,7 @@
       }
     }
   },
-  "scanQuotaReached": "สแกนครบโควต้าเดือนนี้แล้ว ({limit} ใบ)",
-  "@scanQuotaReached": {
-    "placeholders": {
-      "limit": {
-        "type": "int"
-      }
-    }
-  },
+  "scanQuotaReached": "โควต้าสแกนหมดแล้ว — ชวนเพื่อนรับ 300 เครดิต",
   "scanQuotaUpgrade": "ปลดล็อกเพิ่ม",
   "settingsDisplayName": "ชื่อที่แสดง",
   "settingsDisplayNameHint": "คุณบัน",

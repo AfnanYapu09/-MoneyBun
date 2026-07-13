@@ -365,14 +365,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // happened" looks like a bug. Distinguish "no bank album on this
         // device" from "album(s) found but no new slips".
         if (r.quotaReached) {
-          // The plan's monthly limit stopped the scan (possibly mid-way) —
+          // The membership limit stopped the scan (possibly mid-way) —
           // offer the referral unlock instead of a plain "imported N".
-          final limit = ref.read(planProvider).scanLimit ?? 0;
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(
               SnackBar(
-                content: Text(l10n.scanQuotaReached(limit)),
+                content: Text(l10n.scanQuotaReached),
                 action: SnackBarAction(
                   label: l10n.scanQuotaUpgrade,
                   onPressed: () => context.push('/settings/plan'),
