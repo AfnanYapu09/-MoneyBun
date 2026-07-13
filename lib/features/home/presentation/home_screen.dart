@@ -131,7 +131,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final recurring = ref.read(recurringServiceProvider);
     if (sync != null) await sync.awaitInitialSync();
     if (!mounted) return;
-    if (!ref.read(planProvider).canUseRecurring) return;
+    // Await the REAL membership value — planProvider's synchronous fallback
+    // reports Free while the membership stream is still loading (it can only
+    // resolve dev/Ultra without it), which permanently skipped runDue() for
+    // Pro-by-credit users: this is the app's only runDue call site.
+    final membership = await ref.read(membershipProvider.future);
+    if (!mounted || !membership.plan.canUseRecurring) return;
     await recurring.runDue();
   }
 
