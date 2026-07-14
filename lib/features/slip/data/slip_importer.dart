@@ -42,8 +42,10 @@ class ScanResult {
 
   /// The scan hit the plan's monthly slip quota (Free 30 / Ultra 300) and
   /// stopped importing — it still visits every matched album to keep the
-  /// read-up-to cursor accurate. Unread photos stay ahead of that cursor, so
-  /// an upgrade (or next month's window) picks them up automatically.
+  /// read-up-to cursor accurate. The photos it skipped are NOT retroactively
+  /// re-read: once credit is added (same-month top-up or an Ultra upgrade),
+  /// the next scan starts from wherever the cursor is by then, not from the
+  /// day the quota ran out — and a new calendar month reads only that month.
   final bool quotaReached;
 }
 
@@ -72,9 +74,11 @@ class SlipImporter {
     required Future<void> Function(int ms) saveScannedUpTo,
     required Future<int> Function() remainingScanQuota,
     required Future<int> Function() backfillCutoffMs,
+    Future<T> Function<T>(Future<T> Function() action)? runInTransaction,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
+        _runInTransaction = runInTransaction,
         _importedAssetIds = importedAssetIds,
         _importedSlipRefs = importedSlipRefs,
         _assetImported = assetImported,
@@ -89,6 +93,11 @@ class SlipImporter {
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
   final TransactionRepository _txns;
+
+  /// Wraps the slip+transaction pair-write in a DB transaction (see
+  /// [_persist]). Optional so unit tests can construct the importer without a
+  /// database; falls back to running the action directly.
+  final Future<T> Function<T>(Future<T> Function() action)? _runInTransaction;
   final Future<Set<String>> Function() _importedAssetIds;
 
   /// Bank transaction references already imported. A second dedup key (besides
@@ -134,20 +143,28 @@ class SlipImporter {
 
   /// Where a scan starts reading. Never before the current calendar month —
   /// slips are only ever read from the month the scan runs in ("July shows
-  /// July") — and never before what was already read: the newest imported
-  /// slip's photo time ([watermarkMs], rebuilt from synced data after a
-  /// restore) and the previous scan's own high-water mark ([scannedUpToMs],
-  /// recorded per device so a photo that was read but yielded no import isn't
-  /// re-read). Inclusive at the boundary; the asset-id / transRef dedup
-  /// catches a photo saved the same instant. Pure + static for unit tests.
+  /// July") — and never before what was already read.
+  ///
+  /// The device's own cursor ([scannedUpToMs]) is authoritative when present:
+  /// it encodes this device's own read-up-to point, including the deliberate
+  /// holdback for photos that errored out (kept AHEAD of the cursor so a
+  /// later scan retries them — quota-blocked photos get no such holdback, by
+  /// design: see [_ingest]). The newest imported slip's photo time
+  /// ([watermarkMs], rebuilt from synced data) is only the fallback for a
+  /// device with no cursor yet (fresh install / restore) — taking the max of
+  /// both here used to let another device's sync jump this device's cutoff
+  /// past a backlog it had never actually scanned.
+  ///
+  /// Inclusive at the boundary; the asset-id / transRef dedup catches a photo
+  /// saved the same instant. Pure + static for unit tests.
   static DateTime effectiveCutoff(
     DateTime now, {
     int? watermarkMs,
     int? scannedUpToMs,
   }) {
     var cutoff = DateTime(now.year, now.month);
-    for (final ms in [watermarkMs, scannedUpToMs]) {
-      if (ms == null) continue;
+    final ms = scannedUpToMs ?? watermarkMs;
+    if (ms != null) {
       final t = DateTime.fromMillisecondsSinceEpoch(ms);
       if (t.isAfter(cutoff)) cutoff = t;
     }
@@ -169,8 +186,8 @@ class SlipImporter {
     'bualuang', 'bangkok bank', 'กรุงเทพ',
     // ttb / TMB
     'ttb', 'tmb',
-    // Krungsri
-    'kma', 'krungsri', 'กรุงศรี', 'uchoose',
+    // Krungsri ('kma' is bounded-matched — see _boundedKeywords)
+    'krungsri', 'กรุงศรี', 'uchoose',
     // TrueMoney
     'truemoney', 'true money', 'ทรูมันนี่', 'ทรูมัน',
     // GSB / ออมสิน
@@ -183,13 +200,57 @@ class SlipImporter {
     'ghb', 'อาคารสงเคราะห์', 'ธอส',
     // เป๋าตัง / Paotang
     'paotang', 'pao tang', 'เป๋าตัง',
-    // other banks / e-wallets
-    'cimb', 'kkp', 'kiatnakin', 'tisco', 'lh bank', 'lhbank', 'icbc', 'citi',
+    // other banks / e-wallets ('citi'/'dime' are bounded-matched)
+    'cimb', 'kkp', 'kiatnakin', 'tisco', 'lh bank', 'lhbank', 'icbc',
+    'citibank',
     'line bk', 'linebk', 'line pay', 'linepay', 'rabbit line',
-    'dolfin', 'shopeepay', 'shopee pay', 'airpay', 'dime',
-    // generic slip hints
-    'prompt', 'slip', 'สลิป', 'ธนาคาร', 'โอนเงิน',
+    'dolfin', 'shopeepay', 'shopee pay', 'airpay',
+    // generic slip hints ('prompt' is bounded-matched)
+    'promptpay', 'slip', 'สลิป', 'ธนาคาร', 'โอนเงิน',
   ];
+
+  /// Short fragments that occur inside ordinary album names ("Bookmarks"
+  /// contains "kma", "Cities" contains "citi", "Prompts" contains "prompt") —
+  /// a false match imports the WHOLE album as expense entries and burns quota.
+  /// These match only at word boundaries; longer spellings ("citibank",
+  /// "promptpay") stay in the contains list above.
+  static const _boundedKeywords = <String>['kma', 'citi', 'prompt', 'dime'];
+
+  static bool _isAlnum(int c) =>
+      (c >= 0x30 && c <= 0x39) || (c >= 0x61 && c <= 0x7A);
+
+  static bool _isDigit(int c) => c >= 0x30 && c <= 0x39;
+
+  /// Whether [original] (CASE-PRESERVED) contains [kw] (lowercase) delimited,
+  /// on the left, by a non-alphanumeric or the string start, and on the
+  /// right, by a non-alphanumeric, a digit, or an upper-case letter.
+  ///
+  /// The right side's extra allowances catch real brand-prefixed folder
+  /// names that concatenate straight into a suffix with no separator —
+  /// "KMA2024" (digit boundary) and "DimeWallet"/"CitiMobile" (a camelCase
+  /// boundary: matching against the ORIGINAL casing here, not a lowercased
+  /// copy, is what makes the upper-case letter register as "not alnum" via
+  /// [_isAlnum]'s lowercase-only letter range — that's the exact signal that
+  /// distinguishes a real brand suffix from an ordinary word, since a plain
+  /// English word like "Cities"/"Bookmarks"/"Sedimentary" never case-shifts
+  /// right after the fragment). The left side stays strict (no such
+  /// camelCase counter-example has come up), which is what still rejects
+  /// "Bookmarks" and "Sedimentary" (the fragment sits mid-word on the left).
+  static bool _containsBounded(String original, String kw) {
+    final n = original.toLowerCase();
+    var from = 0;
+    while (true) {
+      final i = n.indexOf(kw, from);
+      if (i < 0) return false;
+      final beforeOk = i == 0 || !_isAlnum(n.codeUnitAt(i - 1));
+      final end = i + kw.length;
+      final afterOk = end >= original.length ||
+          _isDigit(original.codeUnitAt(end)) ||
+          !_isAlnum(original.codeUnitAt(end));
+      if (beforeOk && afterOk) return true;
+      from = i + 1;
+    }
+  }
 
   bool _isSlipAlbum(String name) => isSlipAlbumName(name);
 
@@ -217,9 +278,11 @@ class SlipImporter {
   /// Whether [name] is a bank/e-wallet slip album. Public + static so it can be
   /// unit-tested.
   static bool isSlipAlbumName(String name) {
-    final n = name.toLowerCase().trim();
+    final trimmed = name.trim();
+    final n = trimmed.toLowerCase();
     if (_isMakeKbank(n)) return true;
-    return _slipAlbumKeywords.any(n.contains);
+    if (_slipAlbumKeywords.any(n.contains)) return true;
+    return _boundedKeywords.any((kw) => _containsBounded(trimmed, kw));
   }
 
   /// The scan-catalog id an album belongs to (a Kasikorn album → 'kbank', a
@@ -329,11 +392,10 @@ class SlipImporter {
       // an album is a slip). Already-imported ones are skipped via [already]
       // and the transRef dedup inside _ingest.
       for (final album in paths) {
-        // Keep visiting every matched album even after the quota is spent:
-        // an album we never visit never gets its assets folded into
-        // newestSeenAt/quotaBlockedAt below, so the persisted cursor would
-        // wrongly advance past its unread backlog and lose it forever. Only
-        // cancellation should stop the album walk early.
+        // Keep visiting every matched album even after the quota is spent, so
+        // every album's assets fold into newestSeenAt and the cursor reflects
+        // the whole scan, not just whichever album happened to hit the limit
+        // first. Only cancellation stops the album walk early.
         if (cancelled()) break;
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
         final scanId = albumScanId(album.name);
@@ -353,7 +415,10 @@ class SlipImporter {
       // Errored photos stay ahead of the cursor and get retried: the record
       // stops just BEFORE the oldest failure instead of not advancing at all —
       // one permanently unreadable photo must not force every future scan to
-      // re-OCR the whole month window. Never advanced when cancelled mid-scan.
+      // re-OCR the whole month window. Quota-blocked photos do NOT get this
+      // treatment (by design — see the comment in [_ingest]): the cursor
+      // advances past them like anything else. Never advanced when cancelled
+      // mid-scan.
       final seen = acc.newestSeenAt;
       if (!cancelled() && seen != null) {
         var upTo = seen;
@@ -361,10 +426,6 @@ class SlipImporter {
         if (upTo > startMs) upTo = startMs;
         final failedAt = acc.oldestErrorAt;
         if (failedAt != null && failedAt - 1 < upTo) upTo = failedAt - 1;
-        // Photos the quota blocked were never read — keep the cursor before
-        // them so an Ultra upgrade (or a freed-up quota) re-reads them.
-        final blockedAt = acc.quotaBlockedAt;
-        if (blockedAt != null && blockedAt - 1 < upTo) upTo = blockedAt - 1;
         await _saveScannedUpTo(upTo);
       }
 
@@ -393,25 +454,23 @@ class SlipImporter {
     for (final asset in assets) {
       if (cancelled()) return;
       final seenMs = asset.createDateTime.millisecondsSinceEpoch;
-      // Quota check BEFORE the seen-cursor advances and before the expensive
-      // OCR: a blocked photo must stay unread (and ahead of the cursor) so a
-      // mid-month upgrade can still import it. Keep walking the rest of this
-      // album's (and later albums') assets instead of returning: the cursor
-      // must reflect the OLDEST blocked photo across every matched album, not
-      // just the first one hit, or older backlog elsewhere looks "already
-      // read" and is skipped forever.
+      // The cursor advances past a photo the instant it's considered,
+      // WHETHER OR NOT the quota blocks it — a quota-exhausted photo is
+      // simply skipped, not held for a later retroactive catch-up. Once
+      // credit is added, the NEXT scan starts from wherever the cursor is by
+      // then (i.e. from today), not from the day the quota ran out. Product
+      // decision: "1-20 used up the quota, 20-end of month reads nothing;
+      // whichever day credit lands, reading starts from that day" — not a
+      // month-long backfill of everything the quota blocked.
+      if (acc.newestSeenAt == null || seenMs > acc.newestSeenAt!) {
+        acc.newestSeenAt = seenMs;
+      }
       final isBackfill = isBackfillPhoto(seenMs, acc.backfillCutoffMs);
       if (!already.contains(asset.id) &&
           !isBackfill &&
           acc.quotaUsed >= acc.quotaRemaining) {
         acc.quotaReached = true;
-        if (acc.quotaBlockedAt == null || seenMs < acc.quotaBlockedAt!) {
-          acc.quotaBlockedAt = seenMs;
-        }
         continue;
-      }
-      if (acc.newestSeenAt == null || seenMs > acc.newestSeenAt!) {
-        acc.newestSeenAt = seenMs;
       }
       if (already.contains(asset.id)) continue;
       try {
@@ -467,20 +526,28 @@ class SlipImporter {
   /// occurredAt comes from the slip itself (OCR); if unreadable, fall back to
   /// when the photo was saved — never the scan time — so entries land on the
   /// day of the slip.
-  Future<DateTime> _persist(ParsedSlip parsed, DateTime fallbackDate) async {
-    // fallbackDate is the photo's gallery creation time — store it as the
-    // slip's photoTakenAt so it can advance the scan watermark.
-    final slipId = await _slips.save(parsed, photoTakenAt: fallbackDate);
-    final occurredAt = parsed.occurredAt ?? fallbackDate;
-    // A slip now yields only an amount, so every import is recorded as an
-    // expense; the user can change the type per-transaction when needed.
-    await _txns.save(
-      type: TxnType.expense,
-      amountCents: parsed.amountCents ?? 0,
-      occurredAt: occurredAt,
-      slipId: slipId,
-    );
-    return occurredAt;
+  ///
+  /// The two writes run in ONE database transaction: a crash between them
+  /// would leave a slip row with no transaction — invisible to the user, yet
+  /// counted by the quota accounting and dedup-blocked from ever retrying.
+  Future<DateTime> _persist(ParsedSlip parsed, DateTime fallbackDate) {
+    final runInTxn =
+        _runInTransaction ?? <T>(Future<T> Function() action) => action();
+    return runInTxn(() async {
+      // fallbackDate is the photo's gallery creation time — store it as the
+      // slip's photoTakenAt so it can advance the scan watermark.
+      final slipId = await _slips.save(parsed, photoTakenAt: fallbackDate);
+      final occurredAt = parsed.occurredAt ?? fallbackDate;
+      // A slip now yields only an amount, so every import is recorded as an
+      // expense; the user can change the type per-transaction when needed.
+      await _txns.save(
+        type: TxnType.expense,
+        amountCents: parsed.amountCents ?? 0,
+        occurredAt: occurredAt,
+        slipId: slipId,
+      );
+      return occurredAt;
+    });
   }
 }
 
@@ -503,13 +570,11 @@ class _ScanAcc {
   /// Free-backfill cutoff (photos older than this import free); 0 = none.
   int backfillCutoffMs = 0;
 
-  /// The scan hit the membership limit and stopped early.
+  /// The scan hit the membership limit and stopped early (shown to the user
+  /// as "buy credit / upgrade to keep reading" — informational only; the
+  /// photos it blocked are NOT retroactively re-read, by design: see
+  /// [newestSeenAt]).
   bool quotaReached = false;
-
-  /// Photo time (epoch ms) of the first asset the quota blocked — the
-  /// read-up-to record stays just before it so the photo is re-read once the
-  /// quota allows (upgrade or a freed slot).
-  int? quotaBlockedAt;
 
   /// Photo time (epoch ms) of the newest in-window asset this scan considered
   /// (imported or deduped) — persisted as the read-up-to record afterwards.

@@ -214,19 +214,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _logout() async {
     if (_loggingOut) return;
+    // Claimed BEFORE the first await: two taps landing before the confirm
+    // dialog's barrier rendered used to open two stacked dialogs, and
+    // confirming the leftover one later re-ran the whole wipe — potentially
+    // over data a newly signed-in account had already begun pulling.
+    _loggingOut = true;
     final context = this.context;
-    final ok = await confirmLogout(context);
-    if (!ok) return;
-    // Capture the app-lifetime singletons BEFORE signing out: the auth-state
-    // redirect disposes this screen the instant Firebase emits null, after which
-    // ref.read would throw and the wipe would be skipped. These providers are
-    // never auto-disposed, so the instances outlive the widget.
+    // Capture the app-lifetime singletons BEFORE any await: the auth-state
+    // redirect disposes this screen the instant Firebase emits null, after
+    // which ref.read would throw and the wipe would be skipped. These
+    // providers are never auto-disposed, so the instances outlive the widget.
     final auth = ref.read(authServiceProvider);
     final engine = ref.read(syncEngineProvider);
     final db = ref.read(databaseProvider);
     final settingsRepo = ref.read(settingsRepositoryProvider);
-    _loggingOut = true;
+    final gen = ref.read(sessionGenerationProvider);
     try {
+      final ok = await confirmLogout(context);
+      if (!ok) return;
       // Upload anything still pending before the wipe below destroys it —
       // recent edits sit behind a 3s push debounce, so "confirm logout right
       // after an edit" would otherwise lose that edit. Bounded so a dead
@@ -250,7 +255,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await auth?.signOut();
       } finally {
         // Even if signOut throws, never leave the old account's data behind
-        // for the next sign-in to see.
+        // for the next sign-in to see. Bump the session generation FIRST so
+        // any still-in-flight sync or post-sync callback aborts its writes
+        // instead of re-planting the old account's rows/watermarks/avatar
+        // into the freshly wiped database.
+        gen.bump();
         await db.clearAllData();
         await settingsRepo.resetUserData();
       }

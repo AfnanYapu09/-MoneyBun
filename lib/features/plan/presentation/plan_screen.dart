@@ -62,10 +62,12 @@ class _PlanScreenState extends ConsumerState<PlanScreen> {
         children: [
           Expanded(
             // Cap the card height so it reads as a card, not a wall — and
-            // centre what's left of the screen around it.
+            // centre what's left of the screen around it. 620 gives the Free
+            // card's seven Thai feature rows (several wrap to two lines on a
+            // 360dp screen) room to fit above the fold.
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 560),
+                constraints: const BoxConstraints(maxHeight: 620),
                 child: PageView(
                   controller: _pageCtrl,
                   children: [
@@ -502,8 +504,12 @@ class _PlanCard extends StatelessWidget {
               ),
               // ---- Bottom: what you get — identical styling on every tier --
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+                // Scrollable so the rows can never overflow the ticket on
+                // short screens / large fonts — an overflow here painted the
+                // debug banner and hid the last rows entirely.
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -559,7 +565,7 @@ class _FeatureRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 11),
+      padding: const EdgeInsets.only(bottom: 9),
       child: Row(
         children: [
           Container(

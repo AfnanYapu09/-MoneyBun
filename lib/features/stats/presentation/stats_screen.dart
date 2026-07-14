@@ -169,7 +169,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                         weight: FontWeight.w600,
                       ),
                     ),
-                    if (badge != null) badge,
+                    // Flexible so an extreme percent (tiny previous period →
+                    // "มากกว่าเดือนก่อน 199900%") ellipsizes inside the badge
+                    // instead of overflowing the header row.
+                    if (badge != null) Flexible(child: badge),
                   ],
                 ),
                 PeriodChip(
@@ -369,22 +372,26 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   Future<void> _deleteCategory(CategoryRow c) async {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context).languageCode;
+    // Captured before the await: the auth-state redirect can dispose this
+    // screen while the dialog is up, after which ref.read throws.
+    final repo = ref.read(categoryRepositoryProvider);
     final ok = await confirmDeleteTxn(
       context,
       title: l10n.manageCategories,
       body: l10n.catConfirmDelete(c.displayName(locale)),
     );
-    if (ok) await ref.read(categoryRepositoryProvider).delete(c.id);
+    if (ok) await repo.delete(c.id);
   }
 
   Future<void> _deleteTag(TagRow t) async {
     final l10n = AppLocalizations.of(context);
+    final repo = ref.read(tagRepositoryProvider);
     final ok = await confirmDeleteTxn(
       context,
       title: l10n.tagEditTitle,
       body: l10n.tagConfirmDelete(t.name),
     );
-    if (ok) await ref.read(tagRepositoryProvider).delete(t.id);
+    if (ok) await repo.delete(t.id);
   }
 }
 
@@ -664,12 +671,17 @@ class _CategoryBar extends StatelessWidget {
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    category?.displayName(locale) ?? l10n.statsOther,
-                    style: AppTypography.body(size: 14),
+                  // Flexible + ellipsis: a long user-renamed Thai name plus
+                  // the amount used to overflow this row on a 360dp screen.
+                  Expanded(
+                    child: Text(
+                      category?.displayName(locale) ?? l10n.statsOther,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body(size: 14),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     Money.compact(cents),
                     style: AppTypography.heading(
@@ -711,9 +723,17 @@ class _TagBar extends StatelessWidget {
           child: Column(
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(tag?.name ?? '—', style: AppTypography.body(size: 14)),
+                  // Flexible + ellipsis, same overflow guard as _CategoryBar:
+                  // tag names are free text.
+                  Expanded(
+                    child: Text(
+                      tag?.name ?? '—',
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body(size: 14),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     Money.compact(cents),
                     style: AppTypography.heading(

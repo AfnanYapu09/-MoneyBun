@@ -152,6 +152,13 @@ class SettingsKeys {
   /// it backs the one-redemption-per-device lock, so it must survive
   /// sign-out/account switches (never cleared in [resetUserData]).
   static const deviceIdFallback = 'deviceIdFallback';
+
+  /// Which account's data the local database currently holds. Device-local
+  /// (never synced). Compared against the signed-in uid before every full
+  /// sync so a sign-out that bypassed the logout flow (token revoked, app
+  /// killed mid-logout) still gets its residue wiped before the next account
+  /// touches it.
+  static const dbOwnerUid = 'dbOwnerUid';
 }
 
 /// Reads/writes app settings. Backed by the Drift key/value Settings table so
@@ -223,6 +230,10 @@ class SettingsRepository {
 
   Future<void> setSlipScanUpTo(int ms) => setInt(SettingsKeys.slipScanUpTo, ms);
 
+  /// See [SettingsKeys.dbOwnerUid].
+  Future<String?> dbOwnerUid() => _db.getSetting(SettingsKeys.dbOwnerUid);
+  Future<void> setDbOwnerUid(String uid) => set(SettingsKeys.dbOwnerUid, uid);
+
   /// Clear the signed-in user's local settings on sign-out. Device preferences
   /// (theme, language, currency, onboarding-seen) are intentionally kept; only
   /// account-specific values and the first-sync flag are removed so the next
@@ -246,6 +257,7 @@ class SettingsRepository {
       SettingsKeys.creditsGranted,
       SettingsKeys.hasRedeemed,
       SettingsKeys.hasReferred,
+      SettingsKeys.dbOwnerUid,
       // SettingsKeys.deviceIdFallback is deliberately NOT here: the
       // one-redemption-per-device lock must survive account switches —
       // wiping it on sign-out would let a second account redeem again.
@@ -329,7 +341,16 @@ class SettingsRepository {
   /// sync, which covers a new device's first login, a reinstall, and a photo
   /// changed on another device. No-ops when the pointer already matches the
   /// row's updatedAt (the common case, including right after a local pick).
-  Future<void> syncAvatarFromCloud(String uid) async {
+  ///
+  /// [stillValid] is re-checked before the settings write: this runs unawaited
+  /// after a sync, so a sign-out wipe can complete mid-flight — writing then
+  /// would plant the OLD account's photo pointer into the wiped table, and
+  /// the next account's restore would keep it ("already pointing at a real
+  /// photo").
+  Future<void> syncAvatarFromCloud(
+    String uid, {
+    bool Function()? stillValid,
+  }) async {
     try {
       final rows = await _db.getAllSettings();
       final img = rows.where((r) => r.key == SettingsKeys.avatarImage).toList();
@@ -342,6 +363,7 @@ class SettingsRepository {
       if (!File(dest).existsSync()) {
         await File(dest).writeAsBytes(base64Decode(img.first.value));
       }
+      if (stillValid != null && !stillValid()) return;
       await setAvatarPath(dest);
       if (current != null && current.isNotEmpty && current != dest) {
         try {

@@ -23,6 +23,34 @@ void main() {
       expect(SlipImporter.isSlipAlbumName('Pictures'), isFalse);
       expect(SlipImporter.isSlipAlbumName('Screenshots'), isFalse);
     });
+
+    test('short keywords match at word boundaries only', () {
+      // Substring false-positives import the whole album and burn quota.
+      expect(SlipImporter.isSlipAlbumName('Bookmarks'), isFalse); // ⊅ kma
+      expect(SlipImporter.isSlipAlbumName('Cities'), isFalse); // ⊅ citi
+      expect(SlipImporter.isSlipAlbumName('Prompts'), isFalse); // ⊅ prompt
+      expect(SlipImporter.isSlipAlbumName('Sedimentary'), isFalse); // ⊅ dime
+      // The real apps still match.
+      expect(SlipImporter.isSlipAlbumName('KMA'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('KMA Krungsri'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('Citibank TH'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('PromptPay'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('Dime!'), isTrue);
+    });
+
+    test('bounded keywords still match a brand concatenated with a suffix', () {
+      // Some apps save straight into "<Brand><Suffix>" with no delimiter at
+      // all — a digit run (year/version) or a camelCase boundary. These must
+      // still match; only an ordinary lowercase word continuation (the
+      // Bookmarks/Cities/Sedimentary case above) should not.
+      expect(SlipImporter.isSlipAlbumName('KMA2024'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('DimeWallet'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('CitiMobile'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('PromptExpress'), isTrue);
+      // But a lowercase continuation right after the fragment (no case-shift,
+      // no digit) still reads as an ordinary word, not a brand suffix.
+      expect(SlipImporter.isSlipAlbumName('kmarathon'), isFalse);
+    });
   });
 
   group('SlipImporter.effectiveCutoff', () {
@@ -43,7 +71,7 @@ void main() {
       );
     });
 
-    test('continues after the newest of watermark and read-up-to record', () {
+    test('continues after the device cursor when one exists', () {
       final now = DateTime(2026, 7, 20);
       final imported = DateTime(2026, 7, 10, 9).millisecondsSinceEpoch;
       final readUpTo = DateTime(2026, 7, 15, 18).millisecondsSinceEpoch;
@@ -54,6 +82,40 @@ void main() {
           scannedUpToMs: readUpTo,
         ),
         DateTime(2026, 7, 15, 18),
+      );
+    });
+
+    test(
+        'the device cursor wins over a NEWER watermark — an error holdback '
+        'must be retried, and another device\'s sync must not skip this '
+        'device\'s own unread backlog', () {
+      // A photo this device failed to OCR is deliberately held BEFORE the
+      // cursor for a retry; another device's newer watermark syncing in must
+      // not jump this device's cutoff past that unread backlog. (Quota-
+      // blocked photos get no such holdback — see the isBackfillPhoto/
+      // quotaReached tests: once the quota trips, the cursor keeps advancing
+      // and those specific photos are simply never retroactively imported.)
+      final now = DateTime(2026, 7, 20);
+      final newestImported = DateTime(2026, 7, 15, 18).millisecondsSinceEpoch;
+      final heldBackCursor = DateTime(2026, 7, 10, 9).millisecondsSinceEpoch;
+      expect(
+        SlipImporter.effectiveCutoff(
+          now,
+          watermarkMs: newestImported,
+          scannedUpToMs: heldBackCursor,
+        ),
+        DateTime(2026, 7, 10, 9),
+      );
+    });
+
+    test('watermark is the fallback when the device has no cursor yet', () {
+      // Fresh install / post-restore: no per-device cursor, so the synced
+      // newest-imported-slip time keeps the scan from re-reading the month.
+      final now = DateTime(2026, 7, 20);
+      final imported = DateTime(2026, 7, 10, 9).millisecondsSinceEpoch;
+      expect(
+        SlipImporter.effectiveCutoff(now, watermarkMs: imported),
+        DateTime(2026, 7, 10, 9),
       );
     });
   });

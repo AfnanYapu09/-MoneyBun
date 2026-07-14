@@ -330,7 +330,7 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
             : CategoryType.expense,
       ),
     );
-    if (pick != null) setState(() => _categoryId = pick.categoryId);
+    if (pick != null && mounted) setState(() => _categoryId = pick.categoryId);
   }
 
   Future<void> _pickDate() async {
@@ -365,19 +365,30 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
     setState(() => _busy = true);
     final now = DateTime.now().millisecondsSinceEpoch;
     try {
+      final rule = widget.rule;
       await ref.read(databaseProvider).upsertRecurringRule(
             RecurringRulesCompanion.insert(
               // Editing keeps the rule's identity + creation time; a new rule
               // gets fresh ones.
-              id: widget.rule?.id ?? const Uuid().v4(),
+              id: rule?.id ?? const Uuid().v4(),
               type: _type,
               amountCents: cents,
               freq: _freq,
               nextRunAt: AppDate.toMillis(_startAt),
               anchorDay: Value(_startAt.day),
-              createdAt: widget.rule?.createdAt ?? now,
+              createdAt: rule?.createdAt ?? now,
               updatedAt: now,
               categoryId: Value(_categoryId),
+              // upsertRecurringRule only writes columns present on the
+              // companion, so an edit of an already-synced rule must flag
+              // itself for push here — otherwise the row stays `synced`, the
+              // change never uploads, and another device's runDue() bump
+              // reverts it via last-write-wins.
+              syncStatus: Value(
+                rule == null || rule.syncStatus == SyncStatus.pendingCreate
+                    ? SyncStatus.pendingCreate
+                    : SyncStatus.pendingUpdate,
+              ),
             ),
           );
     } catch (_) {

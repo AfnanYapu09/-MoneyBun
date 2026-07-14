@@ -15,7 +15,12 @@ class PermissionBanner extends ConsumerWidget {
   const PermissionBanner({super.key});
 
   Future<void> _fix(WidgetRef ref, PhotoPermStatus status) async {
+    // Everything is captured BEFORE the awaits: the user leaves the app for
+    // the OS prompt/settings, and this element can be unmounted by the time
+    // they return — ref.read would then throw and the re-check be skipped.
     final importer = ref.read(slipImporterProvider);
+    final permission = ref.read(photoPermissionProvider.notifier);
+    final scan = ref.read(scanControllerProvider.notifier);
     if (status == PhotoPermStatus.limited) {
       // Widen the Android 14 partial selection.
       await importer.presentLimited();
@@ -25,10 +30,8 @@ class PermissionBanner extends ConsumerWidget {
       final perm = await importer.requestPermission();
       if (!perm.granted) await importer.openSettings();
     }
-    final notifier = ref.read(photoPermissionProvider.notifier);
-    await notifier.refresh();
-    if (ref.read(photoPermissionProvider) == PhotoPermStatus.granted) {
-      await ref.read(scanControllerProvider.notifier).scan();
+    if (await permission.refresh() == PhotoPermStatus.granted) {
+      await scan.scan();
     }
   }
 

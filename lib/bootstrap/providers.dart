@@ -13,6 +13,7 @@ import '../data/recurring/recurring_service.dart';
 import '../data/remote/auth_service.dart';
 import '../data/remote/sync_controller.dart';
 import '../data/remote/sync_engine.dart';
+import '../data/session_guard.dart';
 import '../data/repositories/account_repository.dart';
 import '../data/repositories/category_repository.dart';
 import '../data/repositories/settings_repository.dart';
@@ -41,6 +42,11 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 /// Overridden in `main()` to `true` only when real Firebase config initialised.
 final firebaseReadyProvider = Provider<bool>((ref) => false);
+
+/// App-lifetime session-generation counter — bumped on every auth change and
+/// local wipe so stale async work aborts its writes. See [SessionGeneration].
+final sessionGenerationProvider =
+    Provider<SessionGeneration>((ref) => SessionGeneration());
 
 /// The installed build's real version/build number (from pubspec.yaml via the
 /// platform, not a hand-typed string) — shown at the bottom of Settings.
@@ -106,6 +112,7 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
     ref.watch(databaseProvider),
     FirebaseFirestore.instance,
     auth,
+    ref.watch(sessionGenerationProvider),
   );
 });
 
@@ -130,9 +137,17 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
   final engine = ref.watch(syncEngineProvider);
   final auth = ref.watch(authServiceProvider);
   if (engine == null || auth == null) return null;
+  final gen = ref.watch(sessionGenerationProvider);
+  final ownershipGuard = DbOwnershipGuard(
+    ref.watch(databaseProvider),
+    ref.watch(settingsRepositoryProvider),
+    gen,
+  );
   final controller = SyncController(
     engine,
     auth,
+    gen,
+    ensureOwnership: ownershipGuard.ensure,
     onSyncingChanged: (syncing) =>
         ref.read(initialSyncingProvider.notifier).setSyncing(syncing),
     onFirstSyncCompleted: () =>
@@ -140,10 +155,18 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
     // After every completed sync: turn a pulled `avatarImage` into the local
     // photo file (new device, reinstall, or a photo changed on another device),
     // and refresh the membership caches (credit grants, old/new markers, the
-    // signup date) from Firestore — the referrer's +300s land here.
+    // signup date) from Firestore — the referrer's +300s land here. Both run
+    // unawaited, so they carry a liveness check: their writes must not land
+    // after a sign-out wipe (the old account's avatar/credits would otherwise
+    // be re-planted into the next account's settings).
     onSyncCompleted: (uid) => unawaited(() async {
-      await ref.read(settingsRepositoryProvider).syncAvatarFromCloud(uid);
-      await ref.read(creditsServiceProvider)?.refresh(uid);
+      final g = gen.value;
+      bool live() => gen.isCurrent(g);
+      await ref
+          .read(settingsRepositoryProvider)
+          .syncAvatarFromCloud(uid, stillValid: live);
+      if (!live()) return;
+      await ref.read(creditsServiceProvider)?.refresh(uid, stillValid: live);
     }()),
   );
   // Upload pending changes shortly after any local data change.
@@ -203,6 +226,8 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     // Photos taken before local midnight after the signup day import free.
     backfillCutoffMs: () async =>
         (await computeMembership(ref)).backfillCutoffMs,
+    // Slip + transaction pair-writes are atomic (see SlipImporter._persist).
+    runInTransaction: db.transaction,
   );
 });
 
@@ -263,6 +288,15 @@ Future<Membership> computeMembership(Ref ref) async {
 final membershipProvider = StreamProvider<Membership>((ref) {
   ref.watch(appSettingsProvider);
   ref.watch(authStateProvider);
+  // Time passes: the personal cycle rolls over and Ultra expires without any
+  // table/settings event, so an app left open kept showing the old period's
+  // numbers. Re-derive on a coarse timer (display only — enforcement always
+  // recomputes fresh at scan start).
+  final tick = Timer.periodic(
+    const Duration(minutes: 15),
+    (_) => ref.invalidateSelf(),
+  );
+  ref.onDispose(tick.cancel);
   final trigger = ref.watch(databaseProvider).watchCountableSlips(
         sinceMs: QuotaPeriod.creditsEpoch.millisecondsSinceEpoch,
         backfillCutoffMs: 0,
@@ -414,8 +448,16 @@ class ScanController extends Notifier<ScanState> {
   Future<bool> _restoreDone({required Duration waitFor}) async {
     final sync = ref.read(syncControllerProvider);
     if (sync == null || sync.initialSyncCompleted) return true;
-    final settings = await ref.read(settingsRepositoryProvider).read();
-    if (settings.firstSyncDone) return true;
+    final repo = ref.read(settingsRepositoryProvider);
+    final settings = await repo.read();
+    // The flag is trusted only when the DB actually belongs to the signed-in
+    // account: residue of a bypassed sign-out carries the PREVIOUS account's
+    // firstSyncDone, and scanning off its tables (or mid-wipe) would import
+    // duplicates with no restored dedup keys.
+    final owner = await repo.dbOwnerUid();
+    final uid = ref.read(authServiceProvider)?.currentUser?.uid;
+    final dbIsOurs = owner == null || owner.isEmpty || owner == uid;
+    if (settings.firstSyncDone && dbIsOurs) return true;
     if (waitFor > Duration.zero) {
       await sync.awaitInitialSync().timeout(waitFor, onTimeout: () {});
     }
@@ -453,11 +495,14 @@ class PhotoPermission extends Notifier<PhotoPermStatus> {
   @override
   PhotoPermStatus build() => PhotoPermStatus.unknown;
 
-  Future<void> refresh() async {
+  /// Re-checks the OS permission and returns the new status (so callers that
+  /// awaited an OS round-trip don't need a ref to read it back).
+  Future<PhotoPermStatus> refresh() async {
     final p = await ref.read(slipImporterProvider).checkPermission();
     state = p.granted
         ? (p.limited ? PhotoPermStatus.limited : PhotoPermStatus.granted)
         : PhotoPermStatus.denied;
+    return state;
   }
 
   /// Called from the scan-denied edge so the banner appears immediately

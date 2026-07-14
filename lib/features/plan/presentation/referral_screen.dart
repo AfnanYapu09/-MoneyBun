@@ -134,19 +134,27 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
     final referral = ref.read(referralServiceProvider);
     if (uid == null || referral == null) return;
     final repo = ref.read(settingsRepositoryProvider);
+    final credits = ref.read(creditsServiceProvider);
     setState(() => _redeeming = true);
     try {
       final deviceHash = await ref.read(deviceIdServiceProvider).deviceHash();
       final result = await referral.redeem(_codeField.text, uid, deviceHash);
       switch (result) {
         case RedeemResult.success:
-          // Reflect the grant immediately; the post-sync refresh reconciles
-          // the cache against the real Firestore docs.
-          final settings = await repo.read();
           await repo.setHasRedeemed(true);
-          await repo.setCreditsGranted(
-            settings.creditsGranted + QuotaPeriod.referralCredit,
-          );
+          // Reconcile the grant from the real Firestore docs instead of
+          // blindly adding +300: a background sync completing between the
+          // batch commit and here may already have folded this redemption
+          // into the cache, and adding on top double-counted it until the
+          // next sync. If the derive fails (network dropped right after the
+          // commit), fall back to the local +300 so the user never sees a
+          // successful redeem with an unchanged balance.
+          if (credits == null || !await credits.refresh(uid)) {
+            final settings = await repo.read();
+            await repo.setCreditsGranted(
+              settings.creditsGranted + QuotaPeriod.referralCredit,
+            );
+          }
           if (!mounted) return;
           _codeField.clear();
           _snack(l10n.planRedeemSuccess);

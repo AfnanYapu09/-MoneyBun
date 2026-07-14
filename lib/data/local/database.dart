@@ -78,7 +78,10 @@ class AppDatabase extends _$AppDatabase {
           }
           // v9: keep the day-of-month a monthly rule is anchored to, so
           // advancing past a short month clamps instead of drifting.
-          if (from < 9) {
+          // Only for DBs that already had the table: createTable above builds
+          // it from the CURRENT schema (anchorDay included), so adding the
+          // column again would throw "duplicate column" and brick the upgrade.
+          if (from >= 7 && from < 9) {
             await m.addColumn(recurringRules, recurringRules.anchorDay);
           }
         },
@@ -162,8 +165,9 @@ class AppDatabase extends _$AppDatabase {
       await delete(accounts).go();
       // Drop the per-collection pull cursors so the next account does a full
       // pull instead of resuming from the previous account's high-water mark.
-      await (delete(settings)..where((s) => s.key.like('pullWatermark:%')))
-          .go();
+      // Both key generations: the legacy updatedAt-based `pullWatermark:` rows
+      // and the current pushedAt-based `pullWatermark2:` ones.
+      await (delete(settings)..where((s) => s.key.like('pullWatermark%'))).go();
       // Drop the per-key settings push markers for the same reason: they
       // belong to the signed-out account, and the next account must not treat
       // its own first profile edits as already-pushed.
@@ -201,6 +205,21 @@ class AppDatabase extends _$AppDatabase {
     'ultraUntil',
   };
 
+  /// Keys the CLIENT is allowed to upload. `ultraUntil` is pull-only: it is
+  /// set by hand in the Firebase console and the security rules deny every
+  /// client write to it — if it ever entered the push set (e.g. its pushed
+  /// marker was lost to a crash between the pull's two writes), every
+  /// subsequent push pass would hit PERMISSION_DENIED and the whole sync
+  /// would fail forever, keeping the slip scanner gated until sign-out.
+  static const Set<String> clientPushableSettingsKeys = {
+    'displayName',
+    'username',
+    'phone',
+    'savingsGoalCents',
+    'disabledScanIds',
+    'avatarImage',
+  };
+
   /// Prefix for the per-key push markers. A marker row's VALUE holds the
   /// `updatedAt` of the last successfully pushed version of that key, so
   /// "pending" is simply `row.updatedAt > marker` — the same compare-and-set
@@ -223,7 +242,7 @@ class AppDatabase extends _$AppDatabase {
     };
     return rows
         .where((r) =>
-            syncedSettingsKeys.contains(r.key) &&
+            clientPushableSettingsKeys.contains(r.key) &&
             r.updatedAt > (pushed[r.key] ?? -1))
         .toList();
   }
@@ -248,16 +267,21 @@ class AppDatabase extends _$AppDatabase {
 
   // ---- Pull cursors ------------------------------------------------------
 
-  /// High-water mark (max `updatedAt` already pulled) for a Firestore
+  /// High-water mark (max `pushedAt` already pulled) for a Firestore
   /// collection, so the sync engine can fetch only changed docs instead of the
   /// whole collection each time. 0 when never pulled (→ a full pull).
+  ///
+  /// Key is versioned (`pullWatermark2:`): the cursor's meaning changed from
+  /// max-updatedAt to max-pushedAt, so every device deliberately restarts at 0
+  /// once (a single full re-pull, idempotent under per-doc last-write-wins)
+  /// instead of running the new query against an old-semantics cursor.
   Future<int> pullWatermark(String collection) async {
-    final v = await getSetting('pullWatermark:$collection');
+    final v = await getSetting('pullWatermark2:$collection');
     return int.tryParse(v ?? '') ?? 0;
   }
 
-  Future<void> setPullWatermark(String collection, int updatedAtMs) =>
-      setSetting('pullWatermark:$collection', updatedAtMs.toString());
+  Future<void> setPullWatermark(String collection, int pushedAtMs) =>
+      setSetting('pullWatermark2:$collection', pushedAtMs.toString());
 
   /// Hard-delete soft-deleted rows that have already synced and whose tombstone
   /// is older than [cutoffMs], so tombstones don't pile up forever. Local-only:
@@ -538,9 +562,10 @@ class AppDatabase extends _$AppDatabase {
   /// Import times (createdAt, ascending) of every *countable* slip — the
   /// source for the membership credit accounting ([QuotaPeriod.usage]).
   /// Countable = non-deleted, imported at/after [sinceMs] (the credits epoch),
-  /// NOT free backfill (photo taken before [backfillCutoffMs] — a null photo
-  /// time stays countable so unknown-time photos can't become an unlimited
-  /// free loophole), and NOT imported inside a paid-Ultra window
+  /// NOT free backfill (photo taken before [backfillCutoffMs] — an UNKNOWN
+  /// photo time stays countable so unknown-time photos can't become an
+  /// unlimited free loophole; the importer stores unknown as 0, not null, so
+  /// both spellings are guarded), and NOT imported inside a paid-Ultra window
   /// (createdAt < [ultraExemptEndMs]; pass 0 when never Ultra).
   Future<List<int>> countableSlipCreatedTimes({
     required int sinceMs,
@@ -578,8 +603,13 @@ class AppDatabase extends _$AppDatabase {
         slips.createdAt.isBiggerOrEqualValue(sinceMs) &
         slips.createdAt.isBiggerOrEqualValue(ultraExemptEndMs);
     if (backfillCutoffMs > 0) {
+      // Unknown photo time is stored as 0 by the importer (and null by very
+      // old rows) — both count, mirroring the importer's isBackfillPhoto
+      // (which charges quota for photoMs == 0). Guarding only null let every
+      // epoch-0 import be silently refunded in the persistent accounting.
       predicate = predicate &
           (slips.photoTakenAt.isNull() |
+              slips.photoTakenAt.equals(0) |
               slips.photoTakenAt.isBiggerOrEqualValue(backfillCutoffMs));
     }
     return predicate;

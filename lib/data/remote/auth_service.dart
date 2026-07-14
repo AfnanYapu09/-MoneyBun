@@ -151,6 +151,31 @@ class AuthService {
       'apple.com',
     ).credential(idToken: idToken, rawNonce: rawNonce);
     final result = await _auth.signInWithCredential(oauth);
+    // Apple supplies the full name ONLY on the very first authorization —
+    // discard it here and it is unrecoverable (re-auth never re-delivers it),
+    // leaving the account on the default display name forever.
+    final user = result.user;
+    final given = appleCredential.givenName;
+    if (user != null &&
+        (user.displayName == null || user.displayName!.isEmpty) &&
+        given != null &&
+        given.isNotEmpty) {
+      final family = appleCredential.familyName;
+      final name = family == null || family.isEmpty ? given : '$given $family';
+      try {
+        await user.updateDisplayName(name);
+        // `user`/`result.user` are immutable snapshots taken BEFORE the
+        // update — updateDisplayName() mutates the profile by reassigning a
+        // new delegate to FirebaseAuth.currentUser, not by mutating this
+        // object, so `user.displayName` (and `result.user.displayName`)
+        // would keep reading null/empty forever. Re-read currentUser so the
+        // caller (which seeds settings.displayName from the return value)
+        // actually sees the name that was just set.
+        return _auth.currentUser ?? result.user;
+      } catch (_) {
+        // Cosmetic — never fail the sign-in over it.
+      }
+    }
     return result.user;
   }
 

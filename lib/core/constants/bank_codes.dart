@@ -14,6 +14,9 @@ class ThaiBank {
   final String nameTh;
   final String nameEn;
   final String shortName;
+
+  /// Bank name for the active locale (Thai name only for Thai UI).
+  String displayName(String locale) => locale == 'th' ? nameTh : nameEn;
 }
 
 class BankCodes {
