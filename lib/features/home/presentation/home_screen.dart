@@ -58,9 +58,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       // firstSyncDone bypass (same as the scanner's _restoreDone): once this
       // device has EVER completed a first sync its DB is authoritative — an
       // offline launch must not park the whole boot flow (auto scan,
-      // recurring, permission banner) behind a sync that can't run.
+      // recurring, permission banner) behind a sync that can't run. Honored
+      // only when the DB actually belongs to the signed-in account: residue
+      // of a bypassed sign-out carries the PREVIOUS account's flag.
       final sync = ref.read(syncControllerProvider);
-      if (sync != null && !settings.firstSyncDone) {
+      final owner = await repo.dbOwnerUid();
+      final uid = ref.read(authServiceProvider)?.currentUser?.uid;
+      final dbIsOurs = owner == null || owner.isEmpty || owner == uid;
+      if (!mounted) return;
+      if (sync != null && !(settings.firstSyncDone && dbIsOurs)) {
         await sync.awaitInitialSync();
       }
       if (!mounted) return;
@@ -135,16 +141,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _materialiseRecurring() async {
     final sync = ref.read(syncControllerProvider);
     final recurring = ref.read(recurringServiceProvider);
-    final settingsRepo = ref.read(settingsRepositoryProvider);
-    // firstSyncDone bypass, mirroring the scanner's _restoreDone: once this
-    // device has ever completed a first sync, its rules/transactions tables
-    // are authoritative and catch-up is idempotent (deterministic occurrence
-    // ids + tombstone-aware upsert) — a signed-in-but-offline launch must
-    // still materialise. A truly fresh device keeps the strict no-timeout
-    // wait (the restore must land first or occurrences would duplicate).
-    if (sync != null && !(await settingsRepo.read()).firstSyncDone) {
-      await sync.awaitInitialSync();
-    }
+    // NO firstSyncDone bypass here, unlike the slip scanner: slips dedup by
+    // immutable keys and are never deleted, but a recurring occurrence CAN be
+    // deleted on another device — materialising from stale local rules before
+    // the pull lands would regenerate the deleted occurrence with a fresh
+    // updatedAt that then beats the tombstone under last-write-wins,
+    // resurrecting it everywhere. Materialisation strictly follows a real
+    // completed sync (a signed-in-but-offline launch simply skips it; the
+    // rules catch up on the next online launch).
+    if (sync != null) await sync.awaitInitialSync();
     if (!mounted) return;
     // Await the REAL membership value — planProvider's synchronous fallback
     // reports Free while the membership stream is still loading (it can only

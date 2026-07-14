@@ -44,6 +44,11 @@ class DbOwnershipGuard {
       // Abort in-flight work for the old session before its writes can land
       // in the wiped database.
       _gen.bump();
+      // Drop the previous account's "this device has synced" flag FIRST: the
+      // boot flow's bypasses read it, and during the wipe below the flag
+      // would still say true while the tables are mid-teardown. (Crash-safe:
+      // flag gone + owner intact just means the next launch re-wipes.)
+      await _settings.setFirstSyncDone(false);
       await _db.clearAllData();
       await _settings.resetUserData();
       // Never leave the account bare: seeds are updatedAt-0 rows that lose

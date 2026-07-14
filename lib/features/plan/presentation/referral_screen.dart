@@ -146,11 +146,10 @@ class _ReferralScreenState extends ConsumerState<ReferralScreen> {
           // blindly adding +300: a background sync completing between the
           // batch commit and here may already have folded this redemption
           // into the cache, and adding on top double-counted it until the
-          // next sync. The redeem just succeeded, so we're online and the
-          // derive sees our own writes.
-          if (credits != null) {
-            await credits.refresh(uid);
-          } else {
+          // next sync. If the derive fails (network dropped right after the
+          // commit), fall back to the local +300 so the user never sees a
+          // successful redeem with an unchanged balance.
+          if (credits == null || !await credits.refresh(uid)) {
             final settings = await repo.read();
             await repo.setCreditsGranted(
               settings.creditsGranted + QuotaPeriod.referralCredit,

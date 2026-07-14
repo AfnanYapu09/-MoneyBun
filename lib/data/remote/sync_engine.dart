@@ -73,6 +73,7 @@ class SyncEngine {
   Future<bool> sync() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _running) return false;
+    if (!await _ownsLocalDb(uid)) return false;
     _running = true;
     final gen = _gen.value;
     try {
@@ -103,6 +104,7 @@ class SyncEngine {
   Future<bool> pushOnly() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _running) return false;
+    if (!await _ownsLocalDb(uid)) return false;
     _running = true;
     final gen = _gen.value;
     try {
@@ -127,6 +129,23 @@ class SyncEngine {
       await Future<void>.delayed(const Duration(milliseconds: 100));
     }
     return pushOnly();
+  }
+
+  /// Defense-in-depth for cross-account leaks: refuse to sync while the local
+  /// DB still belongs to a DIFFERENT account (residue of a sign-out that
+  /// bypassed the logout wipe). The ownership guard normally wipes before the
+  /// controller triggers a sync, but the debounced pushOnly path — and a
+  /// guard failure — would otherwise push the previous account's pending
+  /// rows into THIS account's cloud. Unset owner (guest-era data being
+  /// adopted at first sign-in) is allowed.
+  Future<bool> _ownsLocalDb(String uid) async {
+    try {
+      final owner = await _db.getSetting('dbOwnerUid');
+      return owner == null || owner.isEmpty || owner == uid;
+    } catch (_) {
+      // Fail closed: better a skipped sync than the wrong account's upload.
+      return false;
+    }
   }
 
   /// Whether the session this run started for still exists: [uid] is still the
@@ -297,17 +316,33 @@ class SyncEngine {
   /// was offline that long) still lands inside every other device's window.
   ///
   /// A watermark of 0 (fresh device, post-wipe, or the one-time key-version
-  /// reset) fetches the whole collection — necessary anyway, and it also
-  /// covers legacy docs that predate the `pushedAt` field, which a range
-  /// query on the missing field would never return.
-  Future<QuerySnapshot<Map<String, dynamic>>> _incrementalPull(
+  /// reset) fetches the whole collection.
+  ///
+  /// Incremental pulls run TWO range queries and merge by doc id: `pushedAt`
+  /// is the real cursor, but a Firestore range query never returns docs
+  /// missing the queried field — and a peer still running an app version
+  /// that predates `pushedAt` keeps writing such docs, which would otherwise
+  /// be invisible to this device forever. The `updatedAt` query (every doc
+  /// has it) covers those until the whole fleet is upgraded; overlap between
+  /// the two result sets is deduped here.
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _incrementalPull(
     String uid,
     String name,
   ) async {
     final watermark = await _db.pullWatermark(name);
-    if (watermark <= 0) return _col(uid, name).get();
+    if (watermark <= 0) return (await _col(uid, name).get()).docs;
     final since = watermark - _pullMargin.inMilliseconds;
-    return _col(uid, name).where('pushedAt', isGreaterThan: since).get();
+    final results = await Future.wait([
+      _col(uid, name).where('pushedAt', isGreaterThan: since).get(),
+      _col(uid, name).where('updatedAt', isGreaterThan: since).get(),
+    ]);
+    final byId = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+    for (final snap in results) {
+      for (final doc in snap.docs) {
+        byId[doc.id] = doc;
+      }
+    }
+    return byId.values.toList();
   }
 
   /// Advance a collection's watermark, clamped to this device's own `now` so a
@@ -326,12 +361,12 @@ class SyncEngine {
       localUpdatedAt == null && data['deleted'] == true;
 
   Future<void> _pullAccounts(String uid, int gen) async {
-    final snap = await _incrementalPull(uid, 'accounts');
-    if (snap.docs.isEmpty || !_live(uid, gen)) return;
+    final docs = await _incrementalPull(uid, 'accounts');
+    if (docs.isEmpty || !_live(uid, gen)) return;
     final localUpdated = await _db.accountsUpdatedAt();
     final rows = <AccountsCompanion>[];
     var maxUpdated = 0;
-    for (final doc in snap.docs) {
+    for (final doc in docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
       // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
@@ -351,12 +386,12 @@ class SyncEngine {
   }
 
   Future<void> _pullCategories(String uid, int gen) async {
-    final snap = await _incrementalPull(uid, 'categories');
-    if (snap.docs.isEmpty || !_live(uid, gen)) return;
+    final docs = await _incrementalPull(uid, 'categories');
+    if (docs.isEmpty || !_live(uid, gen)) return;
     final localUpdated = await _db.categoriesUpdatedAt();
     final rows = <CategoriesCompanion>[];
     var maxUpdated = 0;
-    for (final doc in snap.docs) {
+    for (final doc in docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
       // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
@@ -376,12 +411,12 @@ class SyncEngine {
   }
 
   Future<void> _pullTags(String uid, int gen) async {
-    final snap = await _incrementalPull(uid, 'tags');
-    if (snap.docs.isEmpty || !_live(uid, gen)) return;
+    final docs = await _incrementalPull(uid, 'tags');
+    if (docs.isEmpty || !_live(uid, gen)) return;
     final localUpdated = await _db.tagsUpdatedAt();
     final rows = <TagsCompanion>[];
     var maxUpdated = 0;
-    for (final doc in snap.docs) {
+    for (final doc in docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
       // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
@@ -401,14 +436,14 @@ class SyncEngine {
   }
 
   Future<void> _pullTransactions(String uid, int gen) async {
-    final snap = await _incrementalPull(uid, 'transactions');
-    if (snap.docs.isEmpty || !_live(uid, gen)) return;
+    final docs = await _incrementalPull(uid, 'transactions');
+    if (docs.isEmpty || !_live(uid, gen)) return;
     // One query for all local updatedAt instead of a read per row.
     final localUpdated = await _db.transactionsUpdatedAt();
     final rows = <TransactionsCompanion>[];
     final tagWrites = <MapEntry<String, List<String>>>[];
     var maxUpdated = 0;
-    for (final doc in snap.docs) {
+    for (final doc in docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
       // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
@@ -440,12 +475,12 @@ class SyncEngine {
   }
 
   Future<void> _pullBudgets(String uid, int gen) async {
-    final snap = await _incrementalPull(uid, 'budgets');
-    if (snap.docs.isEmpty || !_live(uid, gen)) return;
+    final docs = await _incrementalPull(uid, 'budgets');
+    if (docs.isEmpty || !_live(uid, gen)) return;
     final localUpdated = await _db.budgetsUpdatedAt();
     final rows = <BudgetsCompanion>[];
     var maxUpdated = 0;
-    for (final doc in snap.docs) {
+    for (final doc in docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
       // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
@@ -465,12 +500,12 @@ class SyncEngine {
   }
 
   Future<void> _pullSlips(String uid, int gen) async {
-    final snap = await _incrementalPull(uid, 'slips');
-    if (snap.docs.isEmpty || !_live(uid, gen)) return;
+    final docs = await _incrementalPull(uid, 'slips');
+    if (docs.isEmpty || !_live(uid, gen)) return;
     final localUpdated = await _db.slipsUpdatedAt();
     final rows = <SlipsCompanion>[];
     var maxUpdated = 0;
-    for (final doc in snap.docs) {
+    for (final doc in docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
       // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
@@ -490,12 +525,12 @@ class SyncEngine {
   }
 
   Future<void> _pullRecurringRules(String uid, int gen) async {
-    final snap = await _incrementalPull(uid, 'recurringRules');
-    if (snap.docs.isEmpty || !_live(uid, gen)) return;
+    final docs = await _incrementalPull(uid, 'recurringRules');
+    if (docs.isEmpty || !_live(uid, gen)) return;
     final localUpdated = await _db.recurringRulesUpdatedAt();
     final rows = <RecurringRulesCompanion>[];
     var maxUpdated = 0;
-    for (final doc in snap.docs) {
+    for (final doc in docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
       // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
@@ -520,12 +555,12 @@ class SyncEngine {
   /// the local row's `updatedAt`, so a pending local edit (newer stamp) is
   /// never overwritten by a stale cloud value.
   Future<void> _pullSettings(String uid, int gen) async {
-    final snap = await _col(uid, 'settings').get();
-    if (snap.docs.isEmpty || !_live(uid, gen)) return;
+    final docs = (await _col(uid, 'settings').get()).docs;
+    if (docs.isEmpty || !_live(uid, gen)) return;
     final local = {
       for (final r in await _db.getAllSettings()) r.key: r.updatedAt,
     };
-    for (final doc in snap.docs) {
+    for (final doc in docs) {
       // Only known keys: junk or future keys in the cloud must not be able to
       // plant arbitrary rows in the local table.
       if (!AppDatabase.syncedSettingsKeys.contains(doc.id)) continue;

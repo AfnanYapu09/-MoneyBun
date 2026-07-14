@@ -26,11 +26,15 @@ class SyncController with WidgetsBindingObserver {
     this.onSyncCompleted,
   }) {
     WidgetsBinding.instance.addObserver(this);
+    _lastAuthUid = _auth.currentUser?.uid;
     _authSub = _auth.authStateChanges().listen((user) {
-      // Every auth transition starts a new session: in-flight syncs and
+      // Every REAL auth transition starts a new session: in-flight syncs and
       // post-sync callbacks that captured the previous generation abort their
       // remaining writes instead of landing in the next session's database.
-      _gen.bump();
+      // The stream replays the current state on subscribe — bumping on that
+      // no-op emission would discard the launch sync mid-flight.
+      if (user?.uid != _lastAuthUid) _gen.bump();
+      _lastAuthUid = user?.uid;
       if (user == null) {
         // Sign-out wipes the local DB, so if another account signs in within
         // this same app session its restore must re-close the scanner gate:
@@ -99,6 +103,7 @@ class SyncController with WidgetsBindingObserver {
   static const _pushRetries = 5;
 
   StreamSubscription<void>? _authSub;
+  String? _lastAuthUid;
   Timer? _debounce;
   Timer? _firstSyncRetry;
   int _pushRetriesLeft = 0;
@@ -164,8 +169,13 @@ class SyncController with WidgetsBindingObserver {
       // May bump the generation — capture ours only afterwards.
       if (uid != null) await ensureOwnership?.call(uid);
     } catch (_) {
-      // Never let a failed ownership read block syncing for the same owner;
-      // a wipe failure surfaces again on the next trigger.
+      // A failed guard can mean an unfinished wipe of ANOTHER account's data
+      // — syncing over it would push that account's rows into this one's
+      // cloud. Abort; the engine's own ownership gate backstops this, and
+      // the retry/resume triggers re-attempt the wipe.
+      if (ownsFirst) onSyncingChanged?.call(false);
+      _scheduleFirstSyncRetry();
+      return;
     }
     final gen = _gen.value;
     final attempt = _engine.sync();

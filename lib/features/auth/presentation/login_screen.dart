@@ -268,9 +268,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _apple() => _run(() async {
-        await ref.read(authServiceProvider)!.signInWithApple();
-      });
+  Future<void> _apple() {
+    final auth = ref.read(authServiceProvider);
+    final settingsRepo = ref.read(settingsRepositoryProvider);
+    return _run(() async {
+      final user = await auth!.signInWithApple();
+      // Surface the rescued one-time Apple name in the UI: screens render
+      // settings.displayName, not the Firebase profile. Seeded only for a
+      // BRAND-NEW account — an existing account's synced name (possibly
+      // edited in-app) must not be clobbered on a fresh-device login, since
+      // a seeded value stamps updatedAt=now and wins last-write-wins.
+      final name = user?.displayName;
+      final createdAt = user?.metadata.creationTime;
+      final isNewAccount = createdAt != null &&
+          DateTime.now().difference(createdAt) < const Duration(minutes: 2);
+      if (name != null && name.isNotEmpty && isNewAccount) {
+        await settingsRepo.setDisplayName(name);
+      }
+    });
+  }
 
   void _snack(String m) {
     if (!mounted) return;

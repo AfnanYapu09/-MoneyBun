@@ -448,8 +448,16 @@ class ScanController extends Notifier<ScanState> {
   Future<bool> _restoreDone({required Duration waitFor}) async {
     final sync = ref.read(syncControllerProvider);
     if (sync == null || sync.initialSyncCompleted) return true;
-    final settings = await ref.read(settingsRepositoryProvider).read();
-    if (settings.firstSyncDone) return true;
+    final repo = ref.read(settingsRepositoryProvider);
+    final settings = await repo.read();
+    // The flag is trusted only when the DB actually belongs to the signed-in
+    // account: residue of a bypassed sign-out carries the PREVIOUS account's
+    // firstSyncDone, and scanning off its tables (or mid-wipe) would import
+    // duplicates with no restored dedup keys.
+    final owner = await repo.dbOwnerUid();
+    final uid = ref.read(authServiceProvider)?.currentUser?.uid;
+    final dbIsOurs = owner == null || owner.isEmpty || owner == uid;
+    if (settings.firstSyncDone && dbIsOurs) return true;
     if (waitFor > Duration.zero) {
       await sync.awaitInitialSync().timeout(waitFor, onTimeout: () {});
     }
