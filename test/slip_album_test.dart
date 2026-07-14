@@ -23,6 +23,20 @@ void main() {
       expect(SlipImporter.isSlipAlbumName('Pictures'), isFalse);
       expect(SlipImporter.isSlipAlbumName('Screenshots'), isFalse);
     });
+
+    test('short keywords match at word boundaries only', () {
+      // Substring false-positives import the whole album and burn quota.
+      expect(SlipImporter.isSlipAlbumName('Bookmarks'), isFalse); // ⊅ kma
+      expect(SlipImporter.isSlipAlbumName('Cities'), isFalse); // ⊅ citi
+      expect(SlipImporter.isSlipAlbumName('Prompts'), isFalse); // ⊅ prompt
+      expect(SlipImporter.isSlipAlbumName('Sedimentary'), isFalse); // ⊅ dime
+      // The real apps still match.
+      expect(SlipImporter.isSlipAlbumName('KMA'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('KMA Krungsri'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('Citibank TH'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('PromptPay'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('Dime!'), isTrue);
+    });
   });
 
   group('SlipImporter.effectiveCutoff', () {

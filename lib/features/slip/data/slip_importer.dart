@@ -72,9 +72,11 @@ class SlipImporter {
     required Future<void> Function(int ms) saveScannedUpTo,
     required Future<int> Function() remainingScanQuota,
     required Future<int> Function() backfillCutoffMs,
+    Future<T> Function<T>(Future<T> Function() action)? runInTransaction,
   })  : _pipeline = pipeline,
         _slips = slips,
         _txns = transactions,
+        _runInTransaction = runInTransaction,
         _importedAssetIds = importedAssetIds,
         _importedSlipRefs = importedSlipRefs,
         _assetImported = assetImported,
@@ -89,6 +91,11 @@ class SlipImporter {
   final SlipPipeline _pipeline;
   final SlipRepository _slips;
   final TransactionRepository _txns;
+
+  /// Wraps the slip+transaction pair-write in a DB transaction (see
+  /// [_persist]). Optional so unit tests can construct the importer without a
+  /// database; falls back to running the action directly.
+  final Future<T> Function<T>(Future<T> Function() action)? _runInTransaction;
   final Future<Set<String>> Function() _importedAssetIds;
 
   /// Bank transaction references already imported. A second dedup key (besides
@@ -176,8 +183,8 @@ class SlipImporter {
     'bualuang', 'bangkok bank', 'กรุงเทพ',
     // ttb / TMB
     'ttb', 'tmb',
-    // Krungsri
-    'kma', 'krungsri', 'กรุงศรี', 'uchoose',
+    // Krungsri ('kma' is bounded-matched — see _boundedKeywords)
+    'krungsri', 'กรุงศรี', 'uchoose',
     // TrueMoney
     'truemoney', 'true money', 'ทรูมันนี่', 'ทรูมัน',
     // GSB / ออมสิน
@@ -190,13 +197,39 @@ class SlipImporter {
     'ghb', 'อาคารสงเคราะห์', 'ธอส',
     // เป๋าตัง / Paotang
     'paotang', 'pao tang', 'เป๋าตัง',
-    // other banks / e-wallets
-    'cimb', 'kkp', 'kiatnakin', 'tisco', 'lh bank', 'lhbank', 'icbc', 'citi',
+    // other banks / e-wallets ('citi'/'dime' are bounded-matched)
+    'cimb', 'kkp', 'kiatnakin', 'tisco', 'lh bank', 'lhbank', 'icbc',
+    'citibank',
     'line bk', 'linebk', 'line pay', 'linepay', 'rabbit line',
-    'dolfin', 'shopeepay', 'shopee pay', 'airpay', 'dime',
-    // generic slip hints
-    'prompt', 'slip', 'สลิป', 'ธนาคาร', 'โอนเงิน',
+    'dolfin', 'shopeepay', 'shopee pay', 'airpay',
+    // generic slip hints ('prompt' is bounded-matched)
+    'promptpay', 'slip', 'สลิป', 'ธนาคาร', 'โอนเงิน',
   ];
+
+  /// Short fragments that occur inside ordinary album names ("Bookmarks"
+  /// contains "kma", "Cities" contains "citi", "Prompts" contains "prompt") —
+  /// a false match imports the WHOLE album as expense entries and burns quota.
+  /// These match only at word boundaries; longer spellings ("citibank",
+  /// "promptpay") stay in the contains list above.
+  static const _boundedKeywords = <String>['kma', 'citi', 'prompt', 'dime'];
+
+  static bool _isAlnum(int c) =>
+      (c >= 0x30 && c <= 0x39) || (c >= 0x61 && c <= 0x7A);
+
+  /// Whether [n] (lowercase) contains [kw] delimited by non-alphanumerics or
+  /// the string edges.
+  static bool _containsBounded(String n, String kw) {
+    var from = 0;
+    while (true) {
+      final i = n.indexOf(kw, from);
+      if (i < 0) return false;
+      final beforeOk = i == 0 || !_isAlnum(n.codeUnitAt(i - 1));
+      final end = i + kw.length;
+      final afterOk = end >= n.length || !_isAlnum(n.codeUnitAt(end));
+      if (beforeOk && afterOk) return true;
+      from = i + 1;
+    }
+  }
 
   bool _isSlipAlbum(String name) => isSlipAlbumName(name);
 
@@ -226,7 +259,8 @@ class SlipImporter {
   static bool isSlipAlbumName(String name) {
     final n = name.toLowerCase().trim();
     if (_isMakeKbank(n)) return true;
-    return _slipAlbumKeywords.any(n.contains);
+    if (_slipAlbumKeywords.any(n.contains)) return true;
+    return _boundedKeywords.any((kw) => _containsBounded(n, kw));
   }
 
   /// The scan-catalog id an album belongs to (a Kasikorn album → 'kbank', a
@@ -474,20 +508,28 @@ class SlipImporter {
   /// occurredAt comes from the slip itself (OCR); if unreadable, fall back to
   /// when the photo was saved — never the scan time — so entries land on the
   /// day of the slip.
-  Future<DateTime> _persist(ParsedSlip parsed, DateTime fallbackDate) async {
-    // fallbackDate is the photo's gallery creation time — store it as the
-    // slip's photoTakenAt so it can advance the scan watermark.
-    final slipId = await _slips.save(parsed, photoTakenAt: fallbackDate);
-    final occurredAt = parsed.occurredAt ?? fallbackDate;
-    // A slip now yields only an amount, so every import is recorded as an
-    // expense; the user can change the type per-transaction when needed.
-    await _txns.save(
-      type: TxnType.expense,
-      amountCents: parsed.amountCents ?? 0,
-      occurredAt: occurredAt,
-      slipId: slipId,
-    );
-    return occurredAt;
+  ///
+  /// The two writes run in ONE database transaction: a crash between them
+  /// would leave a slip row with no transaction — invisible to the user, yet
+  /// counted by the quota accounting and dedup-blocked from ever retrying.
+  Future<DateTime> _persist(ParsedSlip parsed, DateTime fallbackDate) {
+    final runInTxn = _runInTransaction ??
+        <T>(Future<T> Function() action) => action();
+    return runInTxn(() async {
+      // fallbackDate is the photo's gallery creation time — store it as the
+      // slip's photoTakenAt so it can advance the scan watermark.
+      final slipId = await _slips.save(parsed, photoTakenAt: fallbackDate);
+      final occurredAt = parsed.occurredAt ?? fallbackDate;
+      // A slip now yields only an amount, so every import is recorded as an
+      // expense; the user can change the type per-transaction when needed.
+      await _txns.save(
+        type: TxnType.expense,
+        amountCents: parsed.amountCents ?? 0,
+        occurredAt: occurredAt,
+        slipId: slipId,
+      );
+      return occurredAt;
+    });
   }
 }
 

@@ -97,10 +97,14 @@ class EmvTlvParser {
   }
 
   /// Validate the trailing CRC. The checksum is computed over everything up to
-  /// and including the `6304` marker; the last 4 chars are the hex CRC.
+  /// and including the `6304` marker; the last 4 chars are the hex CRC. The
+  /// marker's position is fixed (always 8 chars from the end), so it is read
+  /// positionally — `lastIndexOf` would find the CRC hex itself whenever the
+  /// checksum happens to BE "6304" and wrongly fail a valid payload.
   static bool validateCrc(String payload) {
-    final marker = payload.lastIndexOf('6304');
-    if (marker < 0 || marker + 8 != payload.length) return false;
+    if (payload.length < 8) return false;
+    final marker = payload.length - 8;
+    if (payload.substring(marker, marker + 4) != '6304') return false;
     final base = payload.substring(0, marker + 4);
     final expected = payload.substring(marker + 4).toUpperCase();
     final actual = crc16(base).toRadixString(16).toUpperCase().padLeft(4, '0');

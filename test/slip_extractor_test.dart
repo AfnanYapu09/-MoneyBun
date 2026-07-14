@@ -56,6 +56,22 @@ void main() {
       expect(r.transRef, 'AB1234567890XY');
     });
 
+    test('a masked payee id cannot steal the reference slot', () {
+      // The masked card ("XXXXXXXXXXXX1234") appears ABOVE the real ref and
+      // matches the alphanumeric shape — but it repeats on every slip to the
+      // same payee, so using it as the dedup key silently drops later slips.
+      const text = 'To: XXXXXXXXXXXX1234\nRef: AB1234567890XY';
+      expect(SlipExtractor.extract(text).transRef, 'AB1234567890XY');
+    });
+
+    test('digits inside a masked account are not the numeric fallback ref',
+        () {
+      // No real ref on the slip; the digit run belongs to a masked account
+      // fragment and must not become a (colliding) reference.
+      const text = 'บัญชี XXX123456789012\nจำนวนเงิน 100.00';
+      expect(SlipExtractor.extract(text).transRef, isNull);
+    });
+
     test('confidence rises with more signals', () {
       final low = SlipExtractor.extract('nothing useful here');
       final high = SlipExtractor.extract(
