@@ -71,6 +71,14 @@ void main() {
       expect(SlipExtractor.extract(text).transRef, isNull);
     });
 
+    test('a SHORT masked payee id (only 2 X\'s) still cannot steal the ref',
+        () {
+      // Some masks reveal more digits than others; the filter must not
+      // require a specific run length to catch this.
+      const text = 'To: XX345678901234\nRef: AB1234567890XY';
+      expect(SlipExtractor.extract(text).transRef, 'AB1234567890XY');
+    });
+
     test('confidence rises with more signals', () {
       final low = SlipExtractor.extract('nothing useful here');
       final high = SlipExtractor.extract(

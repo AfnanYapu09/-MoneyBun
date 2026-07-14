@@ -158,13 +158,16 @@ class SlipExtractor {
   static String? _firstRef(String text) {
     for (final m in _ref.allMatches(text.toUpperCase())) {
       final token = m.group(0)!;
-      // Masked payee identifiers ("XXXXXXXXXXXX1234", "089XXX4567") satisfy
-      // the has-digit + has-letter shape and usually appear ABOVE the real
-      // reference on the slip — and, fatally, they repeat across DIFFERENT
-      // slips to the same payee, so using one as the dedup key silently
-      // drops every later slip. Three consecutive X's never occur in a real
-      // base36 reference; treat them as a mask and keep looking.
-      if (token.contains('XXX')) continue;
+      // Masked payee identifiers ("XXXXXXXXXXXX1234", "089XXX4567", or a
+      // shorter "XX345678901234") satisfy the has-digit + has-letter shape
+      // and usually appear ABOVE the real reference on the slip — and,
+      // fatally, they repeat across DIFFERENT slips to the same payee, so
+      // using one as the dedup key silently drops every later slip. Two or
+      // more consecutive X's essentially never occur in a real base36
+      // reference (those are algorithmically generated, not hand-picked
+      // repeated characters); treat a run that long as a mask and keep
+      // looking.
+      if (token.contains('XX')) continue;
       if (RegExp(r'\d').hasMatch(token) && RegExp(r'[A-Z]').hasMatch(token)) {
         return token;
       }
