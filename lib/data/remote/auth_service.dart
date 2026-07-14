@@ -164,6 +164,14 @@ class AuthService {
       final name = family == null || family.isEmpty ? given : '$given $family';
       try {
         await user.updateDisplayName(name);
+        // `user`/`result.user` are immutable snapshots taken BEFORE the
+        // update — updateDisplayName() mutates the profile by reassigning a
+        // new delegate to FirebaseAuth.currentUser, not by mutating this
+        // object, so `user.displayName` (and `result.user.displayName`)
+        // would keep reading null/empty forever. Re-read currentUser so the
+        // caller (which seeds settings.displayName from the return value)
+        // actually sees the name that was just set.
+        return _auth.currentUser ?? result.user;
       } catch (_) {
         // Cosmetic — never fail the sign-in over it.
       }
