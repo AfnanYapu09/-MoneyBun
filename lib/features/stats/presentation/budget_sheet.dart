@@ -372,7 +372,7 @@ class _BudgetSheetState extends ConsumerState<BudgetSheet> {
       backgroundColor: Colors.transparent,
       builder: (_) => const CategoryPickerSheet(),
     );
-    if (pick != null) setState(() => _categoryId = pick.categoryId);
+    if (pick != null && mounted) setState(() => _categoryId = pick.categoryId);
   }
 
   Future<void> _save() async {

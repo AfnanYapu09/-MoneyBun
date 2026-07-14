@@ -212,13 +212,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _login() => _run(() async {
-        final auth = ref.read(authServiceProvider)!;
-        await auth.signInWithEmail(_email.text, _password.text);
-        // An email login is by definition a returning user — never replay the
-        // first-run walkthrough for them on this device.
-        await ref.read(settingsRepositoryProvider).setHomeTourSeen(true);
-      });
+  Future<void> _login() {
+    // Captured before the sign-in await — the auth redirect can dispose this
+    // screen the moment Firebase emits the user, after which ref.read throws
+    // (silently swallowed by _run's catch) and the tour flag is never set.
+    // Nullable here: _run itself refuses to invoke the action when auth is
+    // null (Firebase not configured), so the `!` inside never fires early.
+    final auth = ref.read(authServiceProvider);
+    final settingsRepo = ref.read(settingsRepositoryProvider);
+    return _run(() async {
+      await auth!.signInWithEmail(_email.text, _password.text);
+      // An email login is by definition a returning user — never replay the
+      // first-run walkthrough for them on this device.
+      await settingsRepo.setHomeTourSeen(true);
+    });
+  }
 
   Future<void> _google() async {
     final auth = ref.read(authServiceProvider);

@@ -330,7 +330,7 @@ class _RecurringRuleSheetState extends ConsumerState<RecurringRuleSheet> {
             : CategoryType.expense,
       ),
     );
-    if (pick != null) setState(() => _categoryId = pick.categoryId);
+    if (pick != null && mounted) setState(() => _categoryId = pick.categoryId);
   }
 
   Future<void> _pickDate() async {

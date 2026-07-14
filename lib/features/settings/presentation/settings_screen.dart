@@ -214,20 +214,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _logout() async {
     if (_loggingOut) return;
+    // Claimed BEFORE the first await: two taps landing before the confirm
+    // dialog's barrier rendered used to open two stacked dialogs, and
+    // confirming the leftover one later re-ran the whole wipe — potentially
+    // over data a newly signed-in account had already begun pulling.
+    _loggingOut = true;
     final context = this.context;
-    final ok = await confirmLogout(context);
-    if (!ok) return;
-    // Capture the app-lifetime singletons BEFORE signing out: the auth-state
-    // redirect disposes this screen the instant Firebase emits null, after which
-    // ref.read would throw and the wipe would be skipped. These providers are
-    // never auto-disposed, so the instances outlive the widget.
+    // Capture the app-lifetime singletons BEFORE any await: the auth-state
+    // redirect disposes this screen the instant Firebase emits null, after
+    // which ref.read would throw and the wipe would be skipped. These
+    // providers are never auto-disposed, so the instances outlive the widget.
     final auth = ref.read(authServiceProvider);
     final engine = ref.read(syncEngineProvider);
     final db = ref.read(databaseProvider);
     final settingsRepo = ref.read(settingsRepositoryProvider);
     final gen = ref.read(sessionGenerationProvider);
-    _loggingOut = true;
     try {
+      final ok = await confirmLogout(context);
+      if (!ok) return;
       // Upload anything still pending before the wipe below destroys it —
       // recent edits sit behind a 3s push debounce, so "confirm logout right
       // after an edit" would otherwise lose that edit. Bounded so a dead

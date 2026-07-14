@@ -14,6 +14,7 @@ import '../../../core/widgets/pixel_icon.dart';
 import '../../../data/local/database.dart';
 import '../../../domain/enums/enums.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../core/utils/disposal.dart';
 
 /// Shared category-grid + tag-chips board used by BOTH the transaction
 /// category picker (select mode) and the Settings "manage" screens (manage
@@ -225,7 +226,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         ],
       ),
     );
-    controller.dispose();
+    disposeAfterRouteExit(controller);
     if (name != null && name.isNotEmpty) {
       await repo.rename(c.id, name, english: locale.startsWith('en'));
     }
@@ -256,7 +257,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         ],
       ),
     );
-    controller.dispose();
+    disposeAfterRouteExit(controller);
     if (name != null && name.isNotEmpty) {
       final id = await repo.save(name: name);
       if (mounted && !widget.manage) setState(() => _tags.add(id));
@@ -265,12 +266,14 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
 
   Future<void> _confirmDeleteTag(TagRow t) async {
     final l10n = AppLocalizations.of(context);
+    // Captured before the await, same as _confirmDeleteCategory above.
+    final repo = ref.read(tagRepositoryProvider);
     final ok = await confirmDeleteTxn(
       context,
       title: l10n.tagEditTitle,
       body: l10n.tagConfirmDelete(t.name),
     );
-    if (ok) await ref.read(tagRepositoryProvider).delete(t.id);
+    if (ok) await repo.delete(t.id);
   }
 
   Future<void> _editTag(TagRow t) async {
@@ -295,7 +298,7 @@ class _CategoryTagBoardState extends ConsumerState<CategoryTagBoard> {
         ],
       ),
     );
-    controller.dispose();
+    disposeAfterRouteExit(controller);
     if (action == null || action.isEmpty) return;
     await repo.save(
       id: t.id,
@@ -368,10 +371,25 @@ class _ManagedTagWrapState extends State<_ManagedTagWrap>
   @override
   void initState() {
     super.initState();
+    // NOT repeat()ed here: the ticker runs only while edit mode is active
+    // (see _setEditing) — repeating for the screen's whole life kept a 60fps
+    // ticker busy even when nothing wiggled.
     _wiggle = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 240),
-    )..repeat();
+    );
+  }
+
+  void _setEditing(bool v) {
+    if (_editing == v) return;
+    setState(() => _editing = v);
+    if (v) {
+      _wiggle.repeat();
+    } else {
+      _wiggle
+        ..stop()
+        ..value = 0;
+    }
   }
 
   @override
@@ -419,7 +437,7 @@ class _ManagedTagWrapState extends State<_ManagedTagWrap>
                 ),
               ),
               TextButton(
-                onPressed: () => setState(() => _editing = false),
+                onPressed: () => _setEditing(false),
                 child: Text(
                   l10n.catDone,
                   style: AppTypography.heading(
@@ -470,9 +488,7 @@ class _ManagedTagWrapState extends State<_ManagedTagWrap>
 
     final draggable = LongPressDraggable<int>(
       data: index,
-      onDragStarted: () {
-        if (!_editing) setState(() => _editing = true);
-      },
+      onDragStarted: () => _setEditing(true),
       feedback: Material(
         color: Colors.transparent,
         child: Transform.scale(
@@ -769,15 +785,26 @@ class _ManagedCategoryGridState extends State<_ManagedCategoryGrid>
   @override
   void initState() {
     super.initState();
+    // Runs only while edit mode is active — see didUpdateWidget.
     _wiggle = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 240),
-    )..repeat();
+    );
+    if (widget.editing) _wiggle.repeat();
   }
 
   @override
   void didUpdateWidget(_ManagedCategoryGrid old) {
     super.didUpdateWidget(old);
+    if (widget.editing != old.editing) {
+      if (widget.editing) {
+        _wiggle.repeat();
+      } else {
+        _wiggle
+          ..stop()
+          ..value = 0;
+      }
+    }
     final incoming = widget.categories.map((c) => c.id).toSet();
     final current = _items.map((c) => c.id).toSet();
     if (incoming.length != current.length || !incoming.containsAll(current)) {

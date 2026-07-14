@@ -36,8 +36,10 @@ Widget accountFlowFor({
   final account =
       accountId == null ? null : accounts[accountId]?.displayName(locale);
 
-  final fromBank = BankCodes.byCode(slip?.senderBank)?.nameTh;
-  final toBank = BankCodes.byCode(slip?.receiverBank)?.nameTh;
+  // Localised like every other label on the card — the Thai name was
+  // hardcoded here regardless of locale.
+  final fromBank = BankCodes.byCode(slip?.senderBank)?.displayName(locale);
+  final toBank = BankCodes.byCode(slip?.receiverBank)?.displayName(locale);
   if (fromBank != null || toBank != null) {
     final sender = slip?.senderName;
     final receiver = slip?.receiverName;

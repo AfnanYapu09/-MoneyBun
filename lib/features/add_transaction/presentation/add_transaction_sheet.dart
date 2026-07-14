@@ -8,6 +8,7 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/app_date.dart';
 import '../../../core/utils/calculator.dart';
 import '../../../core/utils/category_l10n.dart';
+import '../../../core/utils/disposal.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/calculator_keypad.dart';
@@ -414,7 +415,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
         ],
       ),
     );
-    controller.dispose();
+    disposeAfterRouteExit(controller);
     if (note != null && mounted) {
       setState(() => _note = note.isEmpty ? null : note);
       _persistLive();
@@ -433,6 +434,7 @@ class _AddTransactionSheetState extends ConsumerState<AddTransactionSheet> {
       context: context,
       initialTime: TimeOfDay.fromDateTime(_occurredAt),
     );
+    if (!mounted) return;
     setState(
       () => _occurredAt = DateTime(
         date.year,

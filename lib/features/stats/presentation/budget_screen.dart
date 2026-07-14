@@ -179,16 +179,20 @@ class BudgetScreen extends ConsumerWidget {
                     SwipeActionRow(
                       key: ValueKey('budget-swipe-${budgets[i].id}'),
                       onDeleteTap: () async {
+                        // Captured before the await: the element can be
+                        // unmounted while the dialog is up, after which
+                        // ref.read throws.
+                        final db = ref.read(databaseProvider);
                         final ok = await confirmDeleteTxn(
                           context,
                           title: l10n.statsDeleteBudget,
                           body: l10n.txnDeleteBody,
                         );
                         if (ok) {
-                          await ref.read(databaseProvider).softDeleteBudget(
-                                budgets[i].id,
-                                DateTime.now().millisecondsSinceEpoch,
-                              );
+                          await db.softDeleteBudget(
+                            budgets[i].id,
+                            DateTime.now().millisecondsSinceEpoch,
+                          );
                         }
                       },
                       child: InkWell(

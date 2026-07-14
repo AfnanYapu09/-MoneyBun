@@ -226,6 +226,8 @@ final slipImporterProvider = Provider<SlipImporter>((ref) {
     // Photos taken before local midnight after the signup day import free.
     backfillCutoffMs: () async =>
         (await computeMembership(ref)).backfillCutoffMs,
+    // Slip + transaction pair-writes are atomic (see SlipImporter._persist).
+    runInTransaction: db.transaction,
   );
 });
 
@@ -286,6 +288,15 @@ Future<Membership> computeMembership(Ref ref) async {
 final membershipProvider = StreamProvider<Membership>((ref) {
   ref.watch(appSettingsProvider);
   ref.watch(authStateProvider);
+  // Time passes: the personal cycle rolls over and Ultra expires without any
+  // table/settings event, so an app left open kept showing the old period's
+  // numbers. Re-derive on a coarse timer (display only — enforcement always
+  // recomputes fresh at scan start).
+  final tick = Timer.periodic(
+    const Duration(minutes: 15),
+    (_) => ref.invalidateSelf(),
+  );
+  ref.onDispose(tick.cancel);
   final trigger = ref.watch(databaseProvider).watchCountableSlips(
         sinceMs: QuotaPeriod.creditsEpoch.millisecondsSinceEpoch,
         backfillCutoffMs: 0,
@@ -476,11 +487,14 @@ class PhotoPermission extends Notifier<PhotoPermStatus> {
   @override
   PhotoPermStatus build() => PhotoPermStatus.unknown;
 
-  Future<void> refresh() async {
+  /// Re-checks the OS permission and returns the new status (so callers that
+  /// awaited an OS round-trip don't need a ref to read it back).
+  Future<PhotoPermStatus> refresh() async {
     final p = await ref.read(slipImporterProvider).checkPermission();
     state = p.granted
         ? (p.limited ? PhotoPermStatus.limited : PhotoPermStatus.granted)
         : PhotoPermStatus.denied;
+    return state;
   }
 
   /// Called from the scan-denied edge so the banner appears immediately

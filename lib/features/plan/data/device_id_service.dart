@@ -37,18 +37,22 @@ class DeviceIdService {
       sha256.convert(utf8.encode('moneybun-device:$rawId')).toString();
 
   Future<String> _rawId() async {
+    // Pinned id first: whichever raw id produced this device's first hash
+    // stays authoritative. Re-querying ANDROID_ID on every call let a
+    // transient plugin failure mint a SECOND identity for the same physical
+    // device — two different hashes defeat the one-redemption-per-device
+    // lock. (A reinstall loses the pin, but ANDROID_ID survives reinstalls,
+    // so the re-pinned value — and the hash — comes out the same.)
+    final pinned = await _settings.getDeviceIdFallback();
+    if (pinned != null && pinned.isNotEmpty) return pinned;
+    String raw;
     try {
-      if (Platform.isAndroid) {
-        final id = await const AndroidId().getId();
-        if (id != null && id.isNotEmpty) return id;
-      }
+      final id = Platform.isAndroid ? await const AndroidId().getId() : null;
+      raw = (id != null && id.isNotEmpty) ? id : const Uuid().v4();
     } catch (_) {
-      // Fall through to the persisted fallback.
+      raw = const Uuid().v4();
     }
-    final existing = await _settings.getDeviceIdFallback();
-    if (existing != null && existing.isNotEmpty) return existing;
-    final generated = const Uuid().v4();
-    await _settings.setDeviceIdFallback(generated);
-    return generated;
+    await _settings.setDeviceIdFallback(raw);
+    return raw;
   }
 }

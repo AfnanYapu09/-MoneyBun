@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../bootstrap/providers.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/utils/disposal.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/profile_avatar.dart';
 import '../../../core/widgets/setting_row.dart';
@@ -220,6 +221,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ],
       ),
     );
+    // Was never disposed at all — leaked one controller per edit.
+    disposeAfterRouteExit(controller);
     if (value == null) return;
     await onSave(value);
     if (mounted) _snack(l10n.settingsProfileSaved);

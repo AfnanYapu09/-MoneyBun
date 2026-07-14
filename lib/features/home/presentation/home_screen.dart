@@ -55,8 +55,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       // Decide AFTER the cloud pull has landed: the walkthrough is only for
       // people who have never recorded anything. Anyone whose account already
       // holds entries knows the app — skip and never ask again.
+      // firstSyncDone bypass (same as the scanner's _restoreDone): once this
+      // device has EVER completed a first sync its DB is authoritative — an
+      // offline launch must not park the whole boot flow (auto scan,
+      // recurring, permission banner) behind a sync that can't run.
       final sync = ref.read(syncControllerProvider);
-      if (sync != null) await sync.awaitInitialSync();
+      if (sync != null && !settings.firstSyncDone) {
+        await sync.awaitInitialSync();
+      }
       if (!mounted) return;
       await _waitForSkeletonGone();
       if (!mounted) return;
@@ -129,7 +135,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _materialiseRecurring() async {
     final sync = ref.read(syncControllerProvider);
     final recurring = ref.read(recurringServiceProvider);
-    if (sync != null) await sync.awaitInitialSync();
+    final settingsRepo = ref.read(settingsRepositoryProvider);
+    // firstSyncDone bypass, mirroring the scanner's _restoreDone: once this
+    // device has ever completed a first sync, its rules/transactions tables
+    // are authoritative and catch-up is idempotent (deterministic occurrence
+    // ids + tombstone-aware upsert) — a signed-in-but-offline launch must
+    // still materialise. A truly fresh device keeps the strict no-timeout
+    // wait (the restore must land first or occurrences would duplicate).
+    if (sync != null && !(await settingsRepo.read()).firstSyncDone) {
+      await sync.awaitInitialSync();
+    }
     if (!mounted) return;
     // Await the REAL membership value — planProvider's synchronous fallback
     // reports Free while the membership stream is still loading (it can only
@@ -194,13 +209,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ref.listen<bool>(tourReplayProvider, (prev, next) {
       if (!next) return;
       ref.read(tourReplayProvider.notifier).clear();
+      // Captured before the awaits: the tour spans seconds, and ref.read
+      // after an unmount throws (the auth redirect can dispose Home).
+      final settingsRepo = ref.read(settingsRepositoryProvider);
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         // Let the tab switch from Settings finish so every anchor (FAB, nav,
         // header) is measured in its settled position before spotlighting.
         await Future.delayed(const Duration(milliseconds: 350));
         if (!context.mounted || ref.read(openSheetsProvider) > 0) return;
         await HomeTour.start(context);
-        await ref.read(settingsRepositoryProvider).setHomeTourSeen(true);
+        await settingsRepo.setHomeTourSeen(true);
       });
     });
 
@@ -349,18 +367,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context);
     ref.listen<ScanState>(scanControllerProvider, (prev, next) {
       if (next.waitingForRestore && !(prev?.waitingForRestore ?? false)) {
-        // Manual scan while the first cloud pull is still running.
-        _snack(l10n.homeScanWaitSync);
+        // Manual scan before the first cloud pull has finished. While the
+        // sync is actively running, say "syncing"; otherwise the restore is
+        // still pending (offline / between retries) — say that instead.
+        // (This used to be two branches with byte-identical conditions, so
+        // the restore copy was unreachable.)
+        _snack(ref.read(initialSyncingProvider)
+            ? l10n.homeScanWaitSync
+            : l10n.homeScanWaitRestore);
       } else if (next.permissionDenied && !(prev?.permissionDenied ?? false)) {
         // Surface the banner immediately; the styled dialog nags once per
         // app session (every cold launch) until access is granted.
         ref.read(photoPermissionProvider.notifier).markDenied();
         _permissionDialog();
-      } else if (next.waitingForRestore &&
-          !(prev?.waitingForRestore ?? false)) {
-        // A fresh sign-in's cloud restore hasn't landed yet — the scan was
-        // skipped (it re-runs by itself when the restore completes).
-        _snack(l10n.homeScanWaitRestore);
       } else if ((prev?.scanning ?? false) &&
           !next.scanning &&
           next.error == null &&
