@@ -18,14 +18,18 @@ import 'firestore_mappers.dart';
 /// pull. Document id == row id.
 ///
 /// Pull is incremental: each collection keeps a high-water mark (the max
-/// `updatedAt` already pulled) and fetches only `updatedAt` greater than that,
-/// minus a [_pullMargin] safety window so a device whose clock lags (up to the
-/// margin) isn't skipped. The watermark is clamped to this device's own `now`
-/// when advanced, so a device whose clock runs *fast* can't jump the cursor into
+/// `pushedAt` already pulled — when a doc REACHED the cloud, stamped by
+/// [_pushDoc], as opposed to `updatedAt`, when it was edited) and fetches only
+/// `pushedAt` greater than that, minus a [_pullMargin] safety window so a
+/// device whose clock lags (up to the margin) isn't skipped. Cursoring on
+/// pushedAt means a doc uploaded long after it was edited (a device offline
+/// for weeks) still lands inside every peer's window; conflicts still resolve
+/// on `updatedAt`. The watermark is clamped to this device's own `now` when
+/// advanced, so a device whose clock runs *fast* can't jump the cursor into
 /// the future and hide other devices' edits. The first pull (watermark 0)
-/// fetches everything. Tombstones bump `updatedAt`, so deletes still arrive
-/// through the cursor. (A monotonic server timestamp would remove the residual
-/// dependence on client clocks entirely — a planned follow-up.)
+/// fetches everything. Tombstones bump `updatedAt` and re-push, so deletes
+/// still arrive through the cursor. (A monotonic server timestamp would remove
+/// the residual dependence on client clocks entirely — a planned follow-up.)
 ///
 /// [pushOnly] uploads pending local changes without pulling — used by the
 /// automatic on-change sync so frequent edits don't run up Firestore reads.
@@ -46,7 +50,7 @@ class SyncEngine {
   static const _networkTimeout = Duration(seconds: 30);
 
   /// Re-read window subtracted from each collection's pull watermark. An
-  /// incremental pull fetches `updatedAt > watermark - _pullMargin`, so a doc
+  /// incremental pull fetches `pushedAt > watermark - _pullMargin`, so a doc
   /// stamped up to this far behind the newest one (e.g. a device whose clock
   /// lags) is still picked up instead of being skipped by the cursor.
   static const _pullMargin = Duration(days: 7);
@@ -173,6 +177,11 @@ class SyncEngine {
     Map<String, dynamic> map,
   ) async {
     final localUpdated = (map['updatedAt'] as num?)?.toInt() ?? 0;
+    // When the edit reached the cloud — distinct from `updatedAt` (when it was
+    // made). The pull cursor advances on THIS field: a device coming back from
+    // weeks offline pushes docs whose updatedAt is far in the past, and a
+    // cursor keyed on updatedAt would never fetch them on other devices.
+    map['pushedAt'] = DateTime.now().millisecondsSinceEpoch;
     await _fs.runTransaction((txn) async {
       final snap = await txn.get(doc);
       final remoteUpdated = (snap.data()?['updatedAt'] as num?)?.toInt();
@@ -282,15 +291,23 @@ class SyncEngine {
 
   // ---- Pull (incremental, last-write-wins; deleted:true rows soft-delete) ---
 
-  /// Fetch only docs changed since this collection's watermark (minus the
-  /// clock-skew [_pullMargin]). A watermark of 0 fetches everything.
+  /// Fetch only docs that REACHED THE CLOUD since this collection's watermark
+  /// (minus the clock-skew [_pullMargin]). Cursoring on `pushedAt` instead of
+  /// `updatedAt` means a doc uploaded weeks after it was edited (a device that
+  /// was offline that long) still lands inside every other device's window.
+  ///
+  /// A watermark of 0 (fresh device, post-wipe, or the one-time key-version
+  /// reset) fetches the whole collection — necessary anyway, and it also
+  /// covers legacy docs that predate the `pushedAt` field, which a range
+  /// query on the missing field would never return.
   Future<QuerySnapshot<Map<String, dynamic>>> _incrementalPull(
     String uid,
     String name,
   ) async {
     final watermark = await _db.pullWatermark(name);
+    if (watermark <= 0) return _col(uid, name).get();
     final since = watermark - _pullMargin.inMilliseconds;
-    return _col(uid, name).where('updatedAt', isGreaterThan: since).get();
+    return _col(uid, name).where('pushedAt', isGreaterThan: since).get();
   }
 
   /// Advance a collection's watermark, clamped to this device's own `now` so a
@@ -317,7 +334,10 @@ class SyncEngine {
     for (final doc in snap.docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
-      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
+      // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
+      // which only ever arrive via a watermark-0 full pull).
+      final remotePushed = (data['pushedAt'] as num?)?.toInt() ?? remoteUpdated;
+      if (remotePushed > maxUpdated) maxUpdated = remotePushed;
       final localUpdatedAt = localUpdated[doc.id];
       if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
@@ -339,7 +359,10 @@ class SyncEngine {
     for (final doc in snap.docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
-      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
+      // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
+      // which only ever arrive via a watermark-0 full pull).
+      final remotePushed = (data['pushedAt'] as num?)?.toInt() ?? remoteUpdated;
+      if (remotePushed > maxUpdated) maxUpdated = remotePushed;
       final localUpdatedAt = localUpdated[doc.id];
       if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
@@ -361,7 +384,10 @@ class SyncEngine {
     for (final doc in snap.docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
-      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
+      // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
+      // which only ever arrive via a watermark-0 full pull).
+      final remotePushed = (data['pushedAt'] as num?)?.toInt() ?? remoteUpdated;
+      if (remotePushed > maxUpdated) maxUpdated = remotePushed;
       final localUpdatedAt = localUpdated[doc.id];
       if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
@@ -385,7 +411,10 @@ class SyncEngine {
     for (final doc in snap.docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
-      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
+      // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
+      // which only ever arrive via a watermark-0 full pull).
+      final remotePushed = (data['pushedAt'] as num?)?.toInt() ?? remoteUpdated;
+      if (remotePushed > maxUpdated) maxUpdated = remotePushed;
       final localUpdatedAt = localUpdated[doc.id];
       if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
@@ -419,7 +448,10 @@ class SyncEngine {
     for (final doc in snap.docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
-      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
+      // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
+      // which only ever arrive via a watermark-0 full pull).
+      final remotePushed = (data['pushedAt'] as num?)?.toInt() ?? remoteUpdated;
+      if (remotePushed > maxUpdated) maxUpdated = remotePushed;
       final localUpdatedAt = localUpdated[doc.id];
       if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
@@ -441,7 +473,10 @@ class SyncEngine {
     for (final doc in snap.docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
-      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
+      // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
+      // which only ever arrive via a watermark-0 full pull).
+      final remotePushed = (data['pushedAt'] as num?)?.toInt() ?? remoteUpdated;
+      if (remotePushed > maxUpdated) maxUpdated = remotePushed;
       final localUpdatedAt = localUpdated[doc.id];
       if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
@@ -463,7 +498,10 @@ class SyncEngine {
     for (final doc in snap.docs) {
       final data = doc.data();
       final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
-      if (remoteUpdated > maxUpdated) maxUpdated = remoteUpdated;
+      // Cursor tracks pushedAt (falling back to updatedAt for legacy docs,
+      // which only ever arrive via a watermark-0 full pull).
+      final remotePushed = (data['pushedAt'] as num?)?.toInt() ?? remoteUpdated;
+      if (remotePushed > maxUpdated) maxUpdated = remotePushed;
       final localUpdatedAt = localUpdated[doc.id];
       if (_isAbsentTombstone(data, localUpdatedAt)) continue;
       if (localUpdatedAt == null || remoteUpdated > localUpdatedAt) {
@@ -492,9 +530,14 @@ class SyncEngine {
       // plant arbitrary rows in the local table.
       if (!AppDatabase.syncedSettingsKeys.contains(doc.id)) continue;
       final data = doc.data();
-      final value = data['value'] as String?;
-      if (value == null) continue;
-      final remoteUpdated = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      // Tolerant types: `ultraUntil` is written BY HAND in the Firebase
+      // console — a value typed as a number or an updatedAt entered as a
+      // Timestamp must skip this doc, not throw and fail the whole pull
+      // (which would gate the scanner forever for that user).
+      final value = data['value'];
+      if (value is! String) continue;
+      final rawUpdated = data['updatedAt'];
+      final remoteUpdated = rawUpdated is num ? rawUpdated.toInt() : 0;
       final localUpdated = local[doc.id];
       if (localUpdated != null && remoteUpdated <= localUpdated) continue;
       if (!_live(uid, gen)) return;
