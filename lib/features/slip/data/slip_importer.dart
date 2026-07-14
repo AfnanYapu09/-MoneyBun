@@ -219,16 +219,34 @@ class SlipImporter {
   static bool _isAlnum(int c) =>
       (c >= 0x30 && c <= 0x39) || (c >= 0x61 && c <= 0x7A);
 
-  /// Whether [n] (lowercase) contains [kw] delimited by non-alphanumerics or
-  /// the string edges.
-  static bool _containsBounded(String n, String kw) {
+  static bool _isDigit(int c) => c >= 0x30 && c <= 0x39;
+
+  /// Whether [original] (CASE-PRESERVED) contains [kw] (lowercase) delimited,
+  /// on the left, by a non-alphanumeric or the string start, and on the
+  /// right, by a non-alphanumeric, a digit, or an upper-case letter.
+  ///
+  /// The right side's extra allowances catch real brand-prefixed folder
+  /// names that concatenate straight into a suffix with no separator —
+  /// "KMA2024" (digit boundary) and "DimeWallet"/"CitiMobile" (a camelCase
+  /// boundary: matching against the ORIGINAL casing here, not a lowercased
+  /// copy, is what makes the upper-case letter register as "not alnum" via
+  /// [_isAlnum]'s lowercase-only letter range — that's the exact signal that
+  /// distinguishes a real brand suffix from an ordinary word, since a plain
+  /// English word like "Cities"/"Bookmarks"/"Sedimentary" never case-shifts
+  /// right after the fragment). The left side stays strict (no such
+  /// camelCase counter-example has come up), which is what still rejects
+  /// "Bookmarks" and "Sedimentary" (the fragment sits mid-word on the left).
+  static bool _containsBounded(String original, String kw) {
+    final n = original.toLowerCase();
     var from = 0;
     while (true) {
       final i = n.indexOf(kw, from);
       if (i < 0) return false;
       final beforeOk = i == 0 || !_isAlnum(n.codeUnitAt(i - 1));
       final end = i + kw.length;
-      final afterOk = end >= n.length || !_isAlnum(n.codeUnitAt(end));
+      final afterOk = end >= original.length ||
+          _isDigit(original.codeUnitAt(end)) ||
+          !_isAlnum(original.codeUnitAt(end));
       if (beforeOk && afterOk) return true;
       from = i + 1;
     }
@@ -260,10 +278,11 @@ class SlipImporter {
   /// Whether [name] is a bank/e-wallet slip album. Public + static so it can be
   /// unit-tested.
   static bool isSlipAlbumName(String name) {
-    final n = name.toLowerCase().trim();
+    final trimmed = name.trim();
+    final n = trimmed.toLowerCase();
     if (_isMakeKbank(n)) return true;
     if (_slipAlbumKeywords.any(n.contains)) return true;
-    return _boundedKeywords.any((kw) => _containsBounded(n, kw));
+    return _boundedKeywords.any((kw) => _containsBounded(trimmed, kw));
   }
 
   /// The scan-catalog id an album belongs to (a Kasikorn album → 'kbank', a

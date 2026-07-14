@@ -37,6 +37,20 @@ void main() {
       expect(SlipImporter.isSlipAlbumName('PromptPay'), isTrue);
       expect(SlipImporter.isSlipAlbumName('Dime!'), isTrue);
     });
+
+    test('bounded keywords still match a brand concatenated with a suffix', () {
+      // Some apps save straight into "<Brand><Suffix>" with no delimiter at
+      // all — a digit run (year/version) or a camelCase boundary. These must
+      // still match; only an ordinary lowercase word continuation (the
+      // Bookmarks/Cities/Sedimentary case above) should not.
+      expect(SlipImporter.isSlipAlbumName('KMA2024'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('DimeWallet'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('CitiMobile'), isTrue);
+      expect(SlipImporter.isSlipAlbumName('PromptExpress'), isTrue);
+      // But a lowercase continuation right after the fragment (no case-shift,
+      // no digit) still reads as an ordinary word, not a brand suffix.
+      expect(SlipImporter.isSlipAlbumName('kmarathon'), isFalse);
+    });
   });
 
   group('SlipImporter.effectiveCutoff', () {
