@@ -512,8 +512,8 @@ class SlipImporter {
   /// would leave a slip row with no transaction — invisible to the user, yet
   /// counted by the quota accounting and dedup-blocked from ever retrying.
   Future<DateTime> _persist(ParsedSlip parsed, DateTime fallbackDate) {
-    final runInTxn = _runInTransaction ??
-        <T>(Future<T> Function() action) => action();
+    final runInTxn =
+        _runInTransaction ?? <T>(Future<T> Function() action) => action();
     return runInTxn(() async {
       // fallbackDate is the photo's gallery creation time — store it as the
       // slip's photoTakenAt so it can advance the scan watermark.

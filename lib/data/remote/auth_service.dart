@@ -161,8 +161,7 @@ class AuthService {
         given != null &&
         given.isNotEmpty) {
       final family = appleCredential.familyName;
-      final name =
-          family == null || family.isEmpty ? given : '$given $family';
+      final name = family == null || family.isEmpty ? given : '$given $family';
       try {
         await user.updateDisplayName(name);
       } catch (_) {

@@ -167,8 +167,7 @@ class AppDatabase extends _$AppDatabase {
       // pull instead of resuming from the previous account's high-water mark.
       // Both key generations: the legacy updatedAt-based `pullWatermark:` rows
       // and the current pushedAt-based `pullWatermark2:` ones.
-      await (delete(settings)..where((s) => s.key.like('pullWatermark%')))
-          .go();
+      await (delete(settings)..where((s) => s.key.like('pullWatermark%'))).go();
       // Drop the per-key settings push markers for the same reason: they
       // belong to the signed-out account, and the next account must not treat
       // its own first profile edits as already-pushed.

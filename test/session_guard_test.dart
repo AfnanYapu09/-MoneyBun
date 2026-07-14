@@ -51,8 +51,7 @@ void main() {
     expect(gen.value, 0);
   });
 
-  test('a different account wipes the residue and re-seeds defaults',
-      () async {
+  test('a different account wipes the residue and re-seeds defaults', () async {
     await guard.ensure('uid-A');
     await addTxn('t1');
     await settings.setDisplayName('เจ้าของเก่า');

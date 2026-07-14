@@ -64,8 +64,7 @@ void main() {
       expect(SlipExtractor.extract(text).transRef, 'AB1234567890XY');
     });
 
-    test('digits inside a masked account are not the numeric fallback ref',
-        () {
+    test('digits inside a masked account are not the numeric fallback ref', () {
       // No real ref on the slip; the digit run belongs to a masked account
       // fragment and must not become a (colliding) reference.
       const text = 'บัญชี XXX123456789012\nจำนวนเงิน 100.00';

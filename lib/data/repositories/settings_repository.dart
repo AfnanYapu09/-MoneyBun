@@ -232,8 +232,7 @@ class SettingsRepository {
 
   /// See [SettingsKeys.dbOwnerUid].
   Future<String?> dbOwnerUid() => _db.getSetting(SettingsKeys.dbOwnerUid);
-  Future<void> setDbOwnerUid(String uid) =>
-      set(SettingsKeys.dbOwnerUid, uid);
+  Future<void> setDbOwnerUid(String uid) => set(SettingsKeys.dbOwnerUid, uid);
 
   /// Clear the signed-in user's local settings on sign-out. Device preferences
   /// (theme, language, currency, onboarding-seen) are intentionally kept; only
