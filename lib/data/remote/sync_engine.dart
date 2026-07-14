@@ -73,8 +73,18 @@ class SyncEngine {
   Future<bool> sync() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _running) return false;
-    if (!await _ownsLocalDb(uid)) return false;
+    // Claim the single-flight guard BEFORE the first await: two near-
+    // simultaneous callers (e.g. SyncController's constructor microtask and
+    // its auth-state replay both firing at launch) must not both observe
+    // `_running == false` and run concurrently. _ownsLocalDb is an async DB
+    // read — awaiting it before claiming _running would reopen exactly that
+    // race, so the ownership check happens AFTER the claim and releases the
+    // guard on failure instead.
     _running = true;
+    if (!await _ownsLocalDb(uid)) {
+      _running = false;
+      return false;
+    }
     final gen = _gen.value;
     try {
       await _pullAll(uid, gen).timeout(_networkTimeout);
@@ -104,8 +114,12 @@ class SyncEngine {
   Future<bool> pushOnly() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null || _running) return false;
-    if (!await _ownsLocalDb(uid)) return false;
+    // Same atomic-claim-before-await reasoning as sync() above.
     _running = true;
+    if (!await _ownsLocalDb(uid)) {
+      _running = false;
+      return false;
+    }
     final gen = _gen.value;
     try {
       await _pushAll(uid, gen).timeout(_networkTimeout);

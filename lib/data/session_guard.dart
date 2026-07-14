@@ -37,7 +37,28 @@ class DbOwnershipGuard {
   final SettingsRepository _settings;
   final SessionGeneration _gen;
 
-  Future<void> ensure(String uid) async {
+  /// In-flight call, if any. `ensure` has no other reentrancy protection, and
+  /// two callers overlapping (e.g. SyncController's launch-time constructor
+  /// microtask racing its auth-state replay) could otherwise both read the
+  /// same stale owner before either writes the new one — running the wipe
+  /// sequence (including its own [SessionGeneration.bump]) twice, the second
+  /// of which would abort the first caller's still-in-flight sync mid-write.
+  Future<void>? _inFlight;
+
+  Future<void> ensure(String uid) {
+    final existing = _inFlight;
+    // Queue behind the in-flight call instead of racing it, then re-check:
+    // the situation (and even the target uid) may have changed by the time
+    // it finishes.
+    if (existing != null) return existing.then((_) => ensure(uid));
+    final future = _ensure(uid);
+    _inFlight = future;
+    return future.whenComplete(() {
+      if (identical(_inFlight, future)) _inFlight = null;
+    });
+  }
+
+  Future<void> _ensure(String uid) async {
     final owner = await _settings.dbOwnerUid();
     if (owner == uid) return;
     if (owner != null && owner.isNotEmpty) {

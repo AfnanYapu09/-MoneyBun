@@ -74,4 +74,24 @@ void main() {
     gen.bump();
     expect(gen.isCurrent(captured), isFalse);
   });
+
+  test('two overlapping ensure() calls for a mismatched owner wipe only once',
+      () async {
+    // Mirrors the app-launch race: SyncController's constructor microtask and
+    // its auth-state replay can both call ensureOwnership(uid) before either
+    // has written the new owner. Without in-flight dedup both would run the
+    // full wipe sequence (and bump the generation) a second, redundant time,
+    // aborting the first caller's still-in-flight sync.
+    await guard.ensure('uid-A');
+    await addTxn('t1');
+
+    final first = guard.ensure('uid-B');
+    final second = guard.ensure('uid-B');
+    await Future.wait([first, second]);
+
+    expect(await settings.dbOwnerUid(), 'uid-B');
+    expect(await db.getActiveTransactions(), isEmpty);
+    expect(gen.value, 1,
+        reason: 'the wipe must run exactly once, not once per caller');
+  });
 }
