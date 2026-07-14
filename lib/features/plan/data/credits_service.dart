@@ -14,12 +14,19 @@ class CreditsService {
   final SettingsRepository _settings;
   final AuthService _auth;
 
-  Future<void> refresh(String uid) async {
+  /// [stillValid] is re-checked before every settings write: refresh runs
+  /// unawaited after a sync, so a sign-out wipe can complete while the
+  /// Firestore reads above are still in flight — writing then would plant the
+  /// OLD account's balance/markers into the next account's settings.
+  Future<void> refresh(String uid, {bool Function()? stillValid}) async {
+    bool live() => stillValid == null || stillValid();
+
     // Seed the signup cache from auth metadata (server-set creation time) —
     // cheap, and keeps the fallback warm for offline launches.
     try {
       final creation = _auth.currentUser?.metadata.creationTime;
       if (creation != null && (await _settings.read()).signupAtMs == null) {
+        if (!live()) return;
         await _settings.setSignupAtMs(creation.millisecondsSinceEpoch);
       }
     } catch (_) {}
@@ -36,6 +43,7 @@ class CreditsService {
       }
       final granted = QuotaPeriod.referralCredit * referrals +
           (redeemed ? QuotaPeriod.referralCredit : 0);
+      if (!live()) return;
       await _settings.setCreditsGranted(granted);
       await _settings.setHasRedeemed(redeemed);
       await _settings.setHasReferred(referred || referrals > 0);

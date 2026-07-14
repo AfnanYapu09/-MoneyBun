@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+import '../session_guard.dart';
 import 'auth_service.dart';
 import 'sync_engine.dart';
 
@@ -17,13 +18,19 @@ import 'sync_engine.dart';
 class SyncController with WidgetsBindingObserver {
   SyncController(
     this._engine,
-    this._auth, {
+    this._auth,
+    this._gen, {
+    this.ensureOwnership,
     this.onSyncingChanged,
     this.onFirstSyncCompleted,
     this.onSyncCompleted,
   }) {
     WidgetsBinding.instance.addObserver(this);
     _authSub = _auth.authStateChanges().listen((user) {
+      // Every auth transition starts a new session: in-flight syncs and
+      // post-sync callbacks that captured the previous generation abort their
+      // remaining writes instead of landing in the next session's database.
+      _gen.bump();
       if (user == null) {
         // Sign-out wipes the local DB, so if another account signs in within
         // this same app session its restore must re-close the scanner gate:
@@ -32,6 +39,9 @@ class SyncController with WidgetsBindingObserver {
         if (_initialSync.isCompleted) _initialSync = Completer<void>();
         _firstSyncRetriesLeft = _firstSyncRetries;
         _firstSyncCompletedFired = false;
+        // Release the first-sync claim too, so the next account's first sync
+        // drives the loading skeleton again.
+        _firstSyncStarted = false;
         return;
       }
       _fullSync();
@@ -44,6 +54,12 @@ class SyncController with WidgetsBindingObserver {
 
   final SyncEngine _engine;
   final AuthService _auth;
+  final SessionGeneration _gen;
+
+  /// Verifies the local DB belongs to [uid] (wiping a previous account's
+  /// residue when it doesn't) — awaited before every full sync, which covers
+  /// sign-in, launch-while-signed-in, and resume. See [DbOwnershipGuard].
+  final Future<void> Function(String uid)? ensureOwnership;
 
   /// Called with `true` when the first full sync after start/sign-in begins and
   /// `false` when it finishes, so the UI can show a "loading your data" state on
@@ -142,6 +158,16 @@ class SyncController with WidgetsBindingObserver {
     }
     _lastFullSyncAt = DateTime.now();
     final uid = _auth.currentUser?.uid;
+    try {
+      // Before any cloud traffic: wipe a previous account's residue (a
+      // sign-out that bypassed the logout flow leaves the old DB behind).
+      // May bump the generation — capture ours only afterwards.
+      if (uid != null) await ensureOwnership?.call(uid);
+    } catch (_) {
+      // Never let a failed ownership read block syncing for the same owner;
+      // a wipe failure surfaces again on the next trigger.
+    }
+    final gen = _gen.value;
     final attempt = _engine.sync();
     // The scanner gate and the "this device has synced" flag track the *real*
     // outcome, never the time-boxed wait below: a first sync that outlives the
@@ -149,9 +175,11 @@ class SyncController with WidgetsBindingObserver {
     // and a failed one keeps the gate closed (scanning before the restore has
     // landed would re-import slips as duplicates) and is retried instead.
     attempt.then((ran) {
-      // A late result from before an account switch must not open the new
-      // account's gate (its own restore hasn't run yet).
+      // A late result from before an account switch — or from before a
+      // same-account relogin (generation moved on) — must not open the new
+      // session's gate: its own restore hasn't run yet.
       if (uid == null || _auth.currentUser?.uid != uid) return;
+      if (!_gen.isCurrent(gen)) return;
       if (ran) {
         if (!_initialSync.isCompleted) _initialSync.complete();
         onSyncCompleted?.call(uid);

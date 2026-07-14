@@ -225,6 +225,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final engine = ref.read(syncEngineProvider);
     final db = ref.read(databaseProvider);
     final settingsRepo = ref.read(settingsRepositoryProvider);
+    final gen = ref.read(sessionGenerationProvider);
     _loggingOut = true;
     try {
       // Upload anything still pending before the wipe below destroys it —
@@ -250,7 +251,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await auth?.signOut();
       } finally {
         // Even if signOut throws, never leave the old account's data behind
-        // for the next sign-in to see.
+        // for the next sign-in to see. Bump the session generation FIRST so
+        // any still-in-flight sync or post-sync callback aborts its writes
+        // instead of re-planting the old account's rows/watermarks/avatar
+        // into the freshly wiped database.
+        gen.bump();
         await db.clearAllData();
         await settingsRepo.resetUserData();
       }

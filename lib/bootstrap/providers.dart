@@ -13,6 +13,7 @@ import '../data/recurring/recurring_service.dart';
 import '../data/remote/auth_service.dart';
 import '../data/remote/sync_controller.dart';
 import '../data/remote/sync_engine.dart';
+import '../data/session_guard.dart';
 import '../data/repositories/account_repository.dart';
 import '../data/repositories/category_repository.dart';
 import '../data/repositories/settings_repository.dart';
@@ -41,6 +42,11 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 
 /// Overridden in `main()` to `true` only when real Firebase config initialised.
 final firebaseReadyProvider = Provider<bool>((ref) => false);
+
+/// App-lifetime session-generation counter — bumped on every auth change and
+/// local wipe so stale async work aborts its writes. See [SessionGeneration].
+final sessionGenerationProvider =
+    Provider<SessionGeneration>((ref) => SessionGeneration());
 
 /// The installed build's real version/build number (from pubspec.yaml via the
 /// platform, not a hand-typed string) — shown at the bottom of Settings.
@@ -106,6 +112,7 @@ final syncEngineProvider = Provider<SyncEngine?>((ref) {
     ref.watch(databaseProvider),
     FirebaseFirestore.instance,
     auth,
+    ref.watch(sessionGenerationProvider),
   );
 });
 
@@ -130,9 +137,17 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
   final engine = ref.watch(syncEngineProvider);
   final auth = ref.watch(authServiceProvider);
   if (engine == null || auth == null) return null;
+  final gen = ref.watch(sessionGenerationProvider);
+  final ownershipGuard = DbOwnershipGuard(
+    ref.watch(databaseProvider),
+    ref.watch(settingsRepositoryProvider),
+    gen,
+  );
   final controller = SyncController(
     engine,
     auth,
+    gen,
+    ensureOwnership: ownershipGuard.ensure,
     onSyncingChanged: (syncing) =>
         ref.read(initialSyncingProvider.notifier).setSyncing(syncing),
     onFirstSyncCompleted: () =>
@@ -140,10 +155,18 @@ final syncControllerProvider = Provider<SyncController?>((ref) {
     // After every completed sync: turn a pulled `avatarImage` into the local
     // photo file (new device, reinstall, or a photo changed on another device),
     // and refresh the membership caches (credit grants, old/new markers, the
-    // signup date) from Firestore — the referrer's +300s land here.
+    // signup date) from Firestore — the referrer's +300s land here. Both run
+    // unawaited, so they carry a liveness check: their writes must not land
+    // after a sign-out wipe (the old account's avatar/credits would otherwise
+    // be re-planted into the next account's settings).
     onSyncCompleted: (uid) => unawaited(() async {
-      await ref.read(settingsRepositoryProvider).syncAvatarFromCloud(uid);
-      await ref.read(creditsServiceProvider)?.refresh(uid);
+      final g = gen.value;
+      bool live() => gen.isCurrent(g);
+      await ref
+          .read(settingsRepositoryProvider)
+          .syncAvatarFromCloud(uid, stillValid: live);
+      if (!live()) return;
+      await ref.read(creditsServiceProvider)?.refresh(uid, stillValid: live);
     }()),
   );
   // Upload pending changes shortly after any local data change.
