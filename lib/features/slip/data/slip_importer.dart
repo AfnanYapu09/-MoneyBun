@@ -42,8 +42,10 @@ class ScanResult {
 
   /// The scan hit the plan's monthly slip quota (Free 30 / Ultra 300) and
   /// stopped importing — it still visits every matched album to keep the
-  /// read-up-to cursor accurate. Unread photos stay ahead of that cursor, so
-  /// an upgrade (or next month's window) picks them up automatically.
+  /// read-up-to cursor accurate. The photos it skipped are NOT retroactively
+  /// re-read: once credit is added (same-month top-up or an Ultra upgrade),
+  /// the next scan starts from wherever the cursor is by then, not from the
+  /// day the quota ran out — and a new calendar month reads only that month.
   final bool quotaReached;
 }
 
@@ -144,13 +146,14 @@ class SlipImporter {
   /// July") — and never before what was already read.
   ///
   /// The device's own cursor ([scannedUpToMs]) is authoritative when present:
-  /// it already encodes the deliberate holdbacks (quota-blocked and errored
-  /// photos are kept AHEAD of it so a later scan re-reads them). The newest
-  /// imported slip's photo time ([watermarkMs], rebuilt from synced data) is
-  /// only the fallback for a device with no cursor yet (fresh install /
-  /// restore). Taking the max of both here used to jump the cutoff past every
-  /// held-back photo — a quota top-up / Ultra upgrade could never import the
-  /// blocked backlog, and failed photos were never retried.
+  /// it encodes this device's own read-up-to point, including the deliberate
+  /// holdback for photos that errored out (kept AHEAD of the cursor so a
+  /// later scan retries them — quota-blocked photos get no such holdback, by
+  /// design: see [_ingest]). The newest imported slip's photo time
+  /// ([watermarkMs], rebuilt from synced data) is only the fallback for a
+  /// device with no cursor yet (fresh install / restore) — taking the max of
+  /// both here used to let another device's sync jump this device's cutoff
+  /// past a backlog it had never actually scanned.
   ///
   /// Inclusive at the boundary; the asset-id / transRef dedup catches a photo
   /// saved the same instant. Pure + static for unit tests.
@@ -370,11 +373,10 @@ class SlipImporter {
       // an album is a slip). Already-imported ones are skipped via [already]
       // and the transRef dedup inside _ingest.
       for (final album in paths) {
-        // Keep visiting every matched album even after the quota is spent:
-        // an album we never visit never gets its assets folded into
-        // newestSeenAt/quotaBlockedAt below, so the persisted cursor would
-        // wrongly advance past its unread backlog and lose it forever. Only
-        // cancellation should stop the album walk early.
+        // Keep visiting every matched album even after the quota is spent, so
+        // every album's assets fold into newestSeenAt and the cursor reflects
+        // the whole scan, not just whichever album happened to hit the limit
+        // first. Only cancellation stops the album walk early.
         if (cancelled()) break;
         if (album.isAll || !_isSlipAlbum(album.name)) continue;
         final scanId = albumScanId(album.name);
@@ -394,7 +396,10 @@ class SlipImporter {
       // Errored photos stay ahead of the cursor and get retried: the record
       // stops just BEFORE the oldest failure instead of not advancing at all —
       // one permanently unreadable photo must not force every future scan to
-      // re-OCR the whole month window. Never advanced when cancelled mid-scan.
+      // re-OCR the whole month window. Quota-blocked photos do NOT get this
+      // treatment (by design — see the comment in [_ingest]): the cursor
+      // advances past them like anything else. Never advanced when cancelled
+      // mid-scan.
       final seen = acc.newestSeenAt;
       if (!cancelled() && seen != null) {
         var upTo = seen;
@@ -402,10 +407,6 @@ class SlipImporter {
         if (upTo > startMs) upTo = startMs;
         final failedAt = acc.oldestErrorAt;
         if (failedAt != null && failedAt - 1 < upTo) upTo = failedAt - 1;
-        // Photos the quota blocked were never read — keep the cursor before
-        // them so an Ultra upgrade (or a freed-up quota) re-reads them.
-        final blockedAt = acc.quotaBlockedAt;
-        if (blockedAt != null && blockedAt - 1 < upTo) upTo = blockedAt - 1;
         await _saveScannedUpTo(upTo);
       }
 
@@ -434,25 +435,23 @@ class SlipImporter {
     for (final asset in assets) {
       if (cancelled()) return;
       final seenMs = asset.createDateTime.millisecondsSinceEpoch;
-      // Quota check BEFORE the seen-cursor advances and before the expensive
-      // OCR: a blocked photo must stay unread (and ahead of the cursor) so a
-      // mid-month upgrade can still import it. Keep walking the rest of this
-      // album's (and later albums') assets instead of returning: the cursor
-      // must reflect the OLDEST blocked photo across every matched album, not
-      // just the first one hit, or older backlog elsewhere looks "already
-      // read" and is skipped forever.
+      // The cursor advances past a photo the instant it's considered,
+      // WHETHER OR NOT the quota blocks it — a quota-exhausted photo is
+      // simply skipped, not held for a later retroactive catch-up. Once
+      // credit is added, the NEXT scan starts from wherever the cursor is by
+      // then (i.e. from today), not from the day the quota ran out. Product
+      // decision: "1-20 used up the quota, 20-end of month reads nothing;
+      // whichever day credit lands, reading starts from that day" — not a
+      // month-long backfill of everything the quota blocked.
+      if (acc.newestSeenAt == null || seenMs > acc.newestSeenAt!) {
+        acc.newestSeenAt = seenMs;
+      }
       final isBackfill = isBackfillPhoto(seenMs, acc.backfillCutoffMs);
       if (!already.contains(asset.id) &&
           !isBackfill &&
           acc.quotaUsed >= acc.quotaRemaining) {
         acc.quotaReached = true;
-        if (acc.quotaBlockedAt == null || seenMs < acc.quotaBlockedAt!) {
-          acc.quotaBlockedAt = seenMs;
-        }
         continue;
-      }
-      if (acc.newestSeenAt == null || seenMs > acc.newestSeenAt!) {
-        acc.newestSeenAt = seenMs;
       }
       if (already.contains(asset.id)) continue;
       try {
@@ -552,13 +551,11 @@ class _ScanAcc {
   /// Free-backfill cutoff (photos older than this import free); 0 = none.
   int backfillCutoffMs = 0;
 
-  /// The scan hit the membership limit and stopped early.
+  /// The scan hit the membership limit and stopped early (shown to the user
+  /// as "buy credit / upgrade to keep reading" — informational only; the
+  /// photos it blocked are NOT retroactively re-read, by design: see
+  /// [newestSeenAt]).
   bool quotaReached = false;
-
-  /// Photo time (epoch ms) of the first asset the quota blocked — the
-  /// read-up-to record stays just before it so the photo is re-read once the
-  /// quota allows (upgrade or a freed slot).
-  int? quotaBlockedAt;
 
   /// Photo time (epoch ms) of the newest in-window asset this scan considered
   /// (imported or deduped) — persisted as the read-up-to record afterwards.

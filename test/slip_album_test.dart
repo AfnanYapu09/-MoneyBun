@@ -72,12 +72,15 @@ void main() {
     });
 
     test(
-        'the device cursor wins over a NEWER watermark — a quota/error '
-        'holdback must be re-read after a top-up, not skipped', () {
-      // Newest-first import: when quota ran out mid-batch the newest photos
-      // were already imported (watermark = their time) while older ones were
-      // blocked and the cursor deliberately held BEFORE them. The next scan
-      // must start from the cursor, not jump to the watermark.
+        'the device cursor wins over a NEWER watermark — an error holdback '
+        'must be retried, and another device\'s sync must not skip this '
+        'device\'s own unread backlog', () {
+      // A photo this device failed to OCR is deliberately held BEFORE the
+      // cursor for a retry; another device's newer watermark syncing in must
+      // not jump this device's cutoff past that unread backlog. (Quota-
+      // blocked photos get no such holdback — see the isBackfillPhoto/
+      // quotaReached tests: once the quota trips, the cursor keeps advancing
+      // and those specific photos are simply never retroactively imported.)
       final now = DateTime(2026, 7, 20);
       final newestImported = DateTime(2026, 7, 15, 18).millisecondsSinceEpoch;
       final heldBackCursor = DateTime(2026, 7, 10, 9).millisecondsSinceEpoch;
