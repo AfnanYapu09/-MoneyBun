@@ -37,22 +37,35 @@ class DeviceIdService {
       sha256.convert(utf8.encode('moneybun-device:$rawId')).toString();
 
   Future<String> _rawId() async {
-    // Pinned id first: whichever raw id produced this device's first hash
-    // stays authoritative. Re-querying ANDROID_ID on every call let a
-    // transient plugin failure mint a SECOND identity for the same physical
-    // device — two different hashes defeat the one-redemption-per-device
-    // lock. (A reinstall loses the pin, but ANDROID_ID survives reinstalls,
-    // so the re-pinned value — and the hash — comes out the same.)
+    // Always attempt the real ANDROID_ID first (cheap: one platform-channel
+    // call, no network) rather than short-circuiting on whatever is pinned —
+    // a device that hit a ONE-OFF transient plugin failure on its very first
+    // call used to pin a random UUID and be stuck on it forever, since the
+    // pin was trusted unconditionally on every later call too. That UUID has
+    // no relation to the hardware, so a reinstall (which loses the local pin)
+    // would re-derive from the real ANDROID_ID instead and mint a SECOND,
+    // different hash for the same physical device — silently defeating the
+    // one-redemption-per-device lock this pinning exists for.
+    //
+    // Only write a new pin when the raw id actually needs to change — once
+    // ANDROID_ID is obtained successfully, every later call gets the exact
+    // same value back (it's stable across the app's lifetime) and this is a
+    // no-op read, so this does NOT reintroduce the original "querying every
+    // call risks two different hashes" problem: it only self-heals a bad
+    // pin, it never overwrites a good one with something different.
     final pinned = await _settings.getDeviceIdFallback();
-    if (pinned != null && pinned.isNotEmpty) return pinned;
-    String raw;
-    try {
-      final id = Platform.isAndroid ? await const AndroidId().getId() : null;
-      raw = (id != null && id.isNotEmpty) ? id : const Uuid().v4();
-    } catch (_) {
-      raw = const Uuid().v4();
+    String? live;
+    if (Platform.isAndroid) {
+      try {
+        final id = await const AndroidId().getId();
+        if (id != null && id.isNotEmpty) live = id;
+      } catch (_) {
+        // Transient failure — fall through to the pinned value below instead
+        // of minting yet another random UUID on top of an existing one.
+      }
     }
-    await _settings.setDeviceIdFallback(raw);
+    final raw = live ?? pinned ?? const Uuid().v4();
+    if (raw != pinned) await _settings.setDeviceIdFallback(raw);
     return raw;
   }
 }
